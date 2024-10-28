@@ -2,7 +2,7 @@ name: Create and publish a Docker image
 
 on:
   push:
-    branches: ['dev', 'shard-916-fix']
+    branches: ['dev']
   workflow_dispatch:
     inputs:
       tag:
