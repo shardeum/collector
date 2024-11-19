@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
-FROM node:18.16.1-alpine
-SHELL [ "/bin/sh", "-cex" ]
+FROM node:18.16.1
+SHELL [ "/bin/bash", "-cex" ]
 
 # Create app directory
 WORKDIR /usr/src/app
