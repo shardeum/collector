@@ -83,7 +83,6 @@ export enum AccountSearchType {
   ContractStorage,
   ContractCode,
   InternalTxReceipt,
-  // SecureAccount,
 }
 
 export interface BaseAccount {
