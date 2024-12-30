@@ -146,7 +146,8 @@ export async function processReceiptData(receipts: Receipt[], saveOnlyNewData = 
         accountType === AccountType.NetworkAccount ||
         accountType === AccountType.DevAccount ||
         accountType === AccountType.NodeAccount ||
-        accountType === AccountType.NodeAccount2
+        accountType === AccountType.NodeAccount2 ||
+        accountType === AccountType.SecureAccount
       ) {
         accObj.ethAddress = account.accountId // Adding accountId as ethAddess for these account types for now; since we need ethAddress for mysql index
       }
