@@ -14,7 +14,7 @@ import { bytesToHex } from '@ethereumjs/util'
 import { getContractInfo } from '../class/TxDecoder'
 import { isShardeumIndexerEnabled } from '.'
 import { bulkInsertAccountEntries, insertAccountEntry, updateAccountEntry } from './accountEntry'
-import { Utils as StringUtils } from '@shardus/types'
+import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
 
 type DbAccount = Account & {
   account: string

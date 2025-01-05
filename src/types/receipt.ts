@@ -1,4 +1,4 @@
-import { Signature } from '@shardus/crypto-utils'
+import { Signature } from '@shardeum-foundation/lib-crypto-utils'
 import { Log } from './transaction'
 import { AccountCopy } from './account'
 

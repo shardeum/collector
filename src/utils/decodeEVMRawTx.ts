@@ -2,7 +2,7 @@ import { TransactionFactory, Transaction, TransactionType } from '@ethereumjs/tx
 import { bytesToHex, toAscii, toBytes } from '@ethereumjs/util'
 import { RawTxData } from '../types'
 import { config } from '../config'
-import { Utils as StringUtils } from '@shardus/types'
+import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
 
 export type TransactionObj =
   | Transaction[TransactionType.Legacy]

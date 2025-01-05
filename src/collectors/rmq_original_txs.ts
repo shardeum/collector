@@ -1,7 +1,7 @@
 import * as amqp from 'amqplib'
 import RMQConsumer from '../messaging/rabbitmq/consumer'
 import { validateData } from '../class/validateData'
-import { Utils as StringUtils } from '@shardus/types'
+import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
 
 export default class RMQOriginalTxsConsumer {
   consumer: RMQConsumer

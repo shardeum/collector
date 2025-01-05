@@ -11,7 +11,7 @@ import {
 } from '../types'
 import { getTransactionObj, isStakingEVMTx, getStakeTxBlobFromEVMTx } from '../utils/decodeEVMRawTx'
 import { bytesToHex } from '@ethereumjs/util'
-import { Utils as StringUtils } from '@shardus/types'
+import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
 
 type DbOriginalTxData = OriginalTxData & {
   originalTxData: string

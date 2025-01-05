@@ -1,5 +1,5 @@
 import RMQOriginalTxsConsumer from '../../../src/collectors/rmq_original_txs'
-import * as crypto from '@shardus/crypto-utils'
+import * as crypto from '@shardeum-foundation/lib-crypto-utils'
 import {
   Channel,
   Connection,

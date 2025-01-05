@@ -1,7 +1,7 @@
 import { config } from '../config/index'
 import { Account, AccountEntry } from '../types'
 import * as db from './sqlite3storage'
-import { Utils as StringUtils } from '@shardus/types'
+import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
 
 export async function insertAccountEntry(account: Account): Promise<void> {
   try {

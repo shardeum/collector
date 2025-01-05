@@ -1,5 +1,5 @@
 import RMQReceiptsConsumer from '../../../src/collectors/rmq_receipts'
-import * as crypto from '@shardus/crypto-utils'
+import * as crypto from '@shardeum-foundation/lib-crypto-utils'
 import {
   Channel,
   Connection,
