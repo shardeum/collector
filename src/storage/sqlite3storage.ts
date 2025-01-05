@@ -1,7 +1,7 @@
 import sqlite3Lib from 'sqlite3'
 const sqlite3 = sqlite3Lib.verbose()
 import { config } from '../config'
-import { Utils as StringUtils } from '@shardus/types'
+import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
 let db: sqlite3Lib.Database
 
 // Additional databases

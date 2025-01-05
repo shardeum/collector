@@ -1,6 +1,6 @@
-import * as core from '@shardus/crypto-utils'
-import { SignedObject } from '@shardus/crypto-utils'
-import { Utils as StringUtils } from '@shardus/types'
+import * as core from '@shardeum-foundation/lib-crypto-utils'
+import { SignedObject } from '@shardeum-foundation/lib-crypto-utils'
+import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
 
 import { config as COLLECTOR_CONFIG } from '../config'
 

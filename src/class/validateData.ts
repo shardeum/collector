@@ -1,4 +1,4 @@
-import * as crypto from '@shardus/crypto-utils'
+import * as crypto from '@shardeum-foundation/lib-crypto-utils'
 import * as utils from '../utils'
 import { config as CONFIG } from '../config'
 import { insertOrUpdateCycle } from '../storage/cycle'
@@ -7,7 +7,7 @@ import { processOriginalTxData } from '../storage/originalTxData'
 import { CycleLogWriter, ReceiptLogWriter, OriginalTxDataLogWriter } from './DataLogWriter'
 import { upsertBlocksForCycleCore } from '../storage/block'
 import { Cycle, OriginalTxData, Receipt } from '../types'
-import { Utils as StringUtils } from '@shardus/types'
+import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
 
 export interface Data {
   receipt?: Receipt

@@ -3,7 +3,7 @@
 import fastifyCors from '@fastify/cors'
 import fastifyRateLimit from '@fastify/rate-limit'
 import FastifyWebsocket from '@fastify/websocket'
-import * as crypto from '@shardus/crypto-utils'
+import * as crypto from '@shardeum-foundation/lib-crypto-utils'
 import Fastify from 'fastify'
 import * as usage from './middleware/usage'
 import * as Storage from './storage'
@@ -37,7 +37,7 @@ import { decodeEVMRawTxData } from './utils/decodeEVMRawTx'
 import path from 'path'
 import fs from 'fs'
 import { registerCache } from './cache/LatestBlockCache'
-import { Utils as StringUtils } from '@shardus/types'
+import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
 import { healthCheckRouter } from './routes/healthCheck'
 
 if (config.env == envEnum.DEV) {

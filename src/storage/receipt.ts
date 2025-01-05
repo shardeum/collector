@@ -2,7 +2,7 @@ import { config } from '../config'
 import * as AccountDB from './account'
 import * as TransactionDB from './transaction'
 import * as AccountHistoryStateDB from './accountHistoryState'
-import { Utils as StringUtils } from '@shardus/types'
+import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
 import {
   AccountType,
   TokenTx,

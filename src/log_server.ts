@@ -7,7 +7,7 @@ import { setupCollectorListener } from './log_subscription/CollectorListener'
 import { evmLogSubscriptionHandler } from './log_subscription/Handler'
 import { removeLogSubscriptionBySocketId } from './log_subscription/SocketManager'
 import * as Storage from './storage'
-import { Utils as StringUtils } from '@shardus/types'
+import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
 
 const start = async (): Promise<void> => {
   // Init dependencies

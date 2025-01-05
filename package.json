@@ -1,5 +1,5 @@
 {
-  "name": "collector",
+  "name": "@shardeum-foundation/collector",
   "version": "1.0.0",
   "private": true,
   "main": "dist/src/collector.js",
@@ -24,6 +24,8 @@
     "release:major": "npm run prepare && npm version major && git push --follow-tags && npm publish"
   },
   "dependencies": {
+    "@shardeum-foundation/lib-crypto-utils": "4.1.5",
+    "@shardeum-foundation/lib-types": "1.2.21",
     "@ethereumjs/block": "5.0.0",
     "@ethereumjs/common": "4.0.0",
     "@ethereumjs/rlp": "5.0.0",
@@ -33,8 +35,6 @@
     "@fastify/cors": "8.3.0",
     "@fastify/rate-limit": "8.0.3",
     "@fastify/websocket": "8.2.0",
-    "@shardus/crypto-utils": "git+https://github.com/shardeum/lib-crypto-utils#dev",
-    "@shardus/types": "git+https://github.com/shardeum/lib-types#dev",
     "@svgr/webpack": "8.0.1",
     "@types/node": "18.19.1",
     "@types/socket.io": "2.1.11",

@@ -1,7 +1,7 @@
 import * as dotenv from 'dotenv'
 dotenv.config()
 import WebSocket from 'ws'
-import { Utils as StringUtils } from '@shardus/types'
+import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
 import * as Storage from './storage'
 import * as Crypto from './utils/crypto'
 import * as cycle from './storage/cycle'

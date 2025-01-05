@@ -1,5 +1,5 @@
 import RMQCyclesConsumer from '../../../src/collectors/rmq_cycles'
-import * as crypto from '@shardus/crypto-utils'
+import * as crypto from '@shardeum-foundation/lib-crypto-utils'
 import {
   Channel,
   Connection,

@@ -2,7 +2,7 @@ import { Server, Socket } from 'socket.io'
 import { Data } from '../class/validateData'
 import { config as CONFIG } from '../config'
 import { Receipt } from '../types'
-import { Utils as StringUtils } from '@shardus/types'
+import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
 
 // constants
 const ConnectionEvent = 'connection'

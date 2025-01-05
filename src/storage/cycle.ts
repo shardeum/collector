@@ -6,7 +6,7 @@ import { isBlockIndexingEnabled } from '.'
 import { upsertBlocksForCycle, upsertBlocksForCycles } from './block'
 import { cleanOldReceiptsMap } from './receipt'
 import { cleanOldOriginalTxsMap } from './originalTxData'
-import { Utils as StringUtils } from '@shardus/types'
+import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
 
 export let Collection: unknown
 
