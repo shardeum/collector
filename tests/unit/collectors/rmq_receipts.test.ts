@@ -20,7 +20,7 @@ jest.mock('../../../src/class/DataLogWriter', () => ({
   },
 }))
 
-jest.mock('@shardus/crypto-utils', () => ({
+jest.mock('@shardeum-foundation/lib-crypto-utils', () => ({
   verifyObj: jest.fn(),
 }))
 
