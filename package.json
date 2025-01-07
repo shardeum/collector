@@ -1,6 +1,6 @@
 {
   "name": "@shardeum-foundation/collector",
-  "version": "1.0.1-prerelease.0",
+  "version": "1.0.1-prerelease.1",
   "main": "dist/src/collector.js",
   "scripts": {
     "collector": "npm run prepare && node dist/src/collector.js",
