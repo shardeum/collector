@@ -551,7 +551,7 @@ export const downloadCyclcesBetweenCycles = async (
   totalCyclesToSync: number,
   saveOnlyNewData = false
 ): Promise<void> => {
-  const bucketSize = 1000
+  const bucketSize = 100
   let endCycle = startCycle + bucketSize
   for (; startCycle <= totalCyclesToSync; ) {
     if (endCycle > totalCyclesToSync) endCycle = totalCyclesToSync
