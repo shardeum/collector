@@ -128,17 +128,6 @@ async function startHttpServer() {
 
 export const startServer = async (): Promise<void> => {
   console.log(`Collector Mode: ${CONFIG.collectorMode}`)
-  overrideDefaultConfig(env, args)
-  // Exit if dataLogWrite is enabled and collectorMode is MQ
-  if (CONFIG.dataLogWrite && CONFIG.collectorMode === collectorMode.MQ) {
-    console.error('ERROR: dataLogWrite must be disabled when running in MQ mode. Please restart the collector with dataLogWrite turned off.')
-    process.exit(1)
-  }
-  // Set crypto hash keys from config
-  Crypto.setCryptoHashKey(CONFIG.hashKey)
-
-  await Storage.initializeDB()
-  Storage.addExitListeners(ws)
 
   // Check if there is any existing data in the db
   let lastStoredReceiptCount = await receipt.queryReceiptCount()
@@ -235,28 +224,6 @@ export const startServer = async (): Promise<void> => {
       throw Error(
         'The existing db has more originalTxsData data than the network data! Clear the DB and start the server again!'
       )
-    }
-  }
-
-  if (CONFIG.dataLogWrite) await initDataLogWriter()
-
-  if (CONFIG.enableCollectorSocketServer) setupCollectorSocketServer()
-  addSigListeners()
-
-  if (CONFIG.collectorMode === collectorMode.MQ) {
-    await startHttpServer()
-    startRMQEventsConsumers()
-  } else {
-    const CONNECT_TO_DISTRIBUTOR_MAX_RETRY = 10
-    let retry = 0
-    // Connect to the distributor
-    while (!connected) {
-      connectToDistributor()
-      retry++
-      await sleep(2000)
-      if (!connected && retry > CONNECT_TO_DISTRIBUTOR_MAX_RETRY) {
-        throw Error('Cannot connect to the distributor!')
-      }
     }
   }
 
@@ -419,6 +386,41 @@ const addSigListeners = (): void => {
 }
 
 const startLoop = async () => {
+  // Override default configuration with environment variables and arguments
+  overrideDefaultConfig(env, args)
+
+  // Set crypto hash keys from config
+  Crypto.setCryptoHashKey(CONFIG.hashKey)
+
+  // Initialize the database
+  await Storage.initializeDB()
+  Storage.addExitListeners(ws)
+
+  // Initialize data log writer if enabled
+  if (CONFIG.dataLogWrite) await initDataLogWriter()
+
+  // Setup collector socket server if enabled
+  if (CONFIG.enableCollectorSocketServer) setupCollectorSocketServer()
+
+  // Add signal listeners
+  addSigListeners()
+
+  // Start RabbitMQ event consumers or connect to distributor based on collector mode
+  if (CONFIG.collectorMode === collectorMode.MQ) {
+    startRMQEventsConsumers()
+  } else {
+    const CONNECT_TO_DISTRIBUTOR_MAX_RETRY = 10
+    let retry = 0
+    while (!connected) {
+      connectToDistributor()
+      retry++
+      await sleep(2000)
+      if (!connected && retry > CONNECT_TO_DISTRIBUTOR_MAX_RETRY) {
+        throw Error('Cannot connect to the distributor!')
+      }
+    }
+  }
+
   while (true) {
     try {
       startServer()
