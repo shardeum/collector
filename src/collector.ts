@@ -7,6 +7,7 @@ import * as Crypto from './utils/crypto'
 import * as cycle from './storage/cycle'
 import * as receipt from './storage/receipt'
 import * as originalTxData from './storage/originalTxData'
+import * as checkpoint from './storage/checkpoint'
 import {
   downloadTxsDataAndCycles,
   compareWithOldReceiptsData,
@@ -48,10 +49,10 @@ const args = process.argv
 
 import path = require('path')
 import fs = require('fs')
-import FastifyWebsocket from '@fastify/websocket'
 import Fastify from 'fastify'
 import fastifyRateLimit from '@fastify/rate-limit'
 import { healthCheckRouter } from './routes/healthCheck'
+import { startPatching } from './utils/patchCollector'
 
 if (config.env == envEnum.DEV) {
   //default debug mode keys
@@ -428,8 +429,17 @@ const startLoop = async () => {
     } catch (e) {
       console.error(`Collector process stopped due to error: ${e.message}`)
       console.log('Attempting fix..')
-      // TODO: Implement repair function
+      // fetch latest checkpoint
+      const lastKnownCycle = await checkpoint.fetchCheckpoint()
+
+      // starts the syncing process
+      const status = await startPatching(lastKnownCycle)
+
       // TODO: If repair fails, break out of the while loop
+      if (!status) {
+        console.error('Patching process failed, shutting down the collector process.')
+        break
+      }
       await new Promise((resolve) => setTimeout(resolve, 2000)) // Wait for 2 seconds before we restart
     }
   }

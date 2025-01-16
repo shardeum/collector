@@ -1,15 +1,5 @@
-import dotenv from 'dotenv'
-dotenv.config()
-import * as Crypto from '../utils/crypto'
-import * as Storage from '../storage'
 import * as DataSync from '../class/DataSync'
-import { config, overrideDefaultConfig } from '../config'
-
-let startCycle = 0
-let endCycle = 0
-
-const cycleNumberToSyncFrom = process.argv[2]
-const cycleNumberToSyncTo = process.argv[3]
+import { config } from '../config'
 
 const patchOnlyMissingData = true
 
@@ -32,30 +22,33 @@ const patchOnlyMissingData = true
  *
  * @returns {Promise<void>} A promise that resolves when the patching process is complete.
  */
-export async function startPatching(): Promise<void> {
-  if (cycleNumberToSyncFrom) {
-    startCycle = parseInt(cycleNumberToSyncFrom)
-  }
-  if (cycleNumberToSyncTo) {
-    endCycle = parseInt(cycleNumberToSyncTo)
-  } else {
-    const response = await DataSync.queryFromDistributor(DataSync.DataType.TOTALDATA, {})
-    if (response.data && response.data.totalReceipts >= 0 && response.data.totalCycles >= 0) {
-      endCycle = response.data.totalCycles
+export async function startPatching(startCycle: number, endCycle?: number): Promise<boolean> {
+  try {
+    if (!endCycle) {
+      const response = await DataSync.queryFromDistributor(DataSync.DataType.TOTALDATA, {})
+      if (response.data && response.data.totalReceipts >= 0 && response.data.totalCycles >= 0) {
+        endCycle = response.data.totalCycles
+      }
     }
+
+    if (endCycle === undefined) {
+      throw new Error('Unable to fetch the end cycle')
+    }
+    if (config.verbose) console.log('Start Patching from Cycle', startCycle, 'till the End Cycle', endCycle)
+
+    await DataSync.downloadAndSyncGenesisAccounts() // To sync accounts data that are from genesis accounts/accounts data that the network start with
+    // TO DO : revisit purpose of genesis syncing
+    await DataSync.downloadCyclcesBetweenCycles(startCycle, endCycle, patchOnlyMissingData)
+    if (config.verbose) console.log('Cycles Patched!')
+    await DataSync.downloadReceiptsBetweenCycles(startCycle, endCycle, patchOnlyMissingData)
+    if (config.verbose) console.log('Receipts Patched!')
+    await DataSync.downloadOriginalTxsDataBetweenCycles(startCycle, endCycle, patchOnlyMissingData)
+    if (config.verbose) console.log('OriginalTxs Patched!')
+
+    if (config.verbose) console.log('Patching done! from cycle', startCycle, 'to cycle', endCycle)
+    return true
+  } catch (error) {
+    console.error('Error during patching process:', error, 'for the cycle ', startCycle)
+    return false
   }
-  if (config.verbose) console.log('Start Patching from Cycle', startCycle, 'till the End Cycle', endCycle)
-
-  await DataSync.downloadAndSyncGenesisAccounts() // To sync accounts data that are from genesis accounts/accounts data that the network start with
-
-  await DataSync.downloadCyclcesBetweenCycles(startCycle, endCycle, patchOnlyMissingData)
-  if (config.verbose) console.log('Cycles Patched!')
-  await DataSync.downloadReceiptsBetweenCycles(startCycle, endCycle, patchOnlyMissingData)
-  if (config.verbose) console.log('Receipts Patched!')
-  await DataSync.downloadOriginalTxsDataBetweenCycles(startCycle, endCycle, patchOnlyMissingData)
-  if (config.verbose) console.log('OriginalTxs Patched!')
-
-  if (config.verbose) console.log('Patching done! from cycle', startCycle, 'to cycle', endCycle)
 }
-
-startPatching()
