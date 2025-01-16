@@ -419,7 +419,3 @@ const addSigListeners = (): void => {
 }
 
 startServer()
-
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception in Collector: ', error)
-})
