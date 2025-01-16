@@ -418,4 +418,19 @@ const addSigListeners = (): void => {
   console.log('Registerd signal listeners.')
 }
 
-startServer()
+const startLoop = async () => {
+  while (true) {
+    try {
+      startServer()
+      break
+    } catch (e) {
+      console.error(`Collector process stopped due to error: ${e.message}`)
+      console.log('Attempting fix..')
+      // TODO: Implement repair function
+      // TODO: If repair fails, break out of the while loop
+      await new Promise((resolve) => setTimeout(resolve, 2000)) // Wait for 2 seconds before we restart
+    }
+  }
+}
+
+startLoop()
