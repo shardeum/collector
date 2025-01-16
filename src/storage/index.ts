@@ -116,6 +116,9 @@ export const initializeDB = async (): Promise<void> => {
   await db.runCreate(
     'CREATE INDEX if not exists `accountHistoryState_idx` ON `accountHistoryState` (`accountId`, `blockHash`, `blockNumber` DESC, `timestamp` DESC)'
   )
+
+  // Table for checkpoints
+  await db.runCreate('CREATE TABLE if not exists `checkpoint` (cycle INTEGER UNIQUE NOT NULL)')
 }
 
 export const closeDatabase = async (): Promise<void> => {
