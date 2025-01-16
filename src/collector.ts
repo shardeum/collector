@@ -390,6 +390,11 @@ const startLoop = async () => {
   // Override default configuration with environment variables and arguments
   overrideDefaultConfig(env, args)
 
+  if (!config.collectorInfo.secretKey || !config.collectorInfo.publicKey) {
+    console.error('Please provide a keypair in collector config')
+    process.exit(1)
+  }
+
   // Set crypto hash keys from config
   Crypto.setCryptoHashKey(CONFIG.hashKey)
 
@@ -424,7 +429,7 @@ const startLoop = async () => {
 
   while (true) {
     try {
-      startServer()
+      await startServer()
       break
     } catch (e) {
       console.error(`Collector process stopped due to error: ${e.message}`)
