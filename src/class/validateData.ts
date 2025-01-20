@@ -48,12 +48,16 @@ export async function validateData(data: Data): Promise<boolean> {
   }
 
   if (data.receipt) {
-    ReceiptLogWriter.writeToLog(`${StringUtils.safeStringify(data.receipt)}\n`)
+    if (CONFIG.dataLogWrite) {
+      ReceiptLogWriter.writeToLog(`${StringUtils.safeStringify(data.receipt)}\n`)
+    }
     await processReceiptData([data.receipt])
     return true
   }
   if (data.cycle) {
-    CycleLogWriter.writeToLog(`${StringUtils.safeStringify(data.cycle)}\n`)
+    if (CONFIG.dataLogWrite) {
+      CycleLogWriter.writeToLog(`${StringUtils.safeStringify(data.cycle)}\n`)
+    }
     await insertOrUpdateCycle(data.cycle)
     // optimistically upsert blocks for next cycle if it is wrong, it will be corrected in next cycle
     await upsertBlocksForCycleCore(
@@ -63,7 +67,9 @@ export async function validateData(data: Data): Promise<boolean> {
     return true
   }
   if (data.originalTx) {
-    OriginalTxDataLogWriter.writeToLog(`${StringUtils.safeStringify(data.originalTx)}\n`)
+    if (CONFIG.dataLogWrite) {
+      OriginalTxDataLogWriter.writeToLog(`${StringUtils.safeStringify(data.originalTx)}\n`)
+    }
     await processOriginalTxData([data.originalTx])
     return true
   }
