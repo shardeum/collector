@@ -23,32 +23,44 @@ const patchOnlyMissingData = true
  * @returns {Promise<void>} A promise that resolves when the patching process is complete.
  */
 export async function startPatching(startCycle: number, endCycle?: number): Promise<boolean> {
-  try {
-    if (!endCycle) {
-      const response = await DataSync.queryFromDistributor(DataSync.DataType.TOTALDATA, {})
-      if (response.data && response.data.totalReceipts >= 0 && response.data.totalCycles >= 0) {
-        endCycle = response.data.totalCycles
+  const maxRetries = 3
+  let attempt = 0
+
+  while (attempt < maxRetries) {
+    try {
+      if (!endCycle) {
+        const response = await DataSync.queryFromDistributor(DataSync.DataType.TOTALDATA, {})
+        if (response.data && response.data.totalReceipts >= 0 && response.data.totalCycles >= 0) {
+          endCycle = response.data.totalCycles
+        }
       }
+
+      if (endCycle === undefined) {
+        throw new Error('Unable to fetch the end cycle')
+      }
+      if (config.verbose) console.log('Start Patching from Cycle', startCycle, 'till the End Cycle', endCycle)
+
+      await DataSync.downloadAndSyncGenesisAccounts() // To sync accounts data that are from genesis accounts/accounts data that the network start with
+      // TO DO : revisit purpose of genesis syncing
+      await DataSync.downloadCyclcesBetweenCycles(startCycle, endCycle, patchOnlyMissingData)
+      if (config.verbose) console.log('Cycles Patched!')
+      await DataSync.downloadReceiptsBetweenCycles(startCycle, endCycle, patchOnlyMissingData)
+      if (config.verbose) console.log('Receipts Patched!')
+      await DataSync.downloadOriginalTxsDataBetweenCycles(startCycle, endCycle, patchOnlyMissingData)
+      if (config.verbose) console.log('OriginalTxs Patched!')
+
+      if (config.verbose) console.log('Patching done! from cycle', startCycle, 'to cycle', endCycle)
+      return true
+    } catch (error) {
+      attempt++
+      console.error(`Error during patching process (attempt ${attempt}):`, error, 'for the cycle', startCycle)
+      if (attempt >= maxRetries) {
+        console.error('Max retries reached. Patching failed.')
+        return false
+      }
+      console.log(`Retrying patching process (attempt ${attempt + 1})...`)
     }
-
-    if (endCycle === undefined) {
-      throw new Error('Unable to fetch the end cycle')
-    }
-    if (config.verbose) console.log('Start Patching from Cycle', startCycle, 'till the End Cycle', endCycle)
-
-    await DataSync.downloadAndSyncGenesisAccounts() // To sync accounts data that are from genesis accounts/accounts data that the network start with
-    // TO DO : revisit purpose of genesis syncing
-    await DataSync.downloadCyclcesBetweenCycles(startCycle, endCycle, patchOnlyMissingData)
-    if (config.verbose) console.log('Cycles Patched!')
-    await DataSync.downloadReceiptsBetweenCycles(startCycle, endCycle, patchOnlyMissingData)
-    if (config.verbose) console.log('Receipts Patched!')
-    await DataSync.downloadOriginalTxsDataBetweenCycles(startCycle, endCycle, patchOnlyMissingData)
-    if (config.verbose) console.log('OriginalTxs Patched!')
-
-    if (config.verbose) console.log('Patching done! from cycle', startCycle, 'to cycle', endCycle)
-    return true
-  } catch (error) {
-    console.error('Error during patching process:', error, 'for the cycle ', startCycle)
-    return false
   }
+
+  return false
 }
