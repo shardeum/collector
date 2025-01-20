@@ -96,6 +96,11 @@ if (config.env == envEnum.DEV) {
 export const startServer = async (): Promise<void> => {
   console.log(`Collector Mode: ${CONFIG.collectorMode}`)
   overrideDefaultConfig(env, args)
+  // Exit if dataLogWrite is enabled and collectorMode is MQ
+  if (CONFIG.dataLogWrite && CONFIG.collectorMode === collectorMode.MQ) {
+    console.error('ERROR: dataLogWrite must be disabled when running in MQ mode. Please restart the collector with dataLogWrite turned off.')
+    process.exit(1)
+  }
   // Set crypto hash keys from config
   Crypto.setCryptoHashKey(CONFIG.hashKey)
 
