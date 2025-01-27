@@ -1,0 +1,432 @@
+openapi: 3.0.0
+info:
+  title: Collector API
+  version: 1.0.0
+paths:
+  /api/account:
+    get:
+      summary: Get account information
+      parameters:
+        - name: count
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: string
+        - name: address
+          in: query
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+        - name: accountType
+          in: query
+          schema:
+            type: string
+        - name: startCycle
+          in: query
+          schema:
+            type: string
+        - name: endCycle
+          in: query
+          schema:
+            type: string
+        - name: accountId
+          in: query
+          schema:
+            type: string
+        - name: blockNumber
+          in: query
+          schema:
+            type: string
+        - name: blockHash
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/token:
+    get:
+      summary: Get token information
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: string
+        - name: address
+          in: query
+          schema:
+            type: string
+        - name: contractAddress
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/transaction:
+    get:
+      summary: Get transaction information
+      parameters:
+        - name: count
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: string
+        - name: txHash
+          in: query
+          schema:
+            type: string
+        - name: address
+          in: query
+          schema:
+            type: string
+        - name: token
+          in: query
+          schema:
+            type: string
+        - name: filterAddress
+          in: query
+          schema:
+            type: string
+        - name: txType
+          in: query
+          schema:
+            type: string
+        - name: startCycle
+          in: query
+          schema:
+            type: string
+        - name: endCycle
+          in: query
+          schema:
+            type: string
+        - name: txId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /usage/metrics:
+    get:
+      summary: Get usage metrics
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricsResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/receipt:
+    get:
+      summary: Get receipt information
+      parameters:
+        - name: txHash
+          in: query
+          schema:
+            type: string
+        - name: blockNumber
+          in: query
+          schema:
+            type: string
+        - name: blockHash
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReceiptResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/originalTx:
+    get:
+      summary: Get original transaction information
+      parameters:
+        - name: txHash
+          in: query
+          schema:
+            type: string
+        - name: decode
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OriginalTxResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/log:
+    get:
+      summary: Get log information
+      parameters:
+        - name: fromBlock
+          in: query
+          schema:
+            type: string
+        - name: toBlock
+          in: query
+          schema:
+            type: string
+        - name: address
+          in: query
+          schema:
+            type: string
+        - name: topics
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /totalData:
+    get:
+      summary: Get total data information
+      parameters:
+        - name: totalStakeData
+          in: query
+          schema:
+            type: string
+        - name: beforeTimestamp
+          in: query
+          schema:
+            type: string
+        - name: afterTimestamp
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TotalDataResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/blocks:
+    get:
+      summary: Get block information
+      parameters:
+        - name: blockNumber
+          in: query
+          schema:
+            type: string
+        - name: blockHash
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlockResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v2/logs:
+    get:
+      summary: Get v2 log information
+      parameters:
+        - name: fromBlock
+          in: query
+          schema:
+            type: string
+        - name: toBlock
+          in: query
+          schema:
+            type: string
+        - name: address
+          in: query
+          schema:
+            type: string
+        - name: topics
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    AccountResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        accounts:
+          type: array
+          items:
+            type: object
+        totalPages:
+          type: integer
+        totalAccounts:
+          type: integer
+        totalContracts:
+          type: integer
+    TokenResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        tokens:
+          type: array
+          items:
+            type: object
+        totalPages:
+          type: integer
+        totalTokenHolders:
+          type: integer
+    TransactionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        transactions:
+          type: array
+          items:
+            type: object
+        totalPages:
+          type: integer
+        totalTransactions:
+          type: integer
+    MetricsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        metrics:
+          type: object
+    ReceiptResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        receipt:
+          type: object
+    OriginalTxResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        originalTx:
+          type: object
+    LogResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        logs:
+          type: array
+          items:
+            type: object
+    TotalDataResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        totalData:
+          type: object
+    BlockResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        block:
+          type: object
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        error:
+          type: string
