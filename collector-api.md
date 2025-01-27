@@ -1,16 +1,10 @@
 ---
-title: Collector API v1.0.0
-toc_footers: []
-includes: []
-search: true
-highlight_theme: darkula
-headingLevel: 2
-
+title: Shardeum Collector API
 ---
 
 <!-- Generator: Widdershins v4.0.1 -->
 
-<h1 id="collector-api">Collector API</h1>
+<h1 id="collector-api">Shardeum Collector API</h1>
 
 
 ## get__api_account
