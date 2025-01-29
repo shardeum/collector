@@ -5,6 +5,7 @@ import { insertOrUpdateCycle } from '../storage/cycle'
 import { processReceiptData } from '../storage/receipt'
 import { processOriginalTxData } from '../storage/originalTxData'
 import { CycleLogWriter, ReceiptLogWriter, OriginalTxDataLogWriter } from './DataLogWriter'
+import * as checkpoint from '../storage/checkpoint'
 import { upsertBlocksForCycleCore } from '../storage/block'
 import { Cycle, OriginalTxData, Receipt } from '../types'
 import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
@@ -64,6 +65,11 @@ export async function validateData(data: Data): Promise<boolean> {
       data.cycle.counter + 1,
       data.cycle.cycleRecord.start + CONFIG.blockIndexing.cycleDurationInSeconds
     )
+    if (data.cycle.counter) {
+      const checkpointValue = data.cycle.counter
+      console.log('Inserting checkpoint', checkpointValue)
+      checkpoint.insertCheckpoint(checkpointValue)
+    }
     return true
   }
   if (data.originalTx) {

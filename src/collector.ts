@@ -436,6 +436,7 @@ const startLoop = async () => {
       console.log('Attempting fix..')
       // fetch latest checkpoint
       const lastKnownCycle = await checkpoint.fetchCheckpoint()
+      console.log('The last known checkpoint to patch from is', lastKnownCycle)
 
       // starts the syncing process
       const status = await startPatching(lastKnownCycle)
