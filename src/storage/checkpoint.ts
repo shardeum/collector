@@ -2,40 +2,48 @@ import { config } from '../config'
 import * as db from './sqlite3storage'
 
 /**
- * Inserts or replaces a checkpoint entry in the database with the given cycle number.
+ * Replaces a checkpoint entry in the database with the given value.
  *
- * @param {number} cycle - The cycle number to be inserted into the checkpoint table.
+ * @param {number} value - The value to be inserted into the checkpoint table.
+ * @param {string} [type='cycle'] - The type of the checkpoint (default is 'cycle').
  * @returns {Promise<void>} A promise that resolves when the operation is complete.
  *
  * @throws Will log an error message if the database operation fails.
  */
-export async function insertCheckpoint(cycle: number): Promise<void> {
+export async function insertCheckpoint(value: number, type: string = 'cycle'): Promise<void> {
   try {
-    const sql = 'INSERT OR REPLACE INTO `checkpoint` (cycle) VALUES (?)'
-    await db.run(sql, [cycle])
-    if (config.verbose) console.log(`Successfully inserted checkpoint ${cycle}`)
+    const sql = 'REPLACE INTO `checkpoint` (type, value) VALUES (?, ?)'
+    await db.run(sql, [type, value])
+    if (config.verbose) console.log(`Successfully replaced checkpoint ${type} with value ${value}`)
   } catch (e) {
-    console.log(`Error in insertCheckpoint with cycle ${cycle}: ${e}`)
+    console.error(`Error in insertCheckpoint with type ${type} and value ${value}:`, e)
   }
 }
 
 /**
- * Fetches the latest checkpoint cycle from the database.
+ * Fetches the latest checkpoint value for a given type from the database.
  *
- * @returns {Promise<number | null>} A promise that resolves to the cycle number if found, otherwise null.
- * @throws Will log an error message and return null if the database query fails.
+ * @param {string} [type='cycle'] - The type of the checkpoint (default is 'cycle').
+ * @returns {Promise<number>} A promise that resolves to the value if found.
+ * @throws Will log an error message and throw an error if the database query fails or if the value is not found.
  */
-export async function fetchCheckpoint(): Promise<number | null> {
+export async function fetchCheckpoint(type: string = 'cycle'): Promise<number> {
   try {
     const sql = `
-      SELECT cycle
+      SELECT value
       FROM checkpoint
+      WHERE type = ?
       LIMIT 1
     `
-    const result: { cycle: number } = await db.get(sql)
-    return typeof result?.cycle === 'number' ? result.cycle : null
+    const result: { value: number } = await db.get(sql, [type])
+    if (result?.value === undefined) {
+      // indicating that a checkpoint has not been inserted yet into the dB
+      console.log(`a checkpoint has not been inserted yet into the dB, returning checkpoint as 0`)
+      return 0
+    }
+    return result.value
   } catch (e) {
-    console.log(`Error in fetchCheckpoint:`, e)
-    return null
+    console.error(`Error in fetchCheckpoint with type ${type}:`, e)
+    throw e
   }
 }

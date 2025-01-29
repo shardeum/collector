@@ -38,6 +38,7 @@ import { sleep } from './utils'
 import RMQCyclesConsumer from './collectors/rmq_cycles'
 import RMQOriginalTxsConsumer from './collectors/rmq_original_txs'
 import RMQReceiptsConsumer from './collectors/rmq_receipts'
+import * as db from './storage/sqlite3storage'
 
 const DistributorFirehoseEvent = 'FIREHOSE'
 let ws: WebSocket
@@ -427,6 +428,13 @@ const startLoop = async () => {
     }
   }
 
+  async function shutdownCollector() {
+    // Perform any necessary cleanup here
+    await db.close() // Close the database connection
+    console.log('Collector shut down complete.')
+    process.exit(0) // Exit the process
+  }
+
   while (true) {
     try {
       await startServer()
@@ -441,12 +449,10 @@ const startLoop = async () => {
       // starts the syncing process
       const status = await startPatching(lastKnownCycle)
 
-      // TODO: If repair fails, break out of the while loop
       if (!status) {
         console.error('Patching process failed, shutting down the collector process.')
-        break
+        await shutdownCollector() // Perform graceful shutdown
       }
-      await new Promise((resolve) => setTimeout(resolve, 2000)) // Wait for 2 seconds before we restart
     }
   }
 }

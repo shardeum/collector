@@ -118,7 +118,9 @@ export const initializeDB = async (): Promise<void> => {
   )
 
   // Table for checkpoints
-  await db.runCreate('CREATE TABLE if not exists `checkpoint` (cycle INTEGER UNIQUE NOT NULL)')
+  await db.runCreate(
+    'CREATE TABLE IF NOT EXISTS `checkpoint` (type TEXT UNIQUE NOT NULL, value INTEGER NOT NULL)'
+  )
 }
 
 export const closeDatabase = async (): Promise<void> => {

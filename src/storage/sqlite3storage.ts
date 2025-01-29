@@ -18,6 +18,7 @@ export interface DbOptions {
 export async function init(config: DbOptions): Promise<void> {
   db = new sqlite3.Database(config.defaultDbSqlitePath)
   await run('PRAGMA journal_mode=WAL')
+  await run('PRAGMA busy_timeout = 5000') // Set busy timeout to 5 seconds
   console.log('Database initialized.')
   if (config.enableShardeumIndexer) {
     shardeumIndexerDb = new sqlite3.Database(config.shardeumIndexerSqlitePath)
