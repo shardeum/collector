@@ -384,6 +384,11 @@ const addSigListeners = (): void => {
     overrideDefaultConfig(env, args)
     console.log('Config reloaded', CONFIG)
   })
+  process.on('SIGINT', async () => {
+    console.log('DETECTED SIGINT SIGNAL')
+    await db.close()
+    process.exit(0)
+  })
   console.log('Registerd signal listeners.')
 }
 
