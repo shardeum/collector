@@ -34,7 +34,7 @@ export async function insertOriginalTxData(
     const placeholders = Object.keys(originalTxData).fill('?').join(', ')
     const values = extractValues(originalTxData)
     const sql = `INSERT OR REPLACE INTO ${tableName} (` + fields + ') VALUES (' + placeholders + ')'
-    await db.run(sql, values)
+    db.run(sql, values)
     if (config.verbose) console.log(`Successfully inserted ${tableName}`, originalTxData.txId)
   } catch (e) {
     console.log(e)
@@ -54,7 +54,7 @@ export async function bulkInsertOriginalTxsData(
     for (let i = 1; i < originalTxsData.length; i++) {
       sql = sql + ', (' + placeholders + ')'
     }
-    await db.run(sql, values)
+    db.run(sql, values)
     console.log(`Successfully bulk inserted ${tableName}`, originalTxsData.length)
   } catch (e) {
     console.log(e)
@@ -176,12 +176,12 @@ export async function queryOriginalTxDataCount(
           txType === TransactionSearchType.Receipt
             ? TransactionType.Receipt
             : txType === TransactionSearchType.NodeRewardReceipt
-            ? TransactionType.NodeRewardReceipt
-            : txType === TransactionSearchType.StakeReceipt
-            ? TransactionType.StakeReceipt
-            : txType === TransactionSearchType.UnstakeReceipt
-            ? TransactionType.UnstakeReceipt
-            : TransactionType.InternalTxReceipt
+              ? TransactionType.NodeRewardReceipt
+              : txType === TransactionSearchType.StakeReceipt
+                ? TransactionType.StakeReceipt
+                : txType === TransactionSearchType.UnstakeReceipt
+                  ? TransactionType.UnstakeReceipt
+                  : TransactionType.InternalTxReceipt
         sql += ` transactionType=?`
         values.push(ty)
       }
@@ -234,12 +234,12 @@ export async function queryOriginalTxsData(
           txType === TransactionSearchType.Receipt
             ? TransactionType.Receipt
             : txType === TransactionSearchType.NodeRewardReceipt
-            ? TransactionType.NodeRewardReceipt
-            : txType === TransactionSearchType.StakeReceipt
-            ? TransactionType.StakeReceipt
-            : txType === TransactionSearchType.UnstakeReceipt
-            ? TransactionType.UnstakeReceipt
-            : TransactionType.InternalTxReceipt
+              ? TransactionType.NodeRewardReceipt
+              : txType === TransactionSearchType.StakeReceipt
+                ? TransactionType.StakeReceipt
+                : txType === TransactionSearchType.UnstakeReceipt
+                  ? TransactionType.UnstakeReceipt
+                  : TransactionType.InternalTxReceipt
         sql += ` transactionType=?`
         values.push(ty)
       }

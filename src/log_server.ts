@@ -12,7 +12,7 @@ import { healthCheckRouter } from './routes/healthCheck'
 
 const start = async (): Promise<void> => {
   // Init dependencies
-  await Storage.initializeDB()
+  Storage.initializeDB()
   Storage.addExitListeners()
   await setupCollectorListener()
 

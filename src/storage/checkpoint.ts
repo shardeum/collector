@@ -13,7 +13,7 @@ import * as db from './sqlite3storage'
 export async function insertCheckpoint(value: number, type: string = 'cycle'): Promise<void> {
   try {
     const sql = 'REPLACE INTO `checkpoint` (type, value) VALUES (?, ?)'
-    await db.run(sql, [type, value])
+    db.run(sql, [type, value])
     if (config.verbose) console.log(`Successfully replaced checkpoint ${type} with value ${value}`)
   } catch (e) {
     console.error(`Error in insertCheckpoint with type ${type} and value ${value}:`, e)

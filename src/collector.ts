@@ -386,7 +386,7 @@ const addSigListeners = (): void => {
   })
   process.on('SIGINT', async () => {
     console.log('DETECTED SIGINT SIGNAL')
-    await db.close()
+    db.close()
     process.exit(0)
   })
   console.log('Registerd signal listeners.')
@@ -405,7 +405,7 @@ const startLoop = async () => {
   Crypto.setCryptoHashKey(CONFIG.hashKey)
 
   // Initialize the database
-  await Storage.initializeDB()
+  Storage.initializeDB()
   Storage.addExitListeners(ws)
 
   // Initialize data log writer if enabled
@@ -433,9 +433,9 @@ const startLoop = async () => {
     }
   }
 
-  async function shutdownCollector() {
+  function shutdownCollector() {
     // Perform any necessary cleanup here
-    await db.close() // Close the database connection
+    db.close() // Close the database connection
     console.log('Collector shut down complete.')
     process.exit(0) // Exit the process
   }

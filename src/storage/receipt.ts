@@ -20,6 +20,7 @@ import { extractValues, extractValuesFromArray } from './sqlite3storage'
 import { decodeTx, getContractInfo, ZERO_ETH_ADDRESS } from '../class/TxDecoder'
 import { bytesToHex } from '@ethereumjs/util'
 import { forwardReceiptData } from '../log_subscription/CollectorSocketconnection'
+import { zip } from 'lodash'
 
 type DbReceipt = Receipt & {
   tx: string
@@ -37,7 +38,7 @@ export async function insertReceipt(receipt: Receipt): Promise<void> {
     const placeholders = Object.keys(receipt).fill('?').join(', ')
     const values = extractValues(receipt)
     const sql = 'INSERT OR REPLACE INTO receipts (' + fields + ') VALUES (' + placeholders + ')'
-    await db.run(sql, values)
+    db.run(sql, values)
     if (config.verbose) console.log('Successfully inserted Receipt', receipt.receiptId)
   } catch (e) {
     console.log(e)
@@ -54,10 +55,27 @@ export async function bulkInsertReceipts(receipts: Receipt[]): Promise<void> {
     for (let i = 1; i < receipts.length; i++) {
       sql = sql + ', (' + placeholders + ')'
     }
-    await db.run(sql, values)
+    db.run(sql, values)
     console.log('Successfully bulk inserted receipts', receipts.length)
   } catch (e) {
     console.log(e)
+    const value = extractValuesFromArray(receipts.slice(0, 1))
+    const fields = Object.keys(receipts[0])
+    zip(fields, value)
+    for (const [field, val] of zip(fields, value)) {
+      console.log(`${field} === ${val} AND THE TYPE IS ${typeof val}`)
+    }
+    for (let i = 0; i < value.length; i++) {
+      if (
+        value[i] !== null &&
+        typeof value[i] !== "string" &&
+        typeof value[i] !== "number" &&
+        typeof value[i] !== "bigint" &&
+        !Buffer.isBuffer(value[i])
+      ) {
+        console.error(`🚨 Invalid value at index ${i}:`, value[i], "Type:", typeof value[i]);
+      }
+    }
     console.log('Unable to bulk insert receipts', receipts.length)
   }
 }
@@ -119,7 +137,7 @@ export async function processReceiptData(receipts: Receipt[], saveOnlyNewData = 
           accountType === AccountType.Account &&
           'account' in accObj.account &&
           bytesToHex(Uint8Array.from(Object.values(accObj.account.account.codeHash))) !==
-            AccountDB.EOA_CodeHash
+          AccountDB.EOA_CodeHash
         ) {
           const accountExist = await AccountDB.queryAccountByAccountId(accObj.accountId)
           if (config.verbose) console.log('accountExist', accountExist)
@@ -189,14 +207,14 @@ export async function processReceiptData(receipts: Receipt[], saveOnlyNewData = 
         txReceipt.data.accountType === AccountType.Receipt
           ? TransactionType.Receipt
           : txReceipt.data.accountType === AccountType.NodeRewardReceipt
-          ? TransactionType.NodeRewardReceipt
-          : txReceipt.data.accountType === AccountType.StakeReceipt
-          ? TransactionType.StakeReceipt
-          : txReceipt.data.accountType === AccountType.UnstakeReceipt
-          ? TransactionType.UnstakeReceipt
-          : txReceipt.data.accountType === AccountType.InternalTxReceipt
-          ? TransactionType.InternalTxReceipt
-          : (-1 as TransactionType)
+            ? TransactionType.NodeRewardReceipt
+            : txReceipt.data.accountType === AccountType.StakeReceipt
+              ? TransactionType.StakeReceipt
+              : txReceipt.data.accountType === AccountType.UnstakeReceipt
+                ? TransactionType.UnstakeReceipt
+                : txReceipt.data.accountType === AccountType.InternalTxReceipt
+                  ? TransactionType.InternalTxReceipt
+                  : (-1 as TransactionType)
       blockHash = txReceipt.data?.readableReceipt?.blockHash
       if (!blockHash) console.error(`Transaction ${tx.txId} has no blockHash`)
       blockNumber = parseInt(txReceipt.data?.readableReceipt?.blockNumber)
@@ -358,10 +376,10 @@ export async function processReceiptData(receipts: Receipt[], saveOnlyNewData = 
     await AccountHistoryStateDB.bulkInsertAccountHistoryStates(accountHistoryStateList)
 }
 
-export async function queryReceiptByReceiptId(receiptId: string): Promise<Receipt | null> {
+export function queryReceiptByReceiptId(receiptId: string): Receipt | null {
   try {
     const sql = `SELECT * FROM receipts WHERE receiptId=?`
-    const receipt: DbReceipt = await db.get(sql, [receiptId])
+    const receipt: DbReceipt = db.get(sql, [receiptId])
     if (receipt) deserializeDbReceipt(receipt)
     if (config.verbose) console.log('Receipt receiptId', receipt)
     return receipt as Receipt
