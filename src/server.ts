@@ -65,10 +65,6 @@ if (config.env == envEnum.DEV) {
 crypto.init(CONFIG.hashKey)
 crypto.setCustomStringifier(StringUtils.safeStringify, 'shardus_safeStringify')
 
-if (process.env.PORT) {
-  CONFIG.port.server = process.env.PORT
-}
-
 console.log(process.argv)
 const port = process.argv[2]
 if (port) {

@@ -38,10 +38,6 @@ import RMQCyclesConsumer from './collectors/rmq_cycles'
 import RMQOriginalTxsConsumer from './collectors/rmq_original_txs'
 import RMQReceiptsConsumer from './collectors/rmq_receipts'
 
-if (process.env.PORT) {
-  CONFIG.port.collector = process.env.PORT
-}
-
 const DistributorFirehoseEvent = 'FIREHOSE'
 let ws: WebSocket
 let reconnecting = false
