@@ -1,6 +1,22 @@
 import { FastifyPluginCallback } from 'fastify'
 import { checkDatabaseHealth } from '../storage/sqlite3storage'
 import { config } from '../config'
+import RMQConsumer from '../messaging/rabbitmq/consumer'
+
+const queuesToCheck: Array<RMQConsumer> = []
+
+export function addQueueToCheck(queue: RMQConsumer): void {
+  queuesToCheck.push(queue)
+}
+
+function isQueueStuck(queue: RMQConsumer): boolean {
+  if (!queue.lastMessageTimestamp) {
+    return true // No messages have been processed yet
+  }
+  const now = Date.now()
+  const STUCK_THRESHOLD = 60_000 // 1 minute
+  return now - this.lastMessageTimestamp > STUCK_THRESHOLD
+}
 
 export const healthCheckRouter: FastifyPluginCallback = function (fastify, opts, done) {
   fastify.get('/is-alive', (req, res) => {
@@ -14,13 +30,26 @@ export const healthCheckRouter: FastifyPluginCallback = function (fastify, opts,
       shardeumIndexerDbHealthy = checkDatabaseHealth('shardeumIndexer')
     }
 
-    const overallStatus = defaultDbHealthy && (!config.enableShardeumIndexer || shardeumIndexerDbHealthy)
+    let overallStatus = defaultDbHealthy && (!config.enableShardeumIndexer || shardeumIndexerDbHealthy)
+
+    const stuckResult = queuesToCheck.filter((queue) => {
+      const isStuck = isQueueStuck(queue)
+      if (isStuck) {
+        overallStatus = false
+      }
+      return isStuck
+    }).reduce((acc, queue) => {
+      acc[queue.name] = 'stuck'
+      return acc
+    }, {})
+
     const result = {
       status: overallStatus ? 'healthy' : 'degraded',
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
       database: defaultDbHealthy,
       shardeumIndexerDb: shardeumIndexerDbHealthy,
+      ...stuckResult
     }
 
     // fastify automatically converts 500 body if not explicitly set like this
