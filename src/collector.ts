@@ -103,14 +103,6 @@ async function startHttpServer() {
       logger: false,
     })
 
-    // Register plugins and middleware
-    await server.register(FastifyWebsocket, {
-      errorHandler: (error, connection, request, reply) => {
-        server.log.error(`Error processing websocket request ${request.id}. Error ${error}`)
-        reply.send({ error: error.message })
-        connection.destroy(error)
-      },
-    })
     await server.register(fastifyRateLimit, {
       max: config.rateLimit,
       timeWindow: '1 minute',
