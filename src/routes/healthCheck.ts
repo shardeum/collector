@@ -14,7 +14,7 @@ function isQueueStuck(queue: RMQConsumer): boolean {
     return true // No messages have been processed yet
   }
   const now = Date.now()
-  const STUCK_THRESHOLD = 60_000 // 1 minute
+  const STUCK_THRESHOLD = 60_000 * 5
   return now - this.lastMessageTimestamp > STUCK_THRESHOLD
 }
 
@@ -32,14 +32,14 @@ export const healthCheckRouter: FastifyPluginCallback = function (fastify, opts,
 
     let overallStatus = defaultDbHealthy && (!config.enableShardeumIndexer || shardeumIndexerDbHealthy)
 
-    const stuckResult = queuesToCheck.filter((queue) => {
+    const stuckResult = queuesToCheck.map((queue) => {
       const isStuck = isQueueStuck(queue)
       if (isStuck) {
         overallStatus = false
       }
-      return isStuck
-    }).reduce((acc, queue) => {
-      acc[queue.name] = 'stuck'
+      return {queue, isStuck}
+    }).reduce((acc, {queue, isStuck}) => {
+      acc[queue.name] = isStuck ? 'stuck' : 'healthy'
       return acc
     }, {})
 
