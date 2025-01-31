@@ -23,6 +23,8 @@ export const healthCheckRouter: FastifyPluginCallback = function (fastify, opts,
       shardeumIndexerDb: shardeumIndexerDbHealthy,
     }
 
+    // fastify automatically converts 500 body if not explicitly set like this
+    res.header('Content-Type', 'application/json')
     return res.status(overallStatus ? 200 : 500).send(result)
   })
 
