@@ -1438,8 +1438,8 @@ const start = async (): Promise<void> => {
     },
     async (err) => {
       if (err) {
-        server.log.error(err)
-        console.log(err)
+        server.log.error('API Server: ' + err)
+        console.log('API Server: ' + err)
         throw err
       }
       console.log('Collector is listening on port:', CONFIG.port.server)

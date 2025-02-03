@@ -120,8 +120,8 @@ async function startHttpServer() {
       },
       async (err) => {
         if (err) {
-          server.log.error(err)
-          console.log(err)
+          server.log.error('Collector: ' + err)
+          console.log('Collector: ' + err)
           throw err
         }
         console.log('Collector is listening on port:', CONFIG.port.collector)
