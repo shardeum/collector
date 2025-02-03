@@ -49,11 +49,11 @@ export async function startPatching(startCycle: number, endCycle?: number): Prom
       // await DataSync.downloadAndSyncGenesisAccounts() // To sync accounts data that are from genesis accounts/accounts data that the network start with
       // TO DO : revisit purpose of genesis syncing
       await DataSync.downloadCyclcesBetweenCycles(startCycle, endCycle, patchOnlyMissingData)
-      if (config.verbose) console.log('Cycles Patched!')
+      console.log('Cycles Patched!')
       await DataSync.downloadReceiptsBetweenCycles(startCycle, endCycle, patchOnlyMissingData)
-      if (config.verbose) console.log('Receipts Patched!')
+      console.log('Receipts Patched!')
       await DataSync.downloadOriginalTxsDataBetweenCycles(startCycle, endCycle, patchOnlyMissingData)
-      if (config.verbose) console.log('OriginalTxs Patched!')
+      console.log('OriginalTxs Patched!')
 
       if (config.verbose) console.log('Patching done! from cycle', startCycle, 'to cycle', endCycle)
       return true
