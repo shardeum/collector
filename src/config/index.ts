@@ -134,7 +134,7 @@ let config: Config = {
     cacheUpdateIntervalInMillis: 5000,
   },
   saveAccountHistoryState: true,
-  collectorMode: process.env.COLLECTOR_MODE || collectorMode.MQ.toString(),
+  collectorMode: process.env.COLLECTOR_MODE || collectorMode.WS.toString(),
   storeReceiptBeforeStates: true,
 }
 
