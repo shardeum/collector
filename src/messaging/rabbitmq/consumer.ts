@@ -38,10 +38,10 @@ export default class RMQConsumer {
           try {
             const success = await this.processFn(msg.content.toString())
             if (success === true) {
-              this.channel.ack(msg)
+              this.channel!.ack(msg)
               console.log(`[Consumer ${this.name}]: Successfully processed message`)
             } else {
-              this.channel.nack(msg, false, true)
+              this.channel!.nack(msg, false, true)
             }
           } catch (e) {
             console.error(
@@ -49,7 +49,7 @@ export default class RMQConsumer {
                 this.name
               }]: Error while processing message: ${e}\nMessage: ${msg.content.toString()}`
             )
-            this.channel.nack(msg, false, true)
+            this.channel!.nack(msg, false, true)
           }
         }
       })
@@ -104,14 +104,14 @@ export default class RMQConsumer {
     if (!this.isConnected) {
       const interval = setInterval(async () => {
         attempt++
-        console.log(`[retryConnection ${this.name}]: (Attempt ${attempt}) intitiated connection retry...`)
+        console.log(`[retryConnection ${this.name}]: (Attempt ${attempt}) initiated connection retry...`)
         try {
           await this.consume()
           console.log(`[retryConnection ${this.name}]: (Attempt ${attempt}) successfully connected...`)
           this.isConnected = true
           clearInterval(interval)
         } catch (e) {
-          console.log(`[retryConnection ${this.name}]: (Attempt ${attempt}) unsuccessul. Err: ${e}`)
+          console.log(`[retryConnection ${this.name}]: (Attempt ${attempt}) unsuccessful. Err: ${e}`)
         }
       }, 5000) // Wait 5 seconds before retrying
     }
