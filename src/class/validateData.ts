@@ -65,11 +65,6 @@ export async function validateData(data: Data): Promise<boolean> {
       data.cycle.counter + 1,
       data.cycle.cycleRecord.start + CONFIG.blockIndexing.cycleDurationInSeconds
     )
-    if (data.cycle.counter) {
-      const checkpointValue = data.cycle.counter
-      console.log('Inserting checkpoint', checkpointValue)
-      checkpoint.insertCheckpoint(checkpointValue)
-    }
     return true
   }
   if (data.originalTx) {

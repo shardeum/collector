@@ -394,7 +394,7 @@ const addSigListeners = (): void => {
   console.log('Registerd signal listeners.')
 }
 
-const startLoop = async () => {
+const startCollector = async () => {
   // Override default configuration with environment variables and arguments
   overrideDefaultConfig(env, args)
 
@@ -442,39 +442,48 @@ const startLoop = async () => {
     process.exit(0) // Exit the process
   }
 
-  await initialSync(); // Sync initial data
-  let endPointer = 0;
-  let checkPointer = await checkpoint.fetchCheckpoint();
+  await initialSync() // Sync initial data
+  let endPointer = 0
+  let checkPointer = await checkpoint.fetchCheckpoint()
 
   while (true) {
     try {
       // Start verification and checkpointing process here
       // Check if we have cycle number 'checkPointer' in the db, if not, invoke patcher
-      checkPointer = await checkpoint.fetchCheckpoint();
+      checkPointer = await checkpoint.fetchCheckpoint()
       const currentCycle = await cycle.queryCycleByCounter(checkPointer + 1)
       if (!currentCycle) {
         throw Error(`Cycle ${currentCycle} is missing from the database.`)
       }
-      while (endPointer < currentCycle.counter + 11) { // Wait till we have 11 cycles of data
-        const latestCycle = await cycle.queryLatestCycleRecords(1);
+      while (endPointer < currentCycle.counter + 11) {
+        // Wait till we have 11 cycles of data
+        const latestCycle = await cycle.queryLatestCycleRecords(1)
         if (latestCycle[0].counter >= endPointer + 10) {
           console.log('We have all the cycles we need. Proceeding to verification')
           endPointer = latestCycle[0].counter
           break
         }
-        sleep(1000);
+        sleep(1000)
       }
 
       // We should always have the next 11 cycles here. Fetch the data from distributor
-      const response = await DataSync.queryFromDistributor(DataSync.DataType.CYCLEDATA, { cycle: checkPointer + 1 })
+      const response = await DataSync.queryFromDistributor(DataSync.DataType.CYCLEDATA, {
+        cycle: checkPointer + 1,
+      })
       // Fetch receipt count for this cycle from our DB
-      const ourTotalReceipts = await receipt.queryReceiptCountBetweenCycles(checkPointer + 1, checkPointer + 1)
+      const ourTotalReceipts = await receipt.queryReceiptCountBetweenCycles(
+        checkPointer + 1,
+        checkPointer + 1
+      )
       if (ourTotalReceipts !== response.data.totalReceipts) {
         console.log(`❗ Verification failed for cycle ${checkPointer + 1}. Mismatching Receipts.`)
         throw Error('Verification failed')
       }
       // Fetch transaction count for this cycle from our DB
-      const ourTotalTransactions = await transaction.queryTransactionCountBetweenCycles(checkPointer + 1, checkPointer + 1)
+      const ourTotalTransactions = await transaction.queryTransactionCountBetweenCycles(
+        checkPointer + 1,
+        checkPointer + 1
+      )
       if (ourTotalTransactions !== response.data.totalTransactions) {
         console.log(`❗ Verification failed for cycle ${checkPointer + 1}. Mismatching Transactions.`)
         throw Error('Verification failed')
@@ -488,20 +497,26 @@ const startLoop = async () => {
       console.log(`🔴 Verification failed for cycle ${checkPointer + 1}. Checkpoint not updated.`)
       throw Error('Verification failed')
     } catch (e) {
-      console.error(`Collector process stopped due to error: ${e.message}`)
-      console.log('Attempting fix..')
-      // fetch latest checkpoint
-      console.log('The last known checkpoint to patch from is', checkPointer - 1)
+      if (e.message === 'Verification failed') {
+        console.error(`Collector process stopped due to error: ${e.message}`)
+        console.log('Attempting fix..')
 
-      // starts the syncing process
-      const status = await startPatching(checkPointer + 1, checkPointer + 1)
+        // Fetch latest checkpoint
+        console.log('The last known checkpoint to patch from is', checkPointer - 1)
 
-      if (!status) {
-        console.error('Patching process failed, shutting down the collector process.')
-        await shutdownCollector() // Perform graceful shutdown
+        // Starts the syncing process
+        const status = await startPatching(checkPointer + 1, checkPointer + 1)
+
+        if (!status) {
+          console.error('Patching process failed, shutting down the collector process.')
+          shutdownCollector() // Perform graceful shutdown
+        }
+      } else {
+        // Handle other errors
+        console.error('An unexpected error occurred:', e) // it goes back into the loop because the error happened due to non patching/crosschecking issue
       }
     }
   }
 }
 
-startLoop()
+startCollector()

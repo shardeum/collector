@@ -30,14 +30,20 @@ export async function startPatching(startCycle: number, endCycle?: number): Prom
     try {
       if (!endCycle) {
         const response = await DataSync.queryFromDistributor(DataSync.DataType.TOTALDATA, {})
+
         if (response.data && response.data.totalReceipts >= 0 && response.data.totalCycles >= 0) {
           endCycle = response.data.totalCycles
         }
+
+        if (endCycle === undefined) {
+          console.error(
+            "The distributor wasn't able to return a valid response object for endCycle",
+            response.data
+          )
+          throw new Error('Unable to fetch the end cycle')
+        }
       }
 
-      if (endCycle === undefined) {
-        throw new Error('Unable to fetch the end cycle')
-      }
       if (config.verbose) console.log('Start Patching from Cycle', startCycle, 'till the End Cycle', endCycle)
 
       // await DataSync.downloadAndSyncGenesisAccounts() // To sync accounts data that are from genesis accounts/accounts data that the network start with
