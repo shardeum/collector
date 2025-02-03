@@ -1,4 +1,5 @@
 import * as amqp from 'amqplib'
+import { addQueueToCheck } from '../../routes/healthCheck'
 
 export default class RMQConsumer {
   name: string // can be used as identifier
@@ -10,6 +11,7 @@ export default class RMQConsumer {
   channel: amqp.Channel | null = null
   isConnected: boolean
   isConnClosing: boolean
+  lastMessageTimestamp: number | null = null
 
   constructor(name: string, queue: string, prefetch = 10, callback: (msg: string) => Promise<boolean>) {
     this.name = name
@@ -18,6 +20,7 @@ export default class RMQConsumer {
     this.isConnected = false
     this.isConnClosing = false
     this.processFn = callback
+    addQueueToCheck(this)
   }
 
   public async consume(): Promise<void> {
@@ -38,6 +41,7 @@ export default class RMQConsumer {
           try {
             const success = await this.processFn(msg.content.toString())
             if (success === true) {
+              this.lastMessageTimestamp = Date.now() // Update timestamp when processing succeeds
               this.channel!.ack(msg)
               console.log(`[Consumer ${this.name}]: Successfully processed message`)
             } else {

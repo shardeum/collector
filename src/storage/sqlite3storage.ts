@@ -42,6 +42,17 @@ function getDb(dbName: DbName): sqlite3Lib.Database {
   }
 }
 
+export function checkDatabaseHealth(dbName: DbName = 'default'): boolean {
+  try {
+    // Run a simple SELECT to check if the database is responding
+    getDb(dbName).prepare('SELECT 1').get();
+    return true;
+  } catch (error) {
+    console.error('Database health check failed:', error);
+    return false;
+  }
+}
+
 export async function runCreate(createStatement: string, dbName: DbName = 'default'): Promise<void> {
   await run(createStatement, [], dbName)
 }

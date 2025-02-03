@@ -52,6 +52,10 @@ const args = process.argv
 
 import path = require('path')
 import fs = require('fs')
+import FastifyWebsocket from '@fastify/websocket'
+import Fastify from 'fastify'
+import fastifyRateLimit from '@fastify/rate-limit'
+import { healthCheckRouter } from './routes/healthCheck'
 
 if (config.env == envEnum.DEV) {
   //default debug mode keys
@@ -90,6 +94,39 @@ if (config.env == envEnum.DEV) {
   }
   if (secrets['DISTRIBUTOR_PUBLIC_KEY']) {
     config.distributorInfo.publicKey = secrets['DISTRIBUTOR_PUBLIC_KEY']
+  }
+}
+
+async function startHttpServer() {
+  if (!CONFIG.enableCollectorSocketServer) {
+    const server = Fastify({
+      logger: false,
+    })
+
+    await server.register(fastifyRateLimit, {
+      max: config.rateLimit,
+      timeWindow: '1 minute',
+      allowList: ['127.0.0.1', 'localhost'],
+    })
+    server.setErrorHandler((error, request, reply) => {
+      server.log.error(`Error processing request ${request.id}. Error ${error}`)
+      reply.send({ error: error.message })
+    })
+    await server.register(healthCheckRouter)
+    server.listen(
+      {
+        port: Number(CONFIG.port.collector),
+        host: '0.0.0.0',
+      },
+      async (err) => {
+        if (err) {
+          server.log.error('Collector: ' + err)
+          console.log('Collector: ' + err)
+          throw err
+        }
+        console.log('Collector is listening on port:', CONFIG.port.collector)
+      }
+    )
   }
 }
 
@@ -211,6 +248,7 @@ export const startServer = async (): Promise<void> => {
   addSigListeners()
 
   if (CONFIG.collectorMode === collectorMode.MQ) {
+    await startHttpServer()
     startRMQEventsConsumers()
   } else {
     const CONNECT_TO_DISTRIBUTOR_MAX_RETRY = 10
