@@ -6,6 +6,7 @@ import * as Storage from './storage'
 import * as Crypto from './utils/crypto'
 import * as cycle from './storage/cycle'
 import * as receipt from './storage/receipt'
+import * as transaction from './storage/transaction'
 import * as originalTxData from './storage/originalTxData'
 import * as checkpoint from './storage/checkpoint'
 import {
@@ -39,6 +40,7 @@ import RMQCyclesConsumer from './collectors/rmq_cycles'
 import RMQOriginalTxsConsumer from './collectors/rmq_original_txs'
 import RMQReceiptsConsumer from './collectors/rmq_receipts'
 import * as db from './storage/sqlite3storage'
+import * as DataSync from './class/DataSync'
 
 const DistributorFirehoseEvent = 'FIREHOSE'
 let ws: WebSocket
@@ -128,7 +130,7 @@ async function startHttpServer() {
   }
 }
 
-export const startServer = async (): Promise<void> => {
+export const initialSync = async (): Promise<void> => {
   console.log(`Collector Mode: ${CONFIG.collectorMode}`)
 
   // Check if there is any existing data in the db
@@ -440,19 +442,59 @@ const startLoop = async () => {
     process.exit(0) // Exit the process
   }
 
+  await initialSync(); // Sync initial data
+  let endPointer = 0;
+  let checkPointer = await checkpoint.fetchCheckpoint();
+
   while (true) {
     try {
-      await startServer()
-      break
+      // Start verification and checkpointing process here
+      // Check if we have cycle number 'checkPointer' in the db, if not, invoke patcher
+      checkPointer = await checkpoint.fetchCheckpoint();
+      const currentCycle = await cycle.queryCycleByCounter(checkPointer + 1)
+      if (!currentCycle) {
+        throw Error(`Cycle ${currentCycle} is missing from the database.`)
+      }
+      while (endPointer < currentCycle.counter + 11) { // Wait till we have 11 cycles of data
+        const latestCycle = await cycle.queryLatestCycleRecords(1);
+        if (latestCycle[0].counter >= endPointer + 10) {
+          console.log('We have all the cycles we need. Proceeding to verification')
+          endPointer = latestCycle[0].counter
+          break
+        }
+        sleep(1000);
+      }
+
+      // We should always have the next 11 cycles here. Fetch the data from distributor
+      const response = await DataSync.queryFromDistributor(DataSync.DataType.CYCLEDATA, { cycle: checkPointer + 1 })
+      // Fetch receipt count for this cycle from our DB
+      const ourTotalReceipts = await receipt.queryReceiptCountBetweenCycles(checkPointer + 1, checkPointer + 1)
+      if (ourTotalReceipts !== response.data.totalReceipts) {
+        console.log(`❗ Verification failed for cycle ${checkPointer + 1}. Mismatching Receipts.`)
+        throw Error('Verification failed')
+      }
+      // Fetch transaction count for this cycle from our DB
+      const ourTotalTransactions = await transaction.queryTransactionCountBetweenCycles(checkPointer + 1, checkPointer + 1)
+      if (ourTotalTransactions !== response.data.totalTransactions) {
+        console.log(`❗ Verification failed for cycle ${checkPointer + 1}. Mismatching Transactions.`)
+        throw Error('Verification failed')
+      }
+
+      // Verification successful
+      console.log(`🟢 Verification successful. Updating checkpoint to ${checkPointer + 1}`)
+      await checkpoint.insertCheckpoint(checkPointer + 1)
+
+      // Verification failed
+      console.log(`🔴 Verification failed for cycle ${checkPointer + 1}. Checkpoint not updated.`)
+      throw Error('Verification failed')
     } catch (e) {
       console.error(`Collector process stopped due to error: ${e.message}`)
       console.log('Attempting fix..')
       // fetch latest checkpoint
-      const lastKnownCycle = await checkpoint.fetchCheckpoint()
-      console.log('The last known checkpoint to patch from is', lastKnownCycle)
+      console.log('The last known checkpoint to patch from is', checkPointer - 1)
 
       // starts the syncing process
-      const status = await startPatching(lastKnownCycle)
+      const status = await startPatching(checkPointer + 1, checkPointer + 1)
 
       if (!status) {
         console.error('Patching process failed, shutting down the collector process.')

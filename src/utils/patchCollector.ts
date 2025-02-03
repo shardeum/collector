@@ -40,7 +40,7 @@ export async function startPatching(startCycle: number, endCycle?: number): Prom
       }
       if (config.verbose) console.log('Start Patching from Cycle', startCycle, 'till the End Cycle', endCycle)
 
-      await DataSync.downloadAndSyncGenesisAccounts() // To sync accounts data that are from genesis accounts/accounts data that the network start with
+      // await DataSync.downloadAndSyncGenesisAccounts() // To sync accounts data that are from genesis accounts/accounts data that the network start with
       // TO DO : revisit purpose of genesis syncing
       await DataSync.downloadCyclcesBetweenCycles(startCycle, endCycle, patchOnlyMissingData)
       if (config.verbose) console.log('Cycles Patched!')
