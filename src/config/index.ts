@@ -96,7 +96,7 @@ let config: Config = {
   enableCollectorSocketServer: Boolean(process.env.ENABLE_COLLECTOR_SOCKET_SERVER) || false,
   port: {
     collector: process.env.COLLECTOR_PORT || '4444',
-    server: process.env.PORT || '6101',
+    server: process.env.API_SERVER_PORT || '6101',
     log_server: process.env.LOG_SERVER_PORT || '4446',
   },
   distributorInfo: {
@@ -134,7 +134,7 @@ let config: Config = {
     cacheUpdateIntervalInMillis: 5000,
   },
   saveAccountHistoryState: true,
-  collectorMode: process.env.COLLECTOR_MODE || collectorMode.WS.toString(),
+  collectorMode: process.env.COLLECTOR_MODE || collectorMode.MQ.toString(),
   storeReceiptBeforeStates: true,
 }
 
