@@ -59,23 +59,6 @@ export async function bulkInsertReceipts(receipts: Receipt[]): Promise<void> {
     console.log('Successfully bulk inserted receipts', receipts.length)
   } catch (e) {
     console.log(e)
-    const value = extractValuesFromArray(receipts.slice(0, 1))
-    const fields = Object.keys(receipts[0])
-    zip(fields, value)
-    for (const [field, val] of zip(fields, value)) {
-      console.log(`${field} === ${val} AND THE TYPE IS ${typeof val}`)
-    }
-    for (let i = 0; i < value.length; i++) {
-      if (
-        value[i] !== null &&
-        typeof value[i] !== "string" &&
-        typeof value[i] !== "number" &&
-        typeof value[i] !== "bigint" &&
-        !Buffer.isBuffer(value[i])
-      ) {
-        console.error(`🚨 Invalid value at index ${i}:`, value[i], "Type:", typeof value[i]);
-      }
-    }
     console.log('Unable to bulk insert receipts', receipts.length)
   }
 }
