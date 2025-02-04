@@ -421,6 +421,7 @@ const startCollector = async () => {
 
   // Start RabbitMQ event consumers or connect to distributor based on collector mode
   if (CONFIG.collectorMode === collectorMode.MQ) {
+    await startHttpServer()
     startRMQEventsConsumers()
   } else {
     const CONNECT_TO_DISTRIBUTOR_MAX_RETRY = 10
