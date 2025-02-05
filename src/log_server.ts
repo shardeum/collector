@@ -41,8 +41,11 @@ const start = async (): Promise<void> => {
 
   await server.register(healthCheckRouter)
 
-  // Register handler
+  // Register handler for log subscription
   server.get('/evm_log_subscription', { websocket: true }, evmLogSubscriptionController)
+
+  // Register handler for newHead subscription
+  server.get('/newHead_subscription', { websocket: true }, newHeadSubscriptionController)
 
   // Start server
   server.listen(
@@ -77,6 +80,29 @@ const evmLogSubscriptionController = (connection: SocketStream): void => {
   connection.socket.on('close', () => {
     try {
       removeLogSubscriptionBySocketId(socketId)
+    } catch (e) {
+      console.error(e)
+    }
+  })
+}
+
+export const newHeadsSubscribers = new Set<SocketStream>()
+const newHeadSubscriptionController = (connection: SocketStream): void => {
+  connection.socket.on('message', () => {
+    try {
+      if (newHeadsSubscribers.has(connection)) {
+        connection.socket.send(StringUtils.safeStringify({ error: 'Already subscribed' }))
+        return
+      }
+      newHeadsSubscribers.add(connection)
+    } catch (e) {
+      connection.socket.send(StringUtils.safeStringify({ error: e.message }))
+      return
+    }
+  })
+  connection.socket.on('close', () => {
+    try {
+      newHeadsSubscribers.delete(connection)
     } catch (e) {
       console.error(e)
     }

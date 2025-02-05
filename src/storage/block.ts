@@ -7,6 +7,7 @@ import { Cycle, DbBlock } from '../types'
 import { getLatestBlock } from '../cache/LatestBlockCache'
 import { blockQueryDelayInMillis } from '../utils/block'
 import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
+import { newHeadsSubscribers } from '../log_server'
 
 const evmCommon = new Common({ chain: 'mainnet', hardfork: Hardfork.Istanbul, eips: [3855] })
 
@@ -65,12 +66,16 @@ export async function upsertBlocksForCycleCore(
     const newBlockTimestampInSecond =
       startTimeInSeconds +
       (blockNumber - config.blockIndexing.initBlockNumber - firstBlockNumberForCycle) *
-        config.blockIndexing.blockProductionRate
+      config.blockIndexing.blockProductionRate
     const newBlockTimestamp = newBlockTimestampInSecond * 1000
     const block = createNewBlock(blockNumber, newBlockTimestamp)
     /*prettier-ignore*/ if (config.verbose) console.log(`Block number: ${block.header.number}, timestamp: ${block.header.timestamp}, hash: ${bytesToHex(block.header.hash())}`)
     try {
       const readableBlock = await convertToReadableBlock(block)
+      // non-blocking
+      newHeadsSubscribers.forEach((subscriber) => {
+        subscriber.socket.send(StringUtils.safeStringify({ method: 'newBlock_produced', payload: readableBlock }))
+      })
       await insertBlock({
         number: Number(block.header.number),
         numberHex: '0x' + block.header.number.toString(16),
