@@ -456,7 +456,7 @@ const startCollector = async () => {
   // Latest - The most recent cycle available in the DB
 
   let endPointer = 0
-  let lastCheckpoint: number;
+  let lastCheckpoint: number
 
   /* Disable
   try {
@@ -525,7 +525,7 @@ const startCollector = async () => {
           endPointer = latestCycle[0].counter
           break
         }
-        console.log("⏱️ Waiting for more cycles to be available in the database")
+        console.log('⏱️ Waiting for more cycles to be available in the database')
         await sleep(5000)
       }
 
@@ -540,16 +540,15 @@ const startCollector = async () => {
         throw Error('Verification failed')
       }
       // Fetch receipt count for this cycle from our DB
-      const ourTotalReceipts = await receipt.queryReceiptCountBetweenCycles(
-        currentCycle,
-        currentCycle
-      )
+      const ourTotalReceipts = await receipt.queryReceiptCountBetweenCycles(currentCycle, currentCycle)
       if (ourTotalReceipts !== response.receiptCount) {
         console.log(`❗ Verification failed for cycle ${currentCycle}. Mismatching Receipts.`)
         throw Error('Verification failed')
       }
       // Fetch transaction count for this cycle from our DB
-      const ourTotalTransactions = await transaction.queryTransactionCountBetweenCycles(
+      const ourTotalTransactions = await originalTxData.queryOriginalTxDataCount(
+        null,
+        null,
         currentCycle,
         currentCycle
       )
