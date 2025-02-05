@@ -82,8 +82,8 @@ export const queryFromDistributor = async (
     })
     return response
   } catch (e) {
-    console.log(`Error while querying ${url} for data ${data}`, e)
-    return null
+    console.log(`Error while querying ${url}: ${e.response.data.error}`)
+    return e.response
   }
 }
 

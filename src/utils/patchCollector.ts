@@ -59,12 +59,12 @@ export async function startPatching(startCycle: number, endCycle?: number): Prom
       return true
     } catch (error) {
       attempt++
-      console.error(`Error during patching process (attempt ${attempt}):`, error, 'for the cycle', startCycle)
+      console.error(`Error during patching process (attempt ${attempt}):`, error.message, 'for the cycle', startCycle)
       if (attempt >= maxRetries) {
         console.error('Max retries reached. Patching failed.')
         return false
       }
-      console.log(`Retrying patching process (attempt ${attempt + 1})...`)
+      console.log(`Retrying patching process (attempt ${attempt + 1})...\n`)
     }
   }
 
