@@ -40,7 +40,7 @@ import RMQCyclesConsumer from './collectors/rmq_cycles'
 import RMQOriginalTxsConsumer from './collectors/rmq_original_txs'
 import RMQReceiptsConsumer from './collectors/rmq_receipts'
 import * as db from './storage/sqlite3storage'
-import * as DataSync from './class/DataSync'
+import { CycleDataCache } from './class/CycleDataCache'
 
 const DistributorFirehoseEvent = 'FIREHOSE'
 let ws: WebSocket
@@ -443,6 +443,8 @@ const startCollector = async () => {
     process.exit(1) // Restart the process
   }
 
+  const cycleDataCache = new CycleDataCache()
+
   // Naming Convention:
   // Last - previous checkpoint
   // Current - The checkpoint we're about to add
@@ -526,15 +528,17 @@ const startCollector = async () => {
       )
 
       // We should always have the next 11 cycles here. Fetch the data from distributor
-      const response = await DataSync.queryFromDistributor(DataSync.DataType.CYCLEDATA, {
-        cycle: currentCycle,
-      })
+      const response = await cycleDataCache.getCycleDataFor(currentCycle)
+      if (!response) {
+        console.error(`❗ Verification failed for cycle ${currentCycle}. Missing data from distributor.`)
+        throw Error('Verification failed')
+      }
       // Fetch receipt count for this cycle from our DB
       const ourTotalReceipts = await receipt.queryReceiptCountBetweenCycles(
         currentCycle,
         currentCycle
       )
-      if (ourTotalReceipts !== response.data.totalReceipts) {
+      if (ourTotalReceipts !== response.receiptCount) {
         console.log(`❗ Verification failed for cycle ${currentCycle}. Mismatching Receipts.`)
         throw Error('Verification failed')
       }
@@ -543,7 +547,7 @@ const startCollector = async () => {
         currentCycle,
         currentCycle
       )
-      if (ourTotalTransactions !== response.data.totalTransactions) {
+      if (ourTotalTransactions !== response.transactionCount) {
         console.log(`❗ Verification failed for cycle ${currentCycle}. Mismatching Transactions.`)
         throw Error('Verification failed')
       }
