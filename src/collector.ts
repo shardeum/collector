@@ -526,7 +526,7 @@ const startCollector = async () => {
           break
         }
         console.log("⏱️ Waiting for more cycles to be available in the database")
-        sleep(5000)
+        await sleep(5000)
       }
 
       console.log(
