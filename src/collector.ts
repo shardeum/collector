@@ -97,6 +97,10 @@ if (config.env == envEnum.DEV) {
   }
 }
 
+let rmqCyclesConsumer: RMQCyclesConsumer
+let rmqTransactionsConsumer: RMQOriginalTxsConsumer
+let rmqReceiptsConsumer: RMQReceiptsConsumer
+
 async function startHttpServer() {
   if (!CONFIG.enableCollectorSocketServer) {
     const server = Fastify({
@@ -354,9 +358,9 @@ const connectToDistributor = (): void => {
 
 // start queue consumers for cycles, transactions and receipts events
 const startRMQEventsConsumers = (): void => {
-  const rmqCyclesConsumer = new RMQCyclesConsumer()
-  const rmqTransactionsConsumer = new RMQOriginalTxsConsumer()
-  const rmqReceiptsConsumer = new RMQReceiptsConsumer()
+  rmqCyclesConsumer = new RMQCyclesConsumer()
+  rmqTransactionsConsumer = new RMQOriginalTxsConsumer()
+  rmqReceiptsConsumer = new RMQReceiptsConsumer()
 
   rmqCyclesConsumer.start()
   rmqTransactionsConsumer.start()
@@ -364,19 +368,19 @@ const startRMQEventsConsumers = (): void => {
 
   // add signal listeners
   process.on('SIGTERM', async () => {
-    console.log(`Initiated RabbitMQ connections cleanup`)
-    await rmqCyclesConsumer.cleanUp()
-    await rmqTransactionsConsumer.cleanUp()
-    await rmqReceiptsConsumer.cleanUp()
-    console.log(`Completed RabbitMQ connections cleanup`)
+    await stopRMQEventsConsumers()
   })
   process.on('SIGINT', async () => {
-    console.log(`Initiated RabbitMQ connections cleanup`)
-    await rmqCyclesConsumer.cleanUp()
-    await rmqTransactionsConsumer.cleanUp()
-    await rmqReceiptsConsumer.cleanUp()
-    console.log(`Completed RabbitMQ connections cleanup`)
+    await stopRMQEventsConsumers()
   })
+}
+
+const stopRMQEventsConsumers = async (): Promise<void> => {
+  console.log(`Initiated RabbitMQ connections cleanup`)
+  await rmqCyclesConsumer.cleanUp()
+  await rmqTransactionsConsumer.cleanUp()
+  await rmqReceiptsConsumer.cleanUp()
+  console.log(`Completed RabbitMQ connections cleanup`)
 }
 
 const addSigListeners = (): void => {
@@ -436,10 +440,11 @@ const startCollector = async () => {
     }
   }
 
-  function shutdownCollector() {
+  async function shutdownCollector() {
     // Perform any necessary cleanup here
     db.close() // Close the database connection
     console.log('Collector shut down complete.')
+    if (CONFIG.collectorMode === collectorMode.MQ) await stopRMQEventsConsumers()
     process.exit(1) // Restart the process
   }
 
@@ -569,7 +574,7 @@ const startCollector = async () => {
 
         if (!status) {
           console.error('Patching process failed, shutting down the collector process.')
-          shutdownCollector() // Perform graceful shutdown
+          await shutdownCollector() // Perform graceful shutdown
         }
       } else {
         // Handle other errors
