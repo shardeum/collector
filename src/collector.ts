@@ -443,9 +443,15 @@ const startCollector = async () => {
     process.exit(1) // Restart the process
   }
 
-  let endPointer = 0
-  let checkPointer = await checkpoint.fetchCheckpoint()
+  // Naming Convention:
+  // Last - previous checkpoint
+  // Current - The checkpoint we're about to add
+  // Latest - The most recent cycle available in the DB
 
+  let endPointer = 0
+  let lastCheckpoint: number;
+
+  /* Disable
   try {
     console.log(`[SHARD-1386] Started initial sync`)
     await initialSync() // Sync initial data
@@ -467,8 +473,9 @@ const startCollector = async () => {
       console.error('Patching process failed, shutting down the collector process.')
       shutdownCollector() // Perform graceful shutdown
     }
-  }
+  } */
 
+  /*
   // adding redundancy to ensure robustness of data in the last checkpoint window
   try {
     const latestCycle = await cycle.queryLatestCycleRecords(1)
@@ -486,7 +493,7 @@ const startCollector = async () => {
     }
   } catch (error) {
     console.error('An unexpected error occurred while blindly patching the last checkpoint window:', error)
-  }
+  } */
 
   console.log(`[SHARD-1386] Starting infinite loop to validate checkpoints`)
 
@@ -495,13 +502,13 @@ const startCollector = async () => {
     try {
       // Start verification and checkpointing process here
       // Check if we have cycle number 'checkPointer' in the db, if not, invoke patcher
-      checkPointer = await checkpoint.fetchCheckpoint() // last known verified checkpoint
-      const nextCheckpointer = checkPointer + 1
-      const nextCheckpointCycleData = await cycle.queryCycleByCounter(nextCheckpointer)
-      if (!nextCheckpointCycleData) {
-        throw Error(`Cycle ${nextCheckpointCycleData} is missing from the database.`)
+      lastCheckpoint = await checkpoint.fetchCheckpoint() // last known verified checkpoint
+      const currentCycle = lastCheckpoint + 1
+      const currentCycleData = await cycle.queryCycleByCounter(currentCycle)
+      if (!currentCycleData) {
+        throw Error(`Cycle ${currentCycleData} is missing from the database.`)
       }
-      while (endPointer < nextCheckpointCycleData.counter + config.checkpointWindow) {
+      while (endPointer < currentCycleData.counter + config.checkpointWindow) {
         // this allows us to have a rolling checkpointer
         // Wait till we have 11 cycles of data [ checkpointWindow = 11 ]
         const latestCycle = await cycle.queryLatestCycleRecords(1)
@@ -510,49 +517,50 @@ const startCollector = async () => {
           endPointer = latestCycle[0].counter
           break
         }
-        sleep(1000)
+        console.log("⏱️ Waiting for more cycles to be available in the database")
+        sleep(5000)
       }
 
       console.log(
-        `[SHARD-1386] Time to validate data for checkpoint cycle ${nextCheckpointer}(previous: ${checkPointer})`
+        `[SHARD-1386] Time to validate data for checkpoint cycle ${currentCycle}(previous: ${lastCheckpoint})`
       )
 
       // We should always have the next 11 cycles here. Fetch the data from distributor
       const response = await DataSync.queryFromDistributor(DataSync.DataType.CYCLEDATA, {
-        cycle: nextCheckpointer,
+        cycle: currentCycle,
       })
       // Fetch receipt count for this cycle from our DB
       const ourTotalReceipts = await receipt.queryReceiptCountBetweenCycles(
-        nextCheckpointer,
-        nextCheckpointer
+        currentCycle,
+        currentCycle
       )
       if (ourTotalReceipts !== response.data.totalReceipts) {
-        console.log(`❗ Verification failed for cycle ${nextCheckpointer}. Mismatching Receipts.`)
+        console.log(`❗ Verification failed for cycle ${currentCycle}. Mismatching Receipts.`)
         throw Error('Verification failed')
       }
       // Fetch transaction count for this cycle from our DB
       const ourTotalTransactions = await transaction.queryTransactionCountBetweenCycles(
-        nextCheckpointer,
-        nextCheckpointer
+        currentCycle,
+        currentCycle
       )
       if (ourTotalTransactions !== response.data.totalTransactions) {
-        console.log(`❗ Verification failed for cycle ${nextCheckpointer}. Mismatching Transactions.`)
+        console.log(`❗ Verification failed for cycle ${currentCycle}. Mismatching Transactions.`)
         throw Error('Verification failed')
       }
 
       // Verification successful
-      console.log(`🟢 Verification successful. Updating checkpoint to ${nextCheckpointer}`)
-      await checkpoint.insertCheckpoint(nextCheckpointer) // rolling checkpoint, moving to next cycle after data verification
+      console.log(`🟢 Verification successful. Updating checkpoint to ${currentCycle}`)
+      await checkpoint.insertCheckpoint(currentCycle) // rolling checkpoint, moving to next cycle after data verification
     } catch (e) {
       if (e.message === 'Verification failed') {
         console.error(`Collector process stopped due to error: ${e.message}`)
         console.log('Attempting fix..')
 
         // Fetch latest checkpoint
-        console.log('The last known checkpoint to patch from is', checkPointer)
-        const nextCheckpointer = checkPointer + 1
+        console.log('The last known checkpoint to patch from is', lastCheckpoint)
+        const currentCycle = lastCheckpoint + 1
         // Starts the syncing process
-        const status = await startPatching(nextCheckpointer, nextCheckpointer)
+        const status = await startPatching(currentCycle, currentCycle)
 
         if (!status) {
           console.error('Patching process failed, shutting down the collector process.')
