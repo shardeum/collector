@@ -447,9 +447,11 @@ const startCollector = async () => {
   let checkPointer = await checkpoint.fetchCheckpoint()
 
   try {
+    console.log(`[SHARD-1386] Started initial sync`)
     await initialSync() // Sync initial data
+    console.log(`[SHARD-1386] Completed initial sync`)
   } catch (e) {
-    console.error(`Collector process stopped due to error: ${e.message}`)
+    console.error(`Error in initialSync: Collector process stopped due to error: ${e.message}`)
     console.log('Attempting fix..')
 
     // Starts the syncing process from the last known checkpoint and going back a 100 cycles from the checkpoint just for extra safety
@@ -459,6 +461,7 @@ const startCollector = async () => {
     } else {
       startPatchCycle = 0 // Ensure the start cycle does not go below zero
     }
+    console.log(`[SHARD-1386] Catch block initialSync. Started patching from ${startPatchCycle}`)
     const status = await startPatching(startPatchCycle)
     if (!status) {
       console.error('Patching process failed, shutting down the collector process.')
@@ -473,7 +476,9 @@ const startCollector = async () => {
     if (redundancyStart < 0) {
       redundancyStart = 0 // Ensure the start cycle does not go below zero
     }
+    console.log(`[SHARD-1386] Started redundancy patching ${redundancyStart}`)
     const status = await startPatching(redundancyStart)
+    console.log(`[SHARD-1386] Completed redundancy patching ${redundancyStart}. Status: ${status}`)
 
     if (!status) {
       console.error('Patching process failed, shutting down the collector process.')
@@ -482,6 +487,8 @@ const startCollector = async () => {
   } catch (error) {
     console.error('An unexpected error occurred while blindly patching the last checkpoint window:', error)
   }
+
+  console.log(`[SHARD-1386] Starting infinite loop to validate checkpoints`)
 
   // rolling checkpoint mechanism
   while (true) {
@@ -505,6 +512,10 @@ const startCollector = async () => {
         }
         sleep(1000)
       }
+
+      console.log(
+        `[SHARD-1386] Time to validate data for checkpoint cycle ${nextCheckpointer}(previous: ${checkPointer})`
+      )
 
       // We should always have the next 11 cycles here. Fetch the data from distributor
       const response = await DataSync.queryFromDistributor(DataSync.DataType.CYCLEDATA, {

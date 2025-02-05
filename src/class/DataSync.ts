@@ -182,7 +182,8 @@ export const compareWithOldCyclesData = async (
     downloadedCycles = response.data.cycleInfo
   } else {
     throw Error(
-      `Can't fetch data from cycle ${lastCycleCounter - numberOfCyclesTocompare
+      `Can't fetch data from cycle ${
+        lastCycleCounter - numberOfCyclesTocompare
       } to cycle ${lastCycleCounter}  from distributor server`
     )
   }
@@ -557,11 +558,17 @@ export const downloadCyclcesBetweenCycles = async (
 ): Promise<void> => {
   const bucketSize = 100
   let endCycle = startCycle + bucketSize
-  for (; startCycle <= totalCyclesToSync;) {
+  for (; startCycle <= totalCyclesToSync; ) {
     if (endCycle > totalCyclesToSync) endCycle = totalCyclesToSync
     const response = await queryFromDistributor(DataType.CYCLE, { start: startCycle, end: endCycle })
     if (response && response.data && response.data.cycleInfo) {
-      console.log(`Downloaded cycles`, response.data.cycleInfo.length)
+      console.log(
+        `[SHARD-1386] Downloaded cycles from`,
+        startCycle,
+        `to`,
+        endCycle,
+        response.data.cycleInfo.length
+      )
       const cycles = response.data.cycleInfo
       let combineCycles = []
       for (let i = 0; i < cycles.length; i++) {
@@ -599,17 +606,25 @@ export const downloadReceiptsBetweenCycles = async (
   saveOnlyNewData = false
 ): Promise<void> => {
   let endCycle = startCycle + 100
-  for (; startCycle <= totalCyclesToSync;) {
+  for (; startCycle <= totalCyclesToSync; ) {
     if (endCycle > totalCyclesToSync) endCycle = totalCyclesToSync
-    console.log(`Downloading receipts from cycle ${startCycle} to cycle ${endCycle}`)
+    console.log(`[SHARD-1386] Downloading receipts from cycle ${startCycle} to cycle ${endCycle}`)
     let response = await queryFromDistributor(DataType.RECEIPT, { startCycle, endCycle, type: 'count' })
     if (response && response.data && response.data.receipts) {
-      console.log(`Download receipts Count`, response.data.receipts)
+      console.log(
+        `[SHARD-1386] Count of receipts from ${startCycle} to ${endCycle}`,
+        `Count:`,
+        response.data.receipts
+      )
       const receiptsCount = response.data.receipts
       for (let i = 1; i <= Math.ceil(receiptsCount / 100); i++) {
         response = await queryFromDistributor(DataType.RECEIPT, { startCycle, endCycle, page: i })
         if (response && response.data && response.data.receipts) {
-          console.log(`Downloaded receipts`, response.data.receipts.length)
+          console.log(
+            `[SHARD-1386] Downloaded receipt count from ${startCycle} to ${endCycle}`,
+            `Page: ${i}, Count:`,
+            response.data.receipts
+          )
           const receipts = response.data.receipts
           await Receipt.processReceiptData(receipts, saveOnlyNewData)
         }
@@ -629,17 +644,24 @@ export const downloadOriginalTxsDataBetweenCycles = async (
   saveOnlyNewData = false
 ): Promise<void> => {
   let endCycle = startCycle + 100
-  for (; startCycle <= totalCyclesToSync;) {
+  for (; startCycle <= totalCyclesToSync; ) {
     if (endCycle > totalCyclesToSync) endCycle = totalCyclesToSync
-    console.log(`Downloading originalTxsData from cycle ${startCycle} to cycle ${endCycle}`)
+    console.log(`[SHARD-1386] Downloading originalTxsData from cycle ${startCycle} to cycle ${endCycle}`)
     let response = await queryFromDistributor(DataType.ORIGINALTX, { startCycle, endCycle, type: 'count' })
     if (response && response.data && response.data.originalTxs) {
-      console.log(`Download originalTxsData Count`, response.data.originalTxs)
+      console.log(
+        `[SHARD-1386] Count of originalTxsData from ${startCycle} to ${endCycle}`,
+        response.data.originalTxs
+      )
       const originalTxsDataCount = response.data.originalTxs
       for (let i = 1; i <= Math.ceil(originalTxsDataCount / 100); i++) {
         response = await queryFromDistributor(DataType.ORIGINALTX, { startCycle, endCycle, page: i })
         if (response && response.data && response.data.originalTxs) {
-          console.log(`Downloaded originalTxsData`, response.data.originalTxs.length)
+          console.log(
+            `[SHARD-1386] Downloaded originalTxsData from ${startCycle} to ${endCycle}`,
+            `Page: ${i}, Count:`,
+            response.data.originalTxs.length
+          )
           const originalTxsData = response.data.originalTxs
           await OriginalTxData.processOriginalTxData(originalTxsData, saveOnlyNewData)
         }
