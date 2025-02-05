@@ -182,8 +182,7 @@ export const compareWithOldCyclesData = async (
     downloadedCycles = response.data.cycleInfo
   } else {
     throw Error(
-      `Can't fetch data from cycle ${
-        lastCycleCounter - numberOfCyclesTocompare
+      `Can't fetch data from cycle ${lastCycleCounter - numberOfCyclesTocompare
       } to cycle ${lastCycleCounter}  from distributor server`
     )
   }
@@ -558,9 +557,18 @@ export const downloadCyclcesBetweenCycles = async (
 ): Promise<void> => {
   const bucketSize = 100
   let endCycle = startCycle + bucketSize
-  for (; startCycle <= totalCyclesToSync; ) {
+  for (; startCycle <= totalCyclesToSync;) {
     if (endCycle > totalCyclesToSync) endCycle = totalCyclesToSync
     const response = await queryFromDistributor(DataType.CYCLE, { start: startCycle, end: endCycle })
+    // Check status code
+    if (response && response.status !== 200) {
+      console.log(
+        `Error while querying for cycles between ${startCycle} and ${endCycle} from distributor ${DISTRIBUTOR_URL}`,
+        response.status
+      )
+      throw new Error(`Error while querying for cycles between ${startCycle} and ${endCycle} from distributor ${DISTRIBUTOR_URL}`)
+    }
+
     if (response && response.data && response.data.cycleInfo) {
       console.log(
         `[SHARD-1386] Downloaded cycles from`,
@@ -606,10 +614,18 @@ export const downloadReceiptsBetweenCycles = async (
   saveOnlyNewData = false
 ): Promise<void> => {
   let endCycle = startCycle + 100
-  for (; startCycle <= totalCyclesToSync; ) {
+  for (; startCycle <= totalCyclesToSync;) {
     if (endCycle > totalCyclesToSync) endCycle = totalCyclesToSync
     console.log(`[SHARD-1386] Downloading receipts from cycle ${startCycle} to cycle ${endCycle}`)
     let response = await queryFromDistributor(DataType.RECEIPT, { startCycle, endCycle, type: 'count' })
+    // Check status code
+    if (response && response.status !== 200) {
+      console.log(
+        `Error while querying for receipts between ${startCycle} and ${endCycle} from distributor ${DISTRIBUTOR_URL}`,
+        response.status
+      )
+      throw new Error(`Error while querying for receipts between ${startCycle} and ${endCycle} from distributor ${DISTRIBUTOR_URL}`)
+    }
     if (response && response.data && response.data.receipts) {
       console.log(
         `[SHARD-1386] Count of receipts from ${startCycle} to ${endCycle}`,
@@ -644,10 +660,18 @@ export const downloadOriginalTxsDataBetweenCycles = async (
   saveOnlyNewData = false
 ): Promise<void> => {
   let endCycle = startCycle + 100
-  for (; startCycle <= totalCyclesToSync; ) {
+  for (; startCycle <= totalCyclesToSync;) {
     if (endCycle > totalCyclesToSync) endCycle = totalCyclesToSync
     console.log(`[SHARD-1386] Downloading originalTxsData from cycle ${startCycle} to cycle ${endCycle}`)
     let response = await queryFromDistributor(DataType.ORIGINALTX, { startCycle, endCycle, type: 'count' })
+    // Check status code
+    if (response && response.status !== 200) {
+      console.log(
+        `Error while querying for originalTxsData between ${startCycle} and ${endCycle} from distributor ${DISTRIBUTOR_URL}`,
+        response.status
+      )
+      throw new Error(`Error while querying for originalTxsData between ${startCycle} and ${endCycle} from distributor ${DISTRIBUTOR_URL}`)
+    }
     if (response && response.data && response.data.originalTxs) {
       console.log(
         `[SHARD-1386] Count of originalTxsData from ${startCycle} to ${endCycle}`,

@@ -508,7 +508,8 @@ const startCollector = async () => {
       const currentCycle = lastCheckpoint + 1
       const currentCycleData = await cycle.queryCycleByCounter(currentCycle)
       if (!currentCycleData) {
-        throw Error(`Cycle ${currentCycleData} is missing from the database.`)
+        console.error(`Cycle ${currentCycle} is missing from the database.`)
+        throw Error('Verification failed')
       }
       while (endPointer < currentCycleData.counter + config.checkpointWindow) {
         // this allows us to have a rolling checkpointer
