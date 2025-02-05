@@ -639,7 +639,7 @@ export const downloadReceiptsBetweenCycles = async (
           console.log(
             `[SHARD-1386] Downloaded receipt count from ${startCycle} to ${endCycle}`,
             `Page: ${i}, Count:`,
-            response.data.receipts
+            response.data.receipts.length
           )
           const receipts = response.data.receipts
           await Receipt.processReceiptData(receipts, saveOnlyNewData)

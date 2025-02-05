@@ -30,13 +30,14 @@ export class CycleDataCache {
     async fetchCycleData(cycleNumber: number): Promise<void> {
         const response = await DataSync.queryFromDistributor(DataSync.DataType.CYCLEDATA, {
             cycle: cycleNumber,
-        })
+        });
 
         if (response) {
             this.cycleNumber = cycleNumber;
-            this.receiptCount = response.data.totalReceipts;
-            this.transactionCount = response.data.totalTransactions;
+            this.receiptCount = response.data.data.totalReceipts ?? -1; // Fallback to -1 if undefined
+            this.transactionCount = response.data.data.totalTransactions ?? -1; // Fallback to -1 if undefined
         }
-    }
 
+        // response.data.data.totalReceipts[0].receipts
+    }
 }
