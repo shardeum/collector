@@ -21,7 +21,7 @@ export async function insertAccountHistoryState(accountHistoryState: AccountHist
     const placeholders = Object.keys(accountHistoryState).fill('?').join(', ')
     const values = extractValues(accountHistoryState)
     const sql = 'INSERT OR REPLACE INTO accountHistoryState (' + fields + ') VALUES (' + placeholders + ')'
-    await db.run(sql, values)
+    db.run(sql, values)
     if (config.verbose)
       console.log(
         'Successfully inserted AccountHistoryState',
@@ -49,7 +49,7 @@ export async function bulkInsertAccountHistoryStates(
     for (let i = 1; i < accountHistoryStates.length; i++) {
       sql = sql + ', (' + placeholders + ')'
     }
-    await db.run(sql, values)
+    db.run(sql, values)
     console.log('Successfully bulk inserted AccountHistoryStates', accountHistoryStates.length)
   } catch (e) {
     console.log(e)
@@ -57,11 +57,11 @@ export async function bulkInsertAccountHistoryStates(
   }
 }
 
-export async function queryAccountHistoryState(
+export function queryAccountHistoryState(
   _accountId: string,
   blockNumber = undefined,
   blockHash = undefined
-): Promise<Account | null> {
+): Account | null {
   try {
     let sql = `SELECT * FROM accountHistoryState WHERE accountId=? AND `
     const values = [_accountId]
@@ -73,10 +73,10 @@ export async function queryAccountHistoryState(
     //   sql += `blockHash=? DESC LIMIT 1`
     //   values.push(blockHash)
     // }
-    const accountHistoryState: AccountHistoryState = await db.get(sql, values)
+    const accountHistoryState: AccountHistoryState = db.get(sql, values)
     if (accountHistoryState) {
       if (config.verbose) console.log('AccountHistoryState', accountHistoryState)
-      const receipt = await ReceiptDB.queryReceiptByReceiptId(accountHistoryState.receiptId)
+      const receipt = ReceiptDB.queryReceiptByReceiptId(accountHistoryState.receiptId)
       if (!receipt) {
         console.log('Unable to find receipt for AccountHistoryState', accountHistoryState.receiptId)
         return null
@@ -117,11 +117,11 @@ export async function queryAccountHistoryState(
   return null
 }
 
-export async function queryAccountHistoryStateCount(): Promise<number> {
+export function queryAccountHistoryStateCount(): number {
   let accountHistoryStates: { 'COUNT(*)': number } = { 'COUNT(*)': 0 }
   try {
     const sql = `SELECT COUNT(*) FROM accountHistoryState`
-    accountHistoryStates = await db.get(sql, [])
+    accountHistoryStates = db.get(sql, [])
   } catch (e) {
     console.log(e)
   }

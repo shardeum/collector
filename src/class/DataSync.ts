@@ -23,6 +23,7 @@ export enum DataType {
   ACCOUNT = 'account',
   TRANSACTION = 'transaction',
   TOTALDATA = 'totalData',
+  CYCLEDATA = 'cycleData',
 }
 
 interface queryFromDistributorParameters {
@@ -32,6 +33,7 @@ interface queryFromDistributorParameters {
   type?: string
   startCycle?: number
   endCycle?: number
+  cycle?: number
 }
 
 export const queryFromDistributor = async (
@@ -64,6 +66,9 @@ export const queryFromDistributor = async (
     case DataType.TOTALDATA:
       url = `${DISTRIBUTOR_URL}/totalData`
       break
+    case DataType.CYCLEDATA:
+      url = `${DISTRIBUTOR_URL}/cycleData`
+      break
   }
   try {
     const response = await axios.post(url, data, {
@@ -77,8 +82,8 @@ export const queryFromDistributor = async (
     })
     return response
   } catch (e) {
-    console.log(`Error while querying ${url} for data ${data}`, e)
-    return null
+    console.log(`Error while querying ${url}: ${e.response.data.error}`)
+    return e.response
   }
 }
 
@@ -551,13 +556,25 @@ export const downloadCyclcesBetweenCycles = async (
   totalCyclesToSync: number,
   saveOnlyNewData = false
 ): Promise<void> => {
-  const bucketSize = 1000
+  const bucketSize = 100
   let endCycle = startCycle + bucketSize
   for (; startCycle <= totalCyclesToSync; ) {
     if (endCycle > totalCyclesToSync) endCycle = totalCyclesToSync
     const response = await queryFromDistributor(DataType.CYCLE, { start: startCycle, end: endCycle })
+    // Check status code
+    if (response && response.status !== 200) {
+      console.log(
+        `Error while querying for cycles between ${startCycle} and ${endCycle} from distributor ${DISTRIBUTOR_URL}`,
+        response.status
+      )
+      throw new Error(
+        `Error while querying for cycles between ${startCycle} and ${endCycle} from distributor ${DISTRIBUTOR_URL}`
+      )
+    }
+
     if (response && response.data && response.data.cycleInfo) {
-      console.log(`Downloaded cycles`, response.data.cycleInfo.length)
+      if (config.verbose)
+        console.log(`Downloaded cycles from`, startCycle, `to`, endCycle, response.data.cycleInfo.length)
       const cycles = response.data.cycleInfo
       let combineCycles = []
       for (let i = 0; i < cycles.length; i++) {
@@ -597,15 +614,31 @@ export const downloadReceiptsBetweenCycles = async (
   let endCycle = startCycle + 100
   for (; startCycle <= totalCyclesToSync; ) {
     if (endCycle > totalCyclesToSync) endCycle = totalCyclesToSync
-    console.log(`Downloading receipts from cycle ${startCycle} to cycle ${endCycle}`)
+    if (config.verbose) console.log(`Downloading receipts from cycle ${startCycle} to cycle ${endCycle}`)
     let response = await queryFromDistributor(DataType.RECEIPT, { startCycle, endCycle, type: 'count' })
+    // Check status code
+    if (response && response.status !== 200) {
+      console.log(
+        `Error while querying for receipts between ${startCycle} and ${endCycle} from distributor ${DISTRIBUTOR_URL}`,
+        response.status
+      )
+      throw new Error(
+        `Error while querying for receipts between ${startCycle} and ${endCycle} from distributor ${DISTRIBUTOR_URL}`
+      )
+    }
     if (response && response.data && response.data.receipts) {
-      console.log(`Download receipts Count`, response.data.receipts)
+      if (config.verbose)
+        console.log(`Count of receipts from ${startCycle} to ${endCycle}`, `Count:`, response.data.receipts)
       const receiptsCount = response.data.receipts
       for (let i = 1; i <= Math.ceil(receiptsCount / 100); i++) {
         response = await queryFromDistributor(DataType.RECEIPT, { startCycle, endCycle, page: i })
         if (response && response.data && response.data.receipts) {
-          console.log(`Downloaded receipts`, response.data.receipts.length)
+          if (config.verbose)
+            console.log(
+              `Downloaded receipt count from ${startCycle} to ${endCycle}`,
+              `Page: ${i}, Count:`,
+              response.data.receipts.length
+            )
           const receipts = response.data.receipts
           await Receipt.processReceiptData(receipts, saveOnlyNewData)
         }
@@ -627,15 +660,32 @@ export const downloadOriginalTxsDataBetweenCycles = async (
   let endCycle = startCycle + 100
   for (; startCycle <= totalCyclesToSync; ) {
     if (endCycle > totalCyclesToSync) endCycle = totalCyclesToSync
-    console.log(`Downloading originalTxsData from cycle ${startCycle} to cycle ${endCycle}`)
+    if (config.verbose)
+      console.log(`Downloading originalTxsData from cycle ${startCycle} to cycle ${endCycle}`)
     let response = await queryFromDistributor(DataType.ORIGINALTX, { startCycle, endCycle, type: 'count' })
+    // Check status code
+    if (response && response.status !== 200) {
+      console.log(
+        `Error while querying for originalTxsData between ${startCycle} and ${endCycle} from distributor ${DISTRIBUTOR_URL}`,
+        response.status
+      )
+      throw new Error(
+        `Error while querying for originalTxsData between ${startCycle} and ${endCycle} from distributor ${DISTRIBUTOR_URL}`
+      )
+    }
     if (response && response.data && response.data.originalTxs) {
-      console.log(`Download originalTxsData Count`, response.data.originalTxs)
+      if (config.verbose)
+        console.log(`Count of originalTxsData from ${startCycle} to ${endCycle}`, response.data.originalTxs)
       const originalTxsDataCount = response.data.originalTxs
       for (let i = 1; i <= Math.ceil(originalTxsDataCount / 100); i++) {
         response = await queryFromDistributor(DataType.ORIGINALTX, { startCycle, endCycle, page: i })
         if (response && response.data && response.data.originalTxs) {
-          console.log(`Downloaded originalTxsData`, response.data.originalTxs.length)
+          if (config.verbose)
+            console.log(
+              `Downloaded originalTxsData from ${startCycle} to ${endCycle}`,
+              `Page: ${i}, Count:`,
+              response.data.originalTxs.length
+            )
           const originalTxsData = response.data.originalTxs
           await OriginalTxData.processOriginalTxData(originalTxsData, saveOnlyNewData)
         }

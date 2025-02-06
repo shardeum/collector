@@ -3,7 +3,7 @@ import { Account, AccountEntry } from '../types'
 import * as db from './sqlite3storage'
 import { Utils as StringUtils } from '@shardus/types'
 
-export async function insertAccountEntry(account: Account): Promise<void> {
+export function insertAccountEntry(account: Account): void {
   try {
     const accountEntry: AccountEntry = {
       accountId: account.accountId,
@@ -14,7 +14,7 @@ export async function insertAccountEntry(account: Account): Promise<void> {
     const placeholders = Object.keys(accountEntry).fill('?').join(', ')
     const values = db.extractValues(accountEntry)
     const sql = 'INSERT OR REPLACE INTO accountsEntry (' + fields + ') VALUES (' + placeholders + ')'
-    await db.run(sql, values, 'shardeumIndexer')
+    db.run(sql, values, 'shardeumIndexer')
     if (config.verbose)
       console.log(
         'ShardeumIndexer: Successfully inserted AccountEntry',
@@ -29,7 +29,7 @@ export async function insertAccountEntry(account: Account): Promise<void> {
   }
 }
 
-export async function bulkInsertAccountEntries(accounts: Account[]): Promise<void> {
+export function bulkInsertAccountEntries(accounts: Account[]): void {
   try {
     const accountEntries: AccountEntry[] = []
     for (const account of accounts) {
@@ -47,7 +47,7 @@ export async function bulkInsertAccountEntries(accounts: Account[]): Promise<voi
     for (let i = 1; i < accountEntries.length; i++) {
       sql = sql + ', (' + placeholders + ')'
     }
-    await db.run(sql, values, 'shardeumIndexer')
+    db.run(sql, values, 'shardeumIndexer')
     console.log('ShardeumIndexer: Successfully bulk inserted AccountEntries', accountEntries.length)
   } catch (e) {
     console.log(e)
@@ -55,15 +55,15 @@ export async function bulkInsertAccountEntries(accounts: Account[]): Promise<voi
   }
 }
 
-export async function updateAccountEntry(_accountId: string, account: Partial<Account>): Promise<void> {
+export function updateAccountEntry(_accountId: string, account: Partial<Account>): void {
   try {
-    const sql = `UPDATE accountsEntry SET timestamp = $timestamp, data = $account WHERE accountId = $accountId `
-    await db.run(
+    const sql = `UPDATE accountsEntry SET timestamp = @timestamp, data = @account WHERE accountId = @accountId `
+    db.run(
       sql,
       {
-        $timestamp: account.timestamp,
-        $account: account.account && StringUtils.safeStringify(account.account),
-        $accountId: account.accountId,
+        timestamp: account.timestamp,
+        account: account.account && StringUtils.safeStringify(account.account),
+        accountId: account.accountId,
       },
       'shardeumIndexer'
     )
@@ -78,11 +78,11 @@ export async function updateAccountEntry(_accountId: string, account: Partial<Ac
   }
 }
 
-export async function queryAccountEntryCount(): Promise<number> {
+export function queryAccountEntryCount(): number {
   let accountEntries: { 'COUNT(*)': number } = { 'COUNT(*)': 0 }
   try {
     const sql = `SELECT COUNT(*) FROM accountsEntry`
-    accountEntries = await db.get(sql, [], 'shardeumIndexer')
+    accountEntries = db.get(sql, [], 'shardeumIndexer')
   } catch (e) {
     console.log(e)
   }

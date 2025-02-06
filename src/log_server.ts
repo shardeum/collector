@@ -8,10 +8,11 @@ import { evmLogSubscriptionHandler } from './log_subscription/Handler'
 import { removeLogSubscriptionBySocketId } from './log_subscription/SocketManager'
 import * as Storage from './storage'
 import { Utils as StringUtils } from '@shardus/types'
+import { healthCheckRouter } from './routes/healthCheck'
 
 const start = async (): Promise<void> => {
   // Init dependencies
-  await Storage.initializeDB()
+  Storage.initializeDB()
   Storage.addExitListeners()
   await setupCollectorListener()
 
@@ -37,6 +38,8 @@ const start = async (): Promise<void> => {
     server.log.error(`Error processing request ${request.id}. Error ${error}`)
     reply.send({ error: error.message })
   })
+
+  await server.register(healthCheckRouter)
 
   // Register handler
   server.get('/evm_log_subscription', { websocket: true }, evmLogSubscriptionController)

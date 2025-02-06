@@ -4,7 +4,7 @@ import * as AccountDB from '../src/storage/account'
 import { AccountSearchType } from '../src/types'
 
 const start = async (): Promise<void> => {
-  await Storage.initializeDB()
+  Storage.initializeDB()
   Storage.addExitListeners()
 
   const accountsCount = await AccountDB.queryAccountCount(AccountSearchType.All)

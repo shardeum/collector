@@ -1,4 +1,6 @@
 import * as amqp from 'amqplib'
+import { addQueueToCheck } from '../../routes/healthCheck'
+import { config } from '../../config'
 
 export default class RMQConsumer {
   name: string // can be used as identifier
@@ -10,6 +12,7 @@ export default class RMQConsumer {
   channel: amqp.Channel | null = null
   isConnected: boolean
   isConnClosing: boolean
+  lastMessageTimestamp: number | null = null
 
   constructor(name: string, queue: string, prefetch = 10, callback: (msg: string) => Promise<boolean>) {
     this.name = name
@@ -18,6 +21,7 @@ export default class RMQConsumer {
     this.isConnected = false
     this.isConnClosing = false
     this.processFn = callback
+    addQueueToCheck(this)
   }
 
   public async consume(): Promise<void> {
@@ -32,25 +36,41 @@ export default class RMQConsumer {
       this.channel = await this.conn.createChannel()
       this.channel.prefetch(this.prefetch)
       console.log(`[Consumer ${this.name}]: Started listening to queue: ${this.queue}`)
+      let count = 0
+      let successCount = 0
+      let failedCount = 0
+
       this.channel.consume(this.queue, async (msg) => {
         if (msg) {
-          console.log(`[Consumer ${this.name}]: Received message`)
+          count++
+          if (config.verbose) console.log(`[Consumer ${this.name}]: Received message`)
           try {
             const success = await this.processFn(msg.content.toString())
             if (success === true) {
-              this.channel.ack(msg)
-              console.log(`[Consumer ${this.name}]: Successfully processed message`)
+              successCount++
+              this.lastMessageTimestamp = Date.now() // Update timestamp when processing succeeds
+              this.channel!.ack(msg)
+              if (config.verbose) console.log(`[Consumer ${this.name}]: Successfully processed message`)
             } else {
-              this.channel.nack(msg, false, true)
+              failedCount++
+              this.channel!.nack(msg, false, true)
             }
           } catch (e) {
+            failedCount++
             console.error(
               `Consumer [${
                 this.name
               }]: Error while processing message: ${e}\nMessage: ${msg.content.toString()}`
             )
-            this.channel.nack(msg, false, true)
+            this.channel!.nack(msg, false, true)
           }
+        }
+
+        if (count > 0 && count % 200 == 0) {
+          count = 0
+          console.log(
+            `[Consumer ${this.name}]: Processing Metrics: Processed Successfully: ${successCount} | Processing Failed: ${failedCount}`
+          )
         }
       })
     } catch (e) {
@@ -104,14 +124,14 @@ export default class RMQConsumer {
     if (!this.isConnected) {
       const interval = setInterval(async () => {
         attempt++
-        console.log(`[retryConnection ${this.name}]: (Attempt ${attempt}) intitiated connection retry...`)
+        console.log(`[retryConnection ${this.name}]: (Attempt ${attempt}) initiated connection retry...`)
         try {
           await this.consume()
           console.log(`[retryConnection ${this.name}]: (Attempt ${attempt}) successfully connected...`)
           this.isConnected = true
           clearInterval(interval)
         } catch (e) {
-          console.log(`[retryConnection ${this.name}]: (Attempt ${attempt}) unsuccessul. Err: ${e}`)
+          console.log(`[retryConnection ${this.name}]: (Attempt ${attempt}) unsuccessful. Err: ${e}`)
         }
       }, 5000) // Wait 5 seconds before retrying
     }
