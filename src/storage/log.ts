@@ -37,7 +37,7 @@ export async function insertLog(log: Log): Promise<void> {
     const placeholders = Object.keys(log).fill('?').join(', ')
     const values = extractValues(log)
     const sql = 'INSERT OR REPLACE INTO logs (' + fields + ') VALUES (' + placeholders + ')'
-    await db.run(sql, values)
+    db.run(sql, values)
     if (config.verbose) console.log('Successfully inserted Log', log.txHash, log.contractAddress)
   } catch (e) {
     console.log(e)
@@ -58,7 +58,7 @@ export async function bulkInsertLogs(logs: Log[]): Promise<void> {
     for (let i = 1; i < logs.length; i++) {
       sql = sql + ', (' + placeholders + ')'
     }
-    await db.run(sql, values)
+    db.run(sql, values)
     console.log('Successfully bulk inserted Logs', logs.length)
   } catch (e) {
     console.log(e)

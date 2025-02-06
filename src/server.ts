@@ -65,10 +65,6 @@ if (config.env == envEnum.DEV) {
 crypto.init(CONFIG.hashKey)
 crypto.setCustomStringifier(StringUtils.safeStringify, 'shardus_safeStringify')
 
-if (process.env.PORT) {
-  CONFIG.port.server = process.env.PORT
-}
-
 console.log(process.argv)
 const port = process.argv[2]
 if (port) {
@@ -123,7 +119,7 @@ const txHashQueryCacheSize = 1000
 
 // Setup Log Directory
 const start = async (): Promise<void> => {
-  await Storage.initializeDB()
+  Storage.initializeDB()
   Storage.addExitListeners()
   registerCache()
 
@@ -1438,8 +1434,8 @@ const start = async (): Promise<void> => {
     },
     async (err) => {
       if (err) {
-        server.log.error(err)
-        console.log(err)
+        server.log.error('API Server: ' + err)
+        console.log('API Server: ' + err)
         throw err
       }
       console.log('Collector is listening on port:', CONFIG.port.server)

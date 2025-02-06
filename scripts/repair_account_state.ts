@@ -16,7 +16,7 @@ const start = async (): Promise<void> => {
   overrideDefaultConfig(process.env, process.argv)
   // Set crypto hash keys from config
   Crypto.setCryptoHashKey(config.hashKey)
-  await Storage.initializeDB()
+  Storage.initializeDB()
   Storage.addExitListeners()
 
   let response = await DataSync.queryFromDistributor(DataSync.DataType.TOTALDATA, {})
@@ -104,7 +104,8 @@ const saveAccount = async (account: AccountCopy): Promise<void> => {
     accountType === AccountType.NetworkAccount ||
     accountType === AccountType.DevAccount ||
     accountType === AccountType.NodeAccount ||
-    accountType === AccountType.NodeAccount2
+    accountType === AccountType.NodeAccount2 ||
+    accountType === AccountType.SecureAccount
   ) {
     accObj.ethAddress = account.accountId // Adding accountId as ethAddess for these account types for now; since we need ethAddress for mysql index
   }

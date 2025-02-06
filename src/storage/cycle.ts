@@ -24,7 +24,7 @@ export async function insertCycle(cycle: Cycle): Promise<void> {
     const placeholders = Object.keys(cycle).fill('?').join(', ')
     const values = extractValues(cycle)
     const sql = 'INSERT OR REPLACE INTO cycles (' + fields + ') VALUES (' + placeholders + ')'
-    await db.run(sql, values)
+    db.run(sql, values)
     if (config.verbose)
       console.log('Successfully inserted Cycle', cycle.cycleRecord.counter, cycle.cycleMarker)
     if (isBlockIndexingEnabled()) await upsertBlocksForCycle(cycle)
@@ -47,7 +47,7 @@ export async function bulkInsertCycles(cycles: Cycle[]): Promise<void> {
     for (let i = 1; i < cycles.length; i++) {
       sql = sql + ', (' + placeholders + ')'
     }
-    await db.run(sql, values)
+    db.run(sql, values)
     console.log('Successfully bulk inserted Cycles', cycles.length)
     if (isBlockIndexingEnabled()) await upsertBlocksForCycles(cycles)
   } catch (e) {
@@ -59,7 +59,7 @@ export async function bulkInsertCycles(cycles: Cycle[]): Promise<void> {
 export async function updateCycle(marker: string, cycle: Cycle): Promise<void> {
   try {
     const sql = `UPDATE cycles SET counter = $counter, cycleRecord = $cycleRecord WHERE cycleMarker = $marker `
-    await db.run(sql, {
+    db.run(sql, {
       $counter: cycle.counter,
       $cycleRecord: cycle.cycleRecord && StringUtils.safeStringify(cycle.cycleRecord),
       $marker: marker,

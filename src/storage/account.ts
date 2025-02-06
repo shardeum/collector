@@ -23,22 +23,22 @@ type DbAccount = Account & {
 
 export const EOA_CodeHash = '0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470'
 
-export async function insertAccount(account: Account): Promise<void> {
+export function insertAccount(account: Account): void {
   try {
     const fields = Object.keys(account).join(', ')
     const placeholders = Object.keys(account).fill('?').join(', ')
     const values = extractValues(account)
     const sql = 'INSERT OR REPLACE INTO accounts (' + fields + ') VALUES (' + placeholders + ')'
-    await db.run(sql, values)
+    db.run(sql, values)
     if (config.verbose) console.log('Successfully inserted Account', account.ethAddress || account.accountId)
-    if (isShardeumIndexerEnabled()) await insertAccountEntry(account)
+    if (isShardeumIndexerEnabled()) insertAccountEntry(account)
   } catch (e) {
     console.log(e)
     console.log('Unable to insert Account or it is already stored in to database', account.accountId)
   }
 }
 
-export async function bulkInsertAccounts(accounts: Account[]): Promise<void> {
+export function bulkInsertAccounts(accounts: Account[]): void {
   try {
     const fields = Object.keys(accounts[0]).join(', ')
     const placeholders = Object.keys(accounts[0]).fill('?').join(', ')
@@ -47,40 +47,46 @@ export async function bulkInsertAccounts(accounts: Account[]): Promise<void> {
     for (let i = 1; i < accounts.length; i++) {
       sql = sql + ', (' + placeholders + ')'
     }
-    await db.run(sql, values)
+    db.run(sql, values)
     console.log('Successfully bulk inserted Accounts', accounts.length)
-    if (isShardeumIndexerEnabled()) await bulkInsertAccountEntries(accounts)
+    if (isShardeumIndexerEnabled()) bulkInsertAccountEntries(accounts)
   } catch (e) {
     console.log(e)
     console.log('Unable to bulk insert Accounts', accounts.length)
   }
 }
 
-export async function updateAccount(_accountId: string, account: Partial<Account>): Promise<void> {
+export function updateAccount(_accountId: string, account: Partial<Account>): void {
   try {
-    const sql = `UPDATE accounts SET cycle = $cycle, timestamp = $timestamp, account = $account, hash = $hash WHERE accountId = $accountId `
-    await db.run(sql, {
-      $cycle: account.cycle,
-      $timestamp: account.timestamp,
-      $account: account.account && StringUtils.safeStringify(account.account),
-      $hash: account.hash,
-      $accountId: account.accountId,
+    const sql = `
+      UPDATE accounts 
+      SET cycle = @cycle, 
+          timestamp = @timestamp, 
+          account = @account, 
+          hash = @hash 
+      WHERE accountId = @accountId`;
+    db.run(sql, {
+      cycle: account.cycle,
+      timestamp: account.timestamp,
+      account: account.account && StringUtils.safeStringify(account.account),
+      hash: account.hash,
+      accountId: account.accountId,
     })
     if (config.verbose) console.log('Successfully updated Account', account.ethAddress || account.accountId)
-    if (isShardeumIndexerEnabled()) await updateAccountEntry(_accountId, account)
+    if (isShardeumIndexerEnabled()) updateAccountEntry(_accountId, account)
   } catch (e) {
     console.log(e)
     console.log('Unable to update Account', account)
   }
 }
 
-export async function insertToken(token: Token): Promise<void> {
+export function insertToken(token: Token): void {
   try {
     const fields = Object.keys(token).join(', ')
     const placeholders = Object.keys(token).fill('?').join(', ')
     const values = extractValues(token)
     const sql = 'INSERT OR REPLACE INTO tokens (' + fields + ') VALUES (' + placeholders + ')'
-    await db.run(sql, values)
+    db.run(sql, values)
     if (config.verbose) console.log('Successfully inserted Token', token.ethAddress)
   } catch (e) {
     console.log(e)
@@ -88,7 +94,7 @@ export async function insertToken(token: Token): Promise<void> {
   }
 }
 
-export async function bulkInsertTokens(tokens: Token[]): Promise<void> {
+export function bulkInsertTokens(tokens: Token[]): void {
   try {
     const fields = Object.keys(tokens[0]).join(', ')
     const placeholders = Object.keys(tokens[0]).fill('?').join(', ')
@@ -97,7 +103,7 @@ export async function bulkInsertTokens(tokens: Token[]): Promise<void> {
     for (let i = 1; i < tokens.length; i++) {
       sql = sql + ', (' + placeholders + ')'
     }
-    await db.run(sql, values)
+    db.run(sql, values)
     console.log('Successfully inserted Tokens', tokens.length)
   } catch (e) {
     console.log(e)
@@ -105,16 +111,16 @@ export async function bulkInsertTokens(tokens: Token[]): Promise<void> {
   }
 }
 
-export async function queryAccountCount(type?: ContractType | AccountSearchType): Promise<number> {
+export function queryAccountCount(type?: ContractType | AccountSearchType): number {
   let accounts: { 'COUNT(*)': number } = { 'COUNT(*)': 0 }
   try {
     if (type || type === AccountSearchType.All) {
       if (type === AccountSearchType.All) {
         const sql = `SELECT COUNT(*) FROM accounts`
-        accounts = await db.get(sql, [])
+        accounts = db.get(sql, [])
       } else if (type === AccountSearchType.CA) {
         const sql = `SELECT COUNT(*) FROM accounts WHERE accountType=? AND contractType IS NOT NULL`
-        accounts = await db.get(sql, [AccountType.Account])
+        accounts = db.get(sql, [AccountType.Account])
       } else if (
         type === AccountSearchType.GENERIC ||
         type === AccountSearchType.ERC_20 ||
@@ -125,16 +131,16 @@ export async function queryAccountCount(type?: ContractType | AccountSearchType)
           type === AccountSearchType.GENERIC
             ? ContractType.GENERIC
             : type === AccountSearchType.ERC_20
-            ? ContractType.ERC_20
-            : type === AccountSearchType.ERC_721
-            ? ContractType.ERC_721
-            : ContractType.ERC_1155
+              ? ContractType.ERC_20
+              : type === AccountSearchType.ERC_721
+                ? ContractType.ERC_721
+                : ContractType.ERC_1155
         const sql = `SELECT COUNT(*) FROM accounts WHERE accountType=? AND contractType=?`
-        accounts = await db.get(sql, [AccountType.Account, type])
+        accounts = db.get(sql, [AccountType.Account, type])
       }
     } else {
       const sql = `SELECT COUNT(*) FROM accounts WHERE accountType=?`
-      accounts = await db.get(sql, [AccountType.Account])
+      accounts = db.get(sql, [AccountType.Account])
     }
   } catch (e) {
     console.log(e)
@@ -143,20 +149,20 @@ export async function queryAccountCount(type?: ContractType | AccountSearchType)
   return accounts['COUNT(*)'] || 0
 }
 
-export async function queryAccounts(
+export function queryAccounts(
   skip = 0,
   limit = 10,
   type?: AccountSearchType | ContractType
-): Promise<Account[]> {
+): Account[] {
   let accounts: DbAccount[] = []
   try {
     if (type || type === AccountSearchType.All) {
       if (type === AccountSearchType.All) {
         const sql = `SELECT * FROM accounts ORDER BY cycle DESC, timestamp DESC LIMIT ${limit} OFFSET ${skip}`
-        accounts = await db.all(sql, [])
+        accounts = db.all(sql, [])
       } else if (type === AccountSearchType.CA) {
         const sql = `SELECT * FROM accounts WHERE accountType=? AND contractType IS NOT NULL ORDER BY cycle DESC, timestamp DESC LIMIT ${limit} OFFSET ${skip}`
-        accounts = await db.all(sql, [AccountType.Account])
+        accounts = db.all(sql, [AccountType.Account])
       } else if (
         type === AccountSearchType.GENERIC ||
         type === AccountSearchType.ERC_20 ||
@@ -167,16 +173,16 @@ export async function queryAccounts(
           type === AccountSearchType.GENERIC
             ? ContractType.GENERIC
             : type === AccountSearchType.ERC_20
-            ? ContractType.ERC_20
-            : type === AccountSearchType.ERC_721
-            ? ContractType.ERC_721
-            : ContractType.ERC_1155
+              ? ContractType.ERC_20
+              : type === AccountSearchType.ERC_721
+                ? ContractType.ERC_721
+                : ContractType.ERC_1155
         const sql = `SELECT * FROM accounts WHERE accountType=? AND contractType=? ORDER BY cycle DESC, timestamp DESC LIMIT ${limit} OFFSET ${skip}`
-        accounts = await db.all(sql, [AccountType.Account, type])
+        accounts = db.all(sql, [AccountType.Account, type])
       }
     } else {
       const sql = `SELECT * FROM accounts WHERE accountType=? ORDER BY cycle DESC, timestamp DESC LIMIT ${limit} OFFSET ${skip}`
-      accounts = await db.all(sql, [AccountType.Account])
+      accounts = db.all(sql, [AccountType.Account])
     }
     accounts.forEach((account: DbAccount) => {
       if (account.account) account.account = StringUtils.safeJsonParse(account.account)
@@ -189,10 +195,10 @@ export async function queryAccounts(
   return accounts
 }
 
-export async function queryAccountByAccountId(accountId: string): Promise<Account | null> {
+export function queryAccountByAccountId(accountId: string): Account | null {
   try {
     const sql = `SELECT * FROM accounts WHERE accountId=?`
-    const account: DbAccount = await db.get(sql, [accountId])
+    const account: DbAccount = db.get(sql, [accountId])
     if (account) account.account = StringUtils.safeJsonParse(account.account)
     if (account && account.contractInfo)
       account.contractInfo = StringUtils.safeJsonParse(account.contractInfo)
@@ -204,13 +210,13 @@ export async function queryAccountByAccountId(accountId: string): Promise<Accoun
   return null
 }
 
-export async function queryAccountByAddress(
+export function queryAccountByAddress(
   address: string,
   accountType = AccountType.Account
-): Promise<Account | null> {
+): Account | null {
   try {
     const sql = `SELECT * FROM accounts WHERE accountType=? AND ethAddress=? ORDER BY accountType ASC LIMIT 1`
-    const account: DbAccount = await db.get(sql, [accountType, address])
+    const account: DbAccount = db.get(sql, [accountType, address])
     if (account) account.account = StringUtils.safeJsonParse(account.account)
     if (account && account.contractInfo)
       account.contractInfo = StringUtils.safeJsonParse(account.contractInfo)
@@ -222,14 +228,14 @@ export async function queryAccountByAddress(
   return null
 }
 
-export async function queryAccountCountBetweenCycles(
+export function queryAccountCountBetweenCycles(
   startCycleNumber: number,
   endCycleNumber: number
-): Promise<number> {
+): number {
   let accounts: { 'COUNT(*)': number } = { 'COUNT(*)': 0 }
   try {
     const sql = `SELECT COUNT(*) FROM accounts WHERE cycle BETWEEN ? AND ?`
-    accounts = await db.get(sql, [startCycleNumber, endCycleNumber])
+    accounts = db.get(sql, [startCycleNumber, endCycleNumber])
   } catch (e) {
     console.log(e)
   }
@@ -239,16 +245,16 @@ export async function queryAccountCountBetweenCycles(
   return accounts['COUNT(*)'] || 0
 }
 
-export async function queryAccountsBetweenCycles(
+export function queryAccountsBetweenCycles(
   skip = 0,
   limit = 10000,
   startCycleNumber: number,
   endCycleNumber: number
-): Promise<Account[]> {
+): Account[] {
   let accounts: DbAccount[] = []
   try {
     const sql = `SELECT * FROM accounts WHERE cycle BETWEEN ? AND ? ORDER BY cycle DESC, timestamp DESC LIMIT ${limit} OFFSET ${skip}`
-    accounts = await db.all(sql, [startCycleNumber, endCycleNumber])
+    accounts = db.all(sql, [startCycleNumber, endCycleNumber])
     accounts.forEach((account: DbAccount) => {
       if (account.account)
         (account as Account).account = StringUtils.safeJsonParse(account.account) as WrappedEVMAccount
@@ -264,14 +270,14 @@ export async function queryAccountsBetweenCycles(
   return accounts
 }
 
-export async function queryTokensByAddress(address: string, detail = false): Promise<object[]> {
+export function queryTokensByAddress(address: string, detail = false): object[] {
   try {
     const sql = `SELECT * FROM tokens WHERE ethAddress=?`
-    const tokens = (await db.all(sql, [address])) as Token[]
+    const tokens = (db.all(sql, [address])) as Token[]
     const filterTokens: object[] = []
     if (detail) {
       for (const { contractAddress, tokenValue } of tokens) {
-        const accountExist = await queryAccountByAccountId(
+        const accountExist = queryAccountByAccountId(
           contractAddress.slice(2).toLowerCase() + '0'.repeat(24) //Search by Shardus address
         )
         if (accountExist && accountExist.contractType) {
@@ -292,12 +298,12 @@ export async function queryTokensByAddress(address: string, detail = false): Pro
   return []
 }
 
-export async function queryTokenBalance(
+export function queryTokenBalance(
   contractAddress: string,
   addressToSearch: string
-): Promise<{ success: boolean; error?: string; balance?: string }> {
+): { success: boolean; error?: string; balance?: string } {
   const sql = `SELECT * FROM tokens WHERE ethAddress=? AND contractAddress=?`
-  const token: Token = await db.get(sql, [addressToSearch, contractAddress])
+  const token: Token = db.get(sql, [addressToSearch, contractAddress])
   if (config.verbose) console.log('Token balance', token)
   if (!token) return { success: false, error: 'tokenBalance is not found' }
   return {
@@ -306,11 +312,11 @@ export async function queryTokenBalance(
   }
 }
 
-export async function queryTokenHolderCount(contractAddress: string): Promise<number> {
+export function queryTokenHolderCount(contractAddress: string): number {
   let tokens: { 'COUNT(*)': number } = { 'COUNT(*)': 0 }
   try {
     const sql = `SELECT COUNT(*) FROM tokens WHERE contractAddress=?`
-    tokens = await db.get(sql, [contractAddress])
+    tokens = db.get(sql, [contractAddress])
   } catch (e) {
     console.log(e)
   }
@@ -319,11 +325,11 @@ export async function queryTokenHolderCount(contractAddress: string): Promise<nu
   return tokens['COUNT(*)'] || 0
 }
 
-export async function queryTokenHolders(skip = 0, limit = 10, contractAddress: string): Promise<Token[]> {
+export function queryTokenHolders(skip = 0, limit = 10, contractAddress: string): Token[] {
   let tokens: Token[] = []
   try {
     const sql = `SELECT * FROM tokens WHERE contractAddress=? ORDER BY tokenValue DESC LIMIT ${limit} OFFSET ${skip}`
-    tokens = await db.all(sql, [contractAddress])
+    tokens = db.all(sql, [contractAddress])
   } catch (e) {
     console.log(e)
   }
@@ -372,15 +378,16 @@ export async function processAccountData(accounts: AccountCopy[]): Promise<Accou
         const { contractInfo, contractType } = await getContractInfo(accObj.ethAddress)
         accObj.contractInfo = contractInfo
         accObj.contractType = contractType
-        await insertAccount(accObj)
-        await insertAccountEntry(accObj)
+        insertAccount(accObj)
+        insertAccountEntry(accObj)
         continue
       }
     } else if (
       accountType === AccountType.NetworkAccount ||
       accountType === AccountType.DevAccount ||
       accountType === AccountType.NodeAccount ||
-      accountType === AccountType.NodeAccount2
+      accountType === AccountType.NodeAccount2 ||
+      accountType === AccountType.SecureAccount
     ) {
       accObj.ethAddress = account.accountId // Adding accountId as ethAddess for these account types for now; since we need ethAddress for mysql index
     }
@@ -394,10 +401,10 @@ export async function processAccountData(accounts: AccountCopy[]): Promise<Accou
       transactions.push(account as unknown as Account)
     }
     if (combineAccounts.length >= bucketSize) {
-      await bulkInsertAccounts(combineAccounts)
+      bulkInsertAccounts(combineAccounts)
       combineAccounts = []
     }
   }
-  if (combineAccounts.length > 0) await bulkInsertAccounts(combineAccounts)
+  if (combineAccounts.length > 0) bulkInsertAccounts(combineAccounts)
   return transactions
 }

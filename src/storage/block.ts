@@ -18,7 +18,7 @@ export async function insertBlock(block: DbBlock): Promise<void> {
     const placeholders = Object.keys(block).fill('?').join(', ')
     const values = db.extractValues(block)
     const sql = 'INSERT OR REPLACE INTO blocks (' + fields + ') VALUES (' + placeholders + ')'
-    await db.run(sql, values)
+    db.run(sql, values)
     /*prettier-ignore*/ if (config.verbose) console.log('block: Successfully inserted block', block.number, block.hash)
   } catch (e) {
     console.log(e)
@@ -35,7 +35,7 @@ export async function bulkInsertBlocks(blocks: DbBlock[]): Promise<void> {
     for (let i = 1; i < blocks.length; i++) {
       sql = sql + ', (' + placeholders + ')'
     }
-    await db.run(sql, values)
+    db.run(sql, values)
     /*prettier-ignore*/ console.log('block: Successfully bulk inserted blocks', blocks.length)
   } catch (e) {
     console.log(e)
@@ -65,7 +65,7 @@ export async function upsertBlocksForCycleCore(
     const newBlockTimestampInSecond =
       startTimeInSeconds +
       (blockNumber - config.blockIndexing.initBlockNumber - firstBlockNumberForCycle) *
-        config.blockIndexing.blockProductionRate
+      config.blockIndexing.blockProductionRate
     const newBlockTimestamp = newBlockTimestampInSecond * 1000
     const block = createNewBlock(blockNumber, newBlockTimestamp)
     /*prettier-ignore*/ if (config.verbose) console.log(`Block number: ${block.header.number}, timestamp: ${block.header.timestamp}, hash: ${bytesToHex(block.header.hash())}`)

@@ -10,7 +10,7 @@ let start_time
 let end_time
 
 const start = async (): Promise<void> => {
-  await Storage.initializeDB()
+  Storage.initializeDB()
   Storage.addExitListeners()
 
   start_time = process.hrtime()

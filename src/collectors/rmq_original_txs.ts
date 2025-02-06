@@ -2,6 +2,7 @@ import * as amqp from 'amqplib'
 import RMQConsumer from '../messaging/rabbitmq/consumer'
 import { validateData } from '../class/validateData'
 import { Utils as StringUtils } from '@shardus/types'
+import { config } from '../config'
 
 export default class RMQOriginalTxsConsumer {
   consumer: RMQConsumer
@@ -27,7 +28,7 @@ export default class RMQOriginalTxsConsumer {
   private async processMessage(msgStr: string): Promise<boolean> {
     try {
       const success = await validateData(StringUtils.safeJsonParse(msgStr))
-      console.log(`transactions#processMessage: ${success}`)
+      if (config.verbose) console.log(`transactions#processMessage: ${success}`)
       return success
     } catch (e) {
       console.error(`[RMQOriginalTxsConsumer]: Error while processing message: ${e}`)
