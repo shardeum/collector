@@ -44,22 +44,27 @@ export async function startPatching(startCycle: number, endCycle?: number): Prom
         }
       }
 
-      console.log('[SHARD-1386] Start Patching from Cycle', startCycle, 'till the End Cycle', endCycle)
+      console.log('Start Patching from Cycle', startCycle, 'till the End Cycle', endCycle)
 
       // await DataSync.downloadAndSyncGenesisAccounts() // To sync accounts data that are from genesis accounts/accounts data that the network start with
       // TO DO : revisit purpose of genesis syncing
       await DataSync.downloadCyclcesBetweenCycles(startCycle, endCycle, patchOnlyMissingData)
-      console.log('[SHARD-1386] Cycles Patched! from', startCycle, `to`, endCycle)
+      if (config.verbose) console.log('Cycles Patched! from', startCycle, `to`, endCycle)
       await DataSync.downloadReceiptsBetweenCycles(startCycle, endCycle, patchOnlyMissingData)
-      console.log('[SHARD-1386] Receipts Patched!', startCycle, `to`, endCycle)
+      if (config.verbose) console.log('Receipts Patched!', startCycle, `to`, endCycle)
       await DataSync.downloadOriginalTxsDataBetweenCycles(startCycle, endCycle, patchOnlyMissingData)
-      console.log('[SHARD-1386] OriginalTxs Patched!', startCycle, `to`, endCycle)
+      if (config.verbose) console.log('OriginalTxs Patched!', startCycle, `to`, endCycle)
 
-      console.log('[SHARD-1386] Patching done! from cycle', startCycle, 'to cycle', endCycle)
+      console.log('Patching done! from cycle', startCycle, 'to cycle', endCycle)
       return true
     } catch (error) {
       attempt++
-      console.error(`Error during patching process (attempt ${attempt}):`, error.message, 'for the cycle', startCycle)
+      console.error(
+        `Error during patching process (attempt ${attempt}):`,
+        error.message,
+        'for the cycle',
+        startCycle
+      )
       if (attempt >= maxRetries) {
         console.error('Max retries reached. Patching failed.')
         return false

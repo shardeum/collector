@@ -458,51 +458,7 @@ const startCollector = async () => {
   let endPointer = 0
   let lastCheckpoint: number
 
-  /* Disable
-  try {
-    console.log(`[SHARD-1386] Started initial sync`)
-    await initialSync() // Sync initial data
-    console.log(`[SHARD-1386] Completed initial sync`)
-  } catch (e) {
-    console.error(`Error in initialSync: Collector process stopped due to error: ${e.message}`)
-    console.log('Attempting fix..')
-
-    // Starts the syncing process from the last known checkpoint and going back a 100 cycles from the checkpoint just for extra safety
-    let startPatchCycle = checkPointer
-    if (checkPointer - 100 > 0) {
-      startPatchCycle = checkPointer - 100
-    } else {
-      startPatchCycle = 0 // Ensure the start cycle does not go below zero
-    }
-    console.log(`[SHARD-1386] Catch block initialSync. Started patching from ${startPatchCycle}`)
-    const status = await startPatching(startPatchCycle)
-    if (!status) {
-      console.error('Patching process failed, shutting down the collector process.')
-      shutdownCollector() // Perform graceful shutdown
-    }
-  } */
-
-  /*
-  // adding redundancy to ensure robustness of data in the last checkpoint window
-  try {
-    const latestCycle = await cycle.queryLatestCycleRecords(1)
-    let redundancyStart = latestCycle[0].counter - config.checkpointWindow
-    if (redundancyStart < 0) {
-      redundancyStart = 0 // Ensure the start cycle does not go below zero
-    }
-    console.log(`[SHARD-1386] Started redundancy patching ${redundancyStart}`)
-    const status = await startPatching(redundancyStart)
-    console.log(`[SHARD-1386] Completed redundancy patching ${redundancyStart}. Status: ${status}`)
-
-    if (!status) {
-      console.error('Patching process failed, shutting down the collector process.')
-      shutdownCollector() // Perform graceful shutdown
-    }
-  } catch (error) {
-    console.error('An unexpected error occurred while blindly patching the last checkpoint window:', error)
-  } */
-
-  console.log(`[SHARD-1386] Starting infinite loop to validate checkpoints`)
+  console.log(`Starting infinite loop to verify data and update checkpoints`)
 
   // rolling checkpoint mechanism
   while (true) {
@@ -529,9 +485,8 @@ const startCollector = async () => {
         await sleep(5000)
       }
 
-      console.log(
-        `[SHARD-1386] Time to validate data for checkpoint cycle ${currentCycle}(previous: ${lastCheckpoint})`
-      )
+      if (config.verbose)
+        console.log(`Time to validate data for checkpoint cycle ${currentCycle}(previous: ${lastCheckpoint})`)
 
       // We should always have the next 11 cycles here. Fetch the data from distributor
       const response = await cycleDataCache.getCycleDataFor(currentCycle)
