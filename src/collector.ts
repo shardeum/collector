@@ -6,7 +6,9 @@ import * as Storage from './storage'
 import * as Crypto from './utils/crypto'
 import * as cycle from './storage/cycle'
 import * as receipt from './storage/receipt'
+import * as transaction from './storage/transaction'
 import * as originalTxData from './storage/originalTxData'
+import * as checkpoint from './storage/checkpoint'
 import {
   downloadTxsDataAndCycles,
   compareWithOldReceiptsData,
@@ -37,6 +39,8 @@ import { sleep } from './utils'
 import RMQCyclesConsumer from './collectors/rmq_cycles'
 import RMQOriginalTxsConsumer from './collectors/rmq_original_txs'
 import RMQReceiptsConsumer from './collectors/rmq_receipts'
+import * as db from './storage/sqlite3storage'
+import { CycleDataCache } from './class/CycleDataCache'
 
 const DistributorFirehoseEvent = 'FIREHOSE'
 let ws: WebSocket
@@ -48,10 +52,10 @@ const args = process.argv
 
 import path = require('path')
 import fs = require('fs')
-import FastifyWebsocket from '@fastify/websocket'
 import Fastify from 'fastify'
 import fastifyRateLimit from '@fastify/rate-limit'
 import { healthCheckRouter } from './routes/healthCheck'
+import { startPatching } from './utils/patchCollector'
 
 if (config.env == envEnum.DEV) {
   //default debug mode keys
@@ -93,6 +97,10 @@ if (config.env == envEnum.DEV) {
   }
 }
 
+let rmqCyclesConsumer: RMQCyclesConsumer
+let rmqTransactionsConsumer: RMQOriginalTxsConsumer
+let rmqReceiptsConsumer: RMQReceiptsConsumer
+
 async function startHttpServer() {
   if (!CONFIG.enableCollectorSocketServer) {
     const server = Fastify({
@@ -126,19 +134,8 @@ async function startHttpServer() {
   }
 }
 
-export const startServer = async (): Promise<void> => {
+export const initialSync = async (): Promise<void> => {
   console.log(`Collector Mode: ${CONFIG.collectorMode}`)
-  overrideDefaultConfig(env, args)
-  // Exit if dataLogWrite is enabled and collectorMode is MQ
-  if (CONFIG.dataLogWrite && CONFIG.collectorMode === collectorMode.MQ) {
-    console.error('ERROR: dataLogWrite must be disabled when running in MQ mode. Please restart the collector with dataLogWrite turned off.')
-    process.exit(1)
-  }
-  // Set crypto hash keys from config
-  Crypto.setCryptoHashKey(CONFIG.hashKey)
-
-  await Storage.initializeDB()
-  Storage.addExitListeners(ws)
 
   // Check if there is any existing data in the db
   let lastStoredReceiptCount = await receipt.queryReceiptCount()
@@ -235,28 +232,6 @@ export const startServer = async (): Promise<void> => {
       throw Error(
         'The existing db has more originalTxsData data than the network data! Clear the DB and start the server again!'
       )
-    }
-  }
-
-  if (CONFIG.dataLogWrite) await initDataLogWriter()
-
-  if (CONFIG.enableCollectorSocketServer) setupCollectorSocketServer()
-  addSigListeners()
-
-  if (CONFIG.collectorMode === collectorMode.MQ) {
-    await startHttpServer()
-    startRMQEventsConsumers()
-  } else {
-    const CONNECT_TO_DISTRIBUTOR_MAX_RETRY = 10
-    let retry = 0
-    // Connect to the distributor
-    while (!connected) {
-      connectToDistributor()
-      retry++
-      await sleep(2000)
-      if (!connected && retry > CONNECT_TO_DISTRIBUTOR_MAX_RETRY) {
-        throw Error('Cannot connect to the distributor!')
-      }
     }
   }
 
@@ -383,9 +358,9 @@ const connectToDistributor = (): void => {
 
 // start queue consumers for cycles, transactions and receipts events
 const startRMQEventsConsumers = (): void => {
-  const rmqCyclesConsumer = new RMQCyclesConsumer()
-  const rmqTransactionsConsumer = new RMQOriginalTxsConsumer()
-  const rmqReceiptsConsumer = new RMQReceiptsConsumer()
+  rmqCyclesConsumer = new RMQCyclesConsumer()
+  rmqTransactionsConsumer = new RMQOriginalTxsConsumer()
+  rmqReceiptsConsumer = new RMQReceiptsConsumer()
 
   rmqCyclesConsumer.start()
   rmqTransactionsConsumer.start()
@@ -393,19 +368,19 @@ const startRMQEventsConsumers = (): void => {
 
   // add signal listeners
   process.on('SIGTERM', async () => {
-    console.log(`Initiated RabbitMQ connections cleanup`)
-    await rmqCyclesConsumer.cleanUp()
-    await rmqTransactionsConsumer.cleanUp()
-    await rmqReceiptsConsumer.cleanUp()
-    console.log(`Completed RabbitMQ connections cleanup`)
+    await stopRMQEventsConsumers()
   })
   process.on('SIGINT', async () => {
-    console.log(`Initiated RabbitMQ connections cleanup`)
-    await rmqCyclesConsumer.cleanUp()
-    await rmqTransactionsConsumer.cleanUp()
-    await rmqReceiptsConsumer.cleanUp()
-    console.log(`Completed RabbitMQ connections cleanup`)
+    await stopRMQEventsConsumers()
   })
+}
+
+const stopRMQEventsConsumers = async (): Promise<void> => {
+  console.log(`Initiated RabbitMQ connections cleanup`)
+  await rmqCyclesConsumer.cleanUp()
+  await rmqTransactionsConsumer.cleanUp()
+  await rmqReceiptsConsumer.cleanUp()
+  console.log(`Completed RabbitMQ connections cleanup`)
 }
 
 const addSigListeners = (): void => {
@@ -415,11 +390,164 @@ const addSigListeners = (): void => {
     overrideDefaultConfig(env, args)
     console.log('Config reloaded', CONFIG)
   })
+  process.on('SIGINT', async () => {
+    console.log('DETECTED SIGINT SIGNAL')
+    db.close()
+    process.exit(0)
+  })
   console.log('Registerd signal listeners.')
 }
 
-startServer()
+const startCollector = async () => {
+  // Override default configuration with environment variables and arguments
+  overrideDefaultConfig(env, args)
 
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception in Collector: ', error)
-})
+  if (!config.collectorInfo.secretKey || !config.collectorInfo.publicKey) {
+    console.error('Please provide a keypair in collector config')
+    process.exit(1)
+  }
+
+  // Set crypto hash keys from config
+  Crypto.setCryptoHashKey(CONFIG.hashKey)
+
+  // Initialize the database
+  Storage.initializeDB()
+  Storage.addExitListeners(ws)
+
+  // Initialize data log writer if enabled
+  if (CONFIG.dataLogWrite) await initDataLogWriter()
+
+  // Setup collector socket server if enabled
+  if (CONFIG.enableCollectorSocketServer) setupCollectorSocketServer()
+
+  // Add signal listeners
+  addSigListeners()
+
+  // Start RabbitMQ event consumers or connect to distributor based on collector mode
+  if (CONFIG.collectorMode === collectorMode.MQ) {
+    await startHttpServer()
+    startRMQEventsConsumers()
+  } else {
+    const CONNECT_TO_DISTRIBUTOR_MAX_RETRY = 10
+    let retry = 0
+    while (!connected) {
+      connectToDistributor()
+      retry++
+      await sleep(2000)
+      if (!connected && retry > CONNECT_TO_DISTRIBUTOR_MAX_RETRY) {
+        throw Error('Cannot connect to the distributor!')
+      }
+    }
+  }
+
+  async function shutdownCollector() {
+    // Perform any necessary cleanup here
+    db.close() // Close the database connection
+    console.log('Collector shut down complete.')
+    if (CONFIG.collectorMode === collectorMode.MQ) await stopRMQEventsConsumers()
+    process.exit(1) // Restart the process
+  }
+
+  const cycleDataCache = new CycleDataCache()
+
+  // Naming Convention:
+  // Last - previous checkpoint
+  // Current - The checkpoint we're about to add
+  // Latest - The most recent cycle available in the DB
+
+  let endPointer = 0
+  let lastCheckpoint: number
+
+  console.log(`Starting infinite loop to verify data and update checkpoints`)
+
+  // rolling checkpoint mechanism
+  while (true) {
+    try {
+      // Start verification and checkpointing process here
+      // Check if we have cycle number 'checkPointer' in the db, if not, invoke patcher
+      lastCheckpoint = await checkpoint.fetchCheckpoint() // last known verified checkpoint
+      const nextCheckpoint = lastCheckpoint + 1
+      const nextCheckpointData = await cycle.queryCycleByCounter(nextCheckpoint)
+      if (!nextCheckpointData) {
+        console.error(`Cycle ${nextCheckpoint} is missing from the database.`)
+        throw Error('Verification failed')
+      }
+      while (endPointer < nextCheckpointData.counter + config.checkpointWindow) {
+        // this allows us to have a rolling checkpointer
+        // Wait till we have 21 cycles of data [ checkpointWindow = 21 ]
+        const latestCycle = await cycle.queryLatestCycleRecords(1)
+        if (latestCycle[0].counter >= nextCheckpoint + config.checkpointWindow) {
+          if (config.verbose) console.log('We have all the cycles we need. Proceeding to verification')
+          endPointer = latestCycle[0].counter
+          break
+        }
+        console.log(
+          '⏱️ Waiting for more cycles to be available in the database',
+          'latestCycle',
+          latestCycle[0].counter,
+          'endPointer',
+          endPointer,
+          'checkpointWindow',
+          config.checkpointWindow,
+          'lastCheckpoint',
+          lastCheckpoint
+        )
+        await sleep(5000)
+      }
+
+      if (config.verbose)
+        console.log(
+          `Time to validate data for checkpoint cycle ${nextCheckpoint}(previous: ${lastCheckpoint})`
+        )
+
+      // We should always have the next 11 cycles here. Fetch the data from distributor
+      const response = await cycleDataCache.getCycleDataFor(nextCheckpoint)
+      if (!response) {
+        console.error(`❗ Verification failed for cycle ${nextCheckpoint}. Missing data from distributor.`)
+        throw Error('Verification failed')
+      }
+      // Fetch receipt count for this cycle from our DB
+      const ourTotalReceipts = await receipt.queryReceiptCountBetweenCycles(nextCheckpoint, nextCheckpoint)
+      if (ourTotalReceipts !== response.receiptCount) {
+        console.log(`❗ Verification failed for cycle ${nextCheckpoint}. Mismatching Receipts.`)
+        throw Error('Verification failed')
+      }
+      // Fetch transaction count for this cycle from our DB
+      const ourTotalTransactions = await originalTxData.queryOriginalTxDataCount(
+        null,
+        null,
+        nextCheckpoint,
+        nextCheckpoint
+      )
+      if (ourTotalTransactions !== response.transactionCount) {
+        console.log(`❗ Verification failed for cycle ${nextCheckpoint}. Mismatching Transactions.`)
+        throw Error('Verification failed')
+      }
+
+      // Verification successful
+      console.log(`🟢 Verification successful. Updating checkpoint to ${nextCheckpoint}`)
+      await checkpoint.insertCheckpoint(nextCheckpoint) // rolling checkpoint, moving to next cycle after data verification
+    } catch (e) {
+      if (e.message === 'Verification failed') {
+        console.error(`Identified missing data for cycle: ${lastCheckpoint + 1}`)
+        console.log('Attempting fix..')
+
+        // Fetch latest checkpoint
+        console.log('The last known checkpoint to patch from is', lastCheckpoint)
+        const currentCycle = lastCheckpoint + 1
+        // Starts the syncing process
+        const status = await startPatching(currentCycle, currentCycle)
+
+        if (!status) {
+          console.error('Patching process failed, shutting down the collector process.')
+          await shutdownCollector() // Perform graceful shutdown
+        }
+      } else {
+        // Handle other errors
+        console.error('An unexpected error occurred:', e) // it goes back into the loop because the error happened due to non patching/crosschecking issue
+      }
+    }
+  }
+}
+
+startCollector()

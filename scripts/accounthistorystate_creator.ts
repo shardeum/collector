@@ -3,7 +3,7 @@ import * as ReceiptDB from '../src/storage/receipt'
 import * as AccountHistoryStateDB from '../src/storage/accountHistoryState'
 
 const start = async (): Promise<void> => {
-  await Storage.initializeDB()
+  Storage.initializeDB()
   Storage.addExitListeners()
 
   const receiptsCount = await ReceiptDB.queryReceiptCount()

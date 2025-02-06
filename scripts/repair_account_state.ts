@@ -16,7 +16,7 @@ const start = async (): Promise<void> => {
   overrideDefaultConfig(process.env, process.argv)
   // Set crypto hash keys from config
   Crypto.setCryptoHashKey(config.hashKey)
-  await Storage.initializeDB()
+  Storage.initializeDB()
   Storage.addExitListeners()
 
   let response = await DataSync.queryFromDistributor(DataSync.DataType.TOTALDATA, {})

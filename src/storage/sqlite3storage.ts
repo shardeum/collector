@@ -1,11 +1,10 @@
-import sqlite3Lib from 'sqlite3'
-const sqlite3 = sqlite3Lib.verbose()
+import Database from 'better-sqlite3'
 import { config } from '../config'
 import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
-let db: sqlite3Lib.Database
+let db: Database
 
 // Additional databases
-let shardeumIndexerDb: sqlite3Lib.Database
+let shardeumIndexerDb: Database
 
 export type DbName = 'default' | 'shardeumIndexer'
 
@@ -16,24 +15,26 @@ export interface DbOptions {
 }
 
 export async function init(config: DbOptions): Promise<void> {
-  db = new sqlite3.Database(config.defaultDbSqlitePath)
-  await run('PRAGMA journal_mode=WAL')
+  db = new Database(config.defaultDbSqlitePath)
+  run('PRAGMA journal_mode=WAL')
+  run('PRAGMA busy_timeout = 5000') // Set busy timeout to 5 seconds
   console.log('Database initialized.')
   if (config.enableShardeumIndexer) {
-    shardeumIndexerDb = new sqlite3.Database(config.shardeumIndexerSqlitePath)
-    await run('PRAGMA journal_mode=WAL', [], 'shardeumIndexer')
+    shardeumIndexerDb = new Database(config.shardeumIndexerSqlitePath)
+    run('PRAGMA journal_mode=WAL', [], 'shardeumIndexer')
     console.log('Shardeum indexer database initialized.')
   }
-  db.on('profile', (sql, time) => {
-    if (time > 500 && time < 1000) {
-      console.log('SLOW QUERY', sql, time)
-    } else if (time > 1000) {
-      console.log('VERY SLOW QUERY', sql, time)
-    }
-  })
+  // NOT SUPPORTED IN BETTER-SQLITE3
+  // db.on('profile', (sql, time) => {
+  //   if (time > 500 && time < 1000) {
+  //     console.log('SLOW QUERY', sql, time)
+  //   } else if (time > 1000) {
+  //     console.log('VERY SLOW QUERY', sql, time)
+  //   }
+  // })
 }
 
-function getDb(dbName: DbName): sqlite3Lib.Database {
+function getDb(dbName: DbName): Database {
   switch (dbName) {
     case 'default':
       return db
@@ -54,97 +55,76 @@ export function checkDatabaseHealth(dbName: DbName = 'default'): boolean {
 }
 
 export async function runCreate(createStatement: string, dbName: DbName = 'default'): Promise<void> {
-  await run(createStatement, [], dbName)
+  run(createStatement, [], dbName)
 }
 
-export async function run(
+export function run(
   sql: string,
   params: unknown[] | object = [],
   dbName: DbName = 'default'
-): Promise<{ id: number }> {
-  return new Promise((resolve, reject) => {
-    getDb(dbName).run(sql, params, function (err: Error) {
-      if (err) {
-        console.log('Error running sql ' + sql)
-        console.log(err)
-        reject(err)
-      } else {
-        resolve({ id: this.lastID })
-      }
-    })
-  })
+): { id: number } {
+  try {
+    const db = getDb(dbName);
+    const stmt = db.prepare(sql);
+    const result = stmt.run(params);
+
+    return { id: result.lastInsertRowid as number };
+  } catch (err) {
+    console.error('Error running SQL:', sql);
+    console.error(err);
+    throw err;
+  }
 }
 
-export async function get<T>(
+export function get<T>(
   sql: string,
   params: unknown[] | object = [],
   dbName: DbName = 'default'
-): Promise<T> {
-  return new Promise((resolve, reject) => {
-    getDb(dbName).get(sql, params, (err: Error, result: T) => {
-      if (err) {
-        console.log('Error running sql: ' + sql)
-        console.log(err)
-        reject(err)
-      } else {
-        resolve(result)
-      }
-    })
-  })
+): T {
+  try {
+    const db = getDb(dbName);
+    return db.prepare(sql).get(params) as T;
+  } catch (err) {
+    console.error('Error running SQL:', sql);
+    console.error(err);
+    throw err;
+  }
 }
 
-export async function all<T>(
+export function all<T>(
   sql: string,
   params: unknown[] | object = [],
   dbName: DbName = 'default'
-): Promise<T[]> {
-  return new Promise((resolve, reject) => {
-    getDb(dbName).all(sql, params, (err: Error, rows: T[]) => {
-      if (err) {
-        console.log('Error running sql: ' + sql)
-        console.log(err)
-        reject(err)
-      } else {
-        resolve(rows)
-      }
-    })
-  })
+): T[] {
+  try {
+    const db = getDb(dbName);
+    return db.prepare(sql).all(params) as T[];
+  } catch (err) {
+    console.error('Error running SQL:', sql);
+    console.error(err);
+    throw err;
+  }
 }
 
 /**
  * Closes the Database and Indexer Connections Gracefully
  */
-export async function close(): Promise<void> {
+export function close(): void {
   try {
-    console.log('Terminating Database/Indexer Connections...')
-    await new Promise<void>((resolve, reject) => {
-      db.close((err) => {
-        if (err) {
-          console.error('Error closing Database Connection.')
-          reject(err)
-        } else {
-          console.log('Database connection closed.')
-          resolve()
-        }
-      })
-    })
+    console.log('Terminating Database/Indexer Connections...');
+
+    if (db) {
+      db.close();
+      console.log('Database connection closed.');
+    }
 
     if (config.enableShardeumIndexer && shardeumIndexerDb) {
-      await new Promise<void>((resolve, reject) => {
-        shardeumIndexerDb.close((err) => {
-          if (err) {
-            console.error('Error closing Indexer Connection.')
-            reject(err)
-          } else {
-            console.log('Shardeum Indexer Database Connection closed.')
-            resolve()
-          }
-        })
-      })
+      shardeumIndexerDb.close();
+      console.log('Shardeum Indexer Database Connection closed.');
     }
   } catch (err) {
-    console.error('Error thrown in db close() function: ')
-    console.error(err)
+    console.error('Error thrown in db close() function:');
+    console.error(err);
   }
 }
 
@@ -169,6 +149,7 @@ export function extractValuesFromArray(arr: object[]): string[] {
     for (const object of arr) {
       for (let value of Object.values(object)) {
         if (typeof value === 'object') value = StringUtils.safeStringify(value)
+        else if (typeof value === 'boolean') value = value ? '1' : '0'
         inputs.push(value)
       }
     }

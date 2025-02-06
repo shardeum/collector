@@ -34,7 +34,7 @@ export async function insertOriginalTxData(
     const placeholders = Object.keys(originalTxData).fill('?').join(', ')
     const values = extractValues(originalTxData)
     const sql = `INSERT OR REPLACE INTO ${tableName} (` + fields + ') VALUES (' + placeholders + ')'
-    await db.run(sql, values)
+    db.run(sql, values)
     if (config.verbose) console.log(`Successfully inserted ${tableName}`, originalTxData.txId)
   } catch (e) {
     console.log(e)
@@ -54,7 +54,7 @@ export async function bulkInsertOriginalTxsData(
     for (let i = 1; i < originalTxsData.length; i++) {
       sql = sql + ', (' + placeholders + ')'
     }
-    await db.run(sql, values)
+    db.run(sql, values)
     console.log(`Successfully bulk inserted ${tableName}`, originalTxsData.length)
   } catch (e) {
     console.log(e)
@@ -74,11 +74,15 @@ export async function processOriginalTxData(
 
   for (const originalTxData of originalTxsData) {
     const { txId, timestamp } = originalTxData
-    if (originalTxsMap.has(txId) && originalTxsMap.get(txId) === timestamp) continue
-    originalTxsMap.set(txId, timestamp)
+    const key = `${txId}-${timestamp}`
+    if (originalTxsMap.has(key) && originalTxsMap.get(key) === timestamp) {
+      continue
+    }
+
+    originalTxsMap.set(key, timestamp)
     /* prettier-ignore */ if (config.verbose) console.log('originalTxData', originalTxData)
     if (saveOnlyNewData) {
-      const originalTxDataExist = await queryOriginalTxDataByTxId(txId)
+      const originalTxDataExist = await queryOriginalTxDataByTxIdAndTimestamp(txId, timestamp)
       if (originalTxDataExist) continue
     }
     combineOriginalTxsData.push(originalTxData)
@@ -268,6 +272,26 @@ export async function queryOriginalTxDataByTxId(txId: string): Promise<OriginalT
   try {
     const sql = `SELECT * FROM originalTxsData WHERE txId=?`
     const originalTxData: DbOriginalTxData = await db.get(sql, [txId])
+    if (originalTxData) {
+      if (originalTxData.originalTxData)
+        originalTxData.originalTxData = StringUtils.safeJsonParse(originalTxData.originalTxData)
+      if (originalTxData.sign) originalTxData.sign = StringUtils.safeJsonParse(originalTxData.sign)
+    }
+    if (config.verbose) console.log('OriginalTxData txId', originalTxData)
+    return originalTxData as unknown as OriginalTxDataInterface
+  } catch (e) {
+    console.log(e)
+  }
+  return null
+}
+
+export async function queryOriginalTxDataByTxIdAndTimestamp(
+  txId: string,
+  timestamp: Number
+): Promise<OriginalTxDataInterface | null> {
+  try {
+    const sql = `SELECT * FROM originalTxsData WHERE txId=? and timestamp=?`
+    const originalTxData: DbOriginalTxData = await db.get(sql, [txId, timestamp])
     if (originalTxData) {
       if (originalTxData.originalTxData)
         originalTxData.originalTxData = StringUtils.safeJsonParse(originalTxData.originalTxData)

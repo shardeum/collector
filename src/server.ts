@@ -119,7 +119,7 @@ const txHashQueryCacheSize = 1000
 
 // Setup Log Directory
 const start = async (): Promise<void> => {
-  await Storage.initializeDB()
+  Storage.initializeDB()
   Storage.addExitListeners()
   registerCache()
 

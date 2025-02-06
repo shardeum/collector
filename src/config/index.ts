@@ -74,12 +74,13 @@ export interface Config {
   saveAccountHistoryState: boolean
   collectorMode: string
   storeReceiptBeforeStates: boolean
+  checkpointWindow: number
 }
 
 let config: Config = {
   env: process.env.SHARDEUM_COLLECTOR_MODE || envEnum.PROD, //default safe if env is not set
   host: process.env.HOST || '127.0.0.1',
-  dbPath: process.env.COLLECTOR_DB_PATH || "db.sqlite3",
+  dbPath: process.env.COLLECTOR_DB_PATH || 'db.sqlite3',
   dataLogWrite: false,
   dataLogWriter: {
     dirName: 'data-logs',
@@ -121,7 +122,7 @@ let config: Config = {
   enableTxHashCache: false,
   findTxHashInOriginalTx: false,
   enableShardeumIndexer: true,
-  shardeumIndexerSqlitePath: process.env.SERVICE_VALIDATOR_DB_PATH || "db.sqlite3",
+  shardeumIndexerSqlitePath: process.env.SERVICE_VALIDATOR_DB_PATH || 'db.sqlite3',
   blockIndexing: {
     enabled: true,
     blockProductionRate: 6,
@@ -136,6 +137,7 @@ let config: Config = {
   saveAccountHistoryState: true,
   collectorMode: process.env.COLLECTOR_MODE || collectorMode.WS.toString(),
   storeReceiptBeforeStates: true,
+  checkpointWindow: 21,
 }
 
 let DISTRIBUTOR_URL = `http://${config.distributorInfo.ip}:${config.distributorInfo.port}`
