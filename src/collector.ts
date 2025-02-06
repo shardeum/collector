@@ -466,58 +466,70 @@ const startCollector = async () => {
       // Start verification and checkpointing process here
       // Check if we have cycle number 'checkPointer' in the db, if not, invoke patcher
       lastCheckpoint = await checkpoint.fetchCheckpoint() // last known verified checkpoint
-      const currentCycle = lastCheckpoint + 1
-      const currentCycleData = await cycle.queryCycleByCounter(currentCycle)
-      if (!currentCycleData) {
-        console.error(`Cycle ${currentCycle} is missing from the database.`)
+      const nextCheckpoint = lastCheckpoint + 1
+      const nextCheckpointData = await cycle.queryCycleByCounter(nextCheckpoint)
+      if (!nextCheckpointData) {
+        console.error(`Cycle ${nextCheckpoint} is missing from the database.`)
         throw Error('Verification failed')
       }
-      while (endPointer < currentCycleData.counter + config.checkpointWindow) {
+      while (endPointer < nextCheckpointData.counter + config.checkpointWindow) {
         // this allows us to have a rolling checkpointer
-        // Wait till we have 11 cycles of data [ checkpointWindow = 11 ]
+        // Wait till we have 21 cycles of data [ checkpointWindow = 21 ]
         const latestCycle = await cycle.queryLatestCycleRecords(1)
-        if (latestCycle[0].counter >= endPointer + config.checkpointWindow) {
-          console.log('We have all the cycles we need. Proceeding to verification')
+        if (latestCycle[0].counter >= nextCheckpoint + config.checkpointWindow) {
+          if (config.verbose) console.log('We have all the cycles we need. Proceeding to verification')
           endPointer = latestCycle[0].counter
           break
         }
-        console.log('⏱️ Waiting for more cycles to be available in the database')
+        console.log(
+          '⏱️ Waiting for more cycles to be available in the database',
+          'latestCycle',
+          latestCycle[0].counter,
+          'endPointer',
+          endPointer,
+          'checkpointWindow',
+          config.checkpointWindow,
+          'lastCheckpoint',
+          lastCheckpoint
+        )
         await sleep(5000)
       }
 
       if (config.verbose)
-        console.log(`Time to validate data for checkpoint cycle ${currentCycle}(previous: ${lastCheckpoint})`)
+        console.log(
+          `Time to validate data for checkpoint cycle ${nextCheckpoint}(previous: ${lastCheckpoint})`
+        )
 
       // We should always have the next 11 cycles here. Fetch the data from distributor
-      const response = await cycleDataCache.getCycleDataFor(currentCycle)
+      const response = await cycleDataCache.getCycleDataFor(nextCheckpoint)
       if (!response) {
-        console.error(`❗ Verification failed for cycle ${currentCycle}. Missing data from distributor.`)
+        console.error(`❗ Verification failed for cycle ${nextCheckpoint}. Missing data from distributor.`)
         throw Error('Verification failed')
       }
       // Fetch receipt count for this cycle from our DB
-      const ourTotalReceipts = await receipt.queryReceiptCountBetweenCycles(currentCycle, currentCycle)
+      const ourTotalReceipts = await receipt.queryReceiptCountBetweenCycles(nextCheckpoint, nextCheckpoint)
       if (ourTotalReceipts !== response.receiptCount) {
-        console.log(`❗ Verification failed for cycle ${currentCycle}. Mismatching Receipts.`)
+        console.log(`❗ Verification failed for cycle ${nextCheckpoint}. Mismatching Receipts.`)
         throw Error('Verification failed')
       }
       // Fetch transaction count for this cycle from our DB
       const ourTotalTransactions = await originalTxData.queryOriginalTxDataCount(
         null,
         null,
-        currentCycle,
-        currentCycle
+        nextCheckpoint,
+        nextCheckpoint
       )
       if (ourTotalTransactions !== response.transactionCount) {
-        console.log(`❗ Verification failed for cycle ${currentCycle}. Mismatching Transactions.`)
+        console.log(`❗ Verification failed for cycle ${nextCheckpoint}. Mismatching Transactions.`)
         throw Error('Verification failed')
       }
 
       // Verification successful
-      console.log(`🟢 Verification successful. Updating checkpoint to ${currentCycle}`)
-      await checkpoint.insertCheckpoint(currentCycle) // rolling checkpoint, moving to next cycle after data verification
+      console.log(`🟢 Verification successful. Updating checkpoint to ${nextCheckpoint}`)
+      await checkpoint.insertCheckpoint(nextCheckpoint) // rolling checkpoint, moving to next cycle after data verification
     } catch (e) {
       if (e.message === 'Verification failed') {
-        console.error(`Collector process stopped due to error: ${e.message}`)
+        console.error(`Identified missing data for cycle: ${lastCheckpoint + 1}`)
         console.log('Attempting fix..')
 
         // Fetch latest checkpoint
