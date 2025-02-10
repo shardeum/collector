@@ -56,7 +56,7 @@ export async function bulkInsertReceipts(receipts: Receipt[]): Promise<void> {
       sql = sql + ', (' + placeholders + ')'
     }
     db.run(sql, values)
-    console.log('Successfully bulk inserted receipts', receipts.length)
+    if (config.verbose) console.log('Successfully bulk inserted receipts', receipts.length)
   } catch (e) {
     console.log(e)
     console.log('Unable to bulk insert receipts', receipts.length)
@@ -120,7 +120,7 @@ export async function processReceiptData(receipts: Receipt[], saveOnlyNewData = 
           accountType === AccountType.Account &&
           'account' in accObj.account &&
           bytesToHex(Uint8Array.from(Object.values(accObj.account.account.codeHash))) !==
-          AccountDB.EOA_CodeHash
+            AccountDB.EOA_CodeHash
         ) {
           const accountExist = await AccountDB.queryAccountByAccountId(accObj.accountId)
           if (config.verbose) console.log('accountExist', accountExist)
@@ -190,14 +190,14 @@ export async function processReceiptData(receipts: Receipt[], saveOnlyNewData = 
         txReceipt.data.accountType === AccountType.Receipt
           ? TransactionType.Receipt
           : txReceipt.data.accountType === AccountType.NodeRewardReceipt
-            ? TransactionType.NodeRewardReceipt
-            : txReceipt.data.accountType === AccountType.StakeReceipt
-              ? TransactionType.StakeReceipt
-              : txReceipt.data.accountType === AccountType.UnstakeReceipt
-                ? TransactionType.UnstakeReceipt
-                : txReceipt.data.accountType === AccountType.InternalTxReceipt
-                  ? TransactionType.InternalTxReceipt
-                  : (-1 as TransactionType)
+          ? TransactionType.NodeRewardReceipt
+          : txReceipt.data.accountType === AccountType.StakeReceipt
+          ? TransactionType.StakeReceipt
+          : txReceipt.data.accountType === AccountType.UnstakeReceipt
+          ? TransactionType.UnstakeReceipt
+          : txReceipt.data.accountType === AccountType.InternalTxReceipt
+          ? TransactionType.InternalTxReceipt
+          : (-1 as TransactionType)
       blockHash = txReceipt.data?.readableReceipt?.blockHash
       if (!blockHash) console.error(`Transaction ${tx.txId} has no blockHash`)
       blockNumber = parseInt(txReceipt.data?.readableReceipt?.blockNumber)

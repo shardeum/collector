@@ -48,7 +48,8 @@ export function bulkInsertAccountEntries(accounts: Account[]): void {
       sql = sql + ', (' + placeholders + ')'
     }
     db.run(sql, values, 'shardeumIndexer')
-    console.log('ShardeumIndexer: Successfully bulk inserted AccountEntries', accountEntries.length)
+    if (config.verbose)
+      console.log('ShardeumIndexer: Successfully bulk inserted AccountEntries', accountEntries.length)
   } catch (e) {
     console.log(e)
     console.log('ShardeumIndexer: Unable to bulk insert AccountEntries', accounts.length)
