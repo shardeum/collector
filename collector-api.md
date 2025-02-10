@@ -14,18 +14,18 @@ _Get account information_
 
 <h3 id="get__api_account-parameters">Parameters</h3>
 
-| Name        | In    | Type    | Required | Description                                                                                                                |
-| ----------- | ----- | ------- | -------- | -------------------------------------------------------------------------------------------------------------------------- |
-| count       | query | integer | false    | Number of accounts to retrieve (maximum 1000).                                                                             |
-| page        | query | integer | false    | Page number for paginated results.                                                                                         |
-| address     | query | string  | false    | Account address to retrieve.                                                                                               |
-| type        | query | integer | false    | Filter accounts by type. To extract contract accounts list (type=contract); otherwise, all account types will be returned. |
-| accountType | query | integer | false    | Specific account type to filter when querying by address.                                                                  |
-| startCycle  | query | integer | false    | Starting cycle number for filtering accounts.                                                                              |
-| endCycle    | query | integer | false    | Ending cycle number for filtering accounts.                                                                                |
-| accountId   | query | string  | false    | Account ID to retrieve (must be 64 characters).                                                                            |
-| blockNumber | query | integer | false    | Block number for historical account state retrieval.                                                                       |
-| blockHash   | query | string  | false    | Block hash for historical account state retrieval.                                                                         |
+| Name        | In    | Type   | Required | Description                                               |
+| ----------- | ----- | ------ | -------- | --------------------------------------------------------- |
+| count       | query | string | false    | Number of accounts to retrieve (maximum 1000).            |
+| page        | query | stirng | false    | Page number for paginated results.                        |
+| address     | query | string | false    | Account address to retrieve.                              |
+| type        | query | string | false    | Filter accounts by type.                                  |
+| accountType | query | string | false    | Specific account type to filter when querying by address. |
+| startCycle  | query | string | false    | Starting cycle number for filtering accounts.             |
+| endCycle    | query | string | false    | Ending cycle number for filtering accounts.               |
+| accountId   | query | string | false    | Account ID to retrieve (must be 64 characters).           |
+| blockNumber | query | string | false    | Block number for historical account state retrieval.      |
+| blockHash   | query | string | false    | Block hash for historical account state retrieval.        |
 
 > Example responses
 
@@ -99,24 +99,24 @@ _Get transaction information_
 
 <h3 id="get__api_transaction-parameters">Parameters</h3>
 
-| Name            | In    | Type    | Required | Description                                                               |
-| --------------- | ----- | ------- | -------- | ------------------------------------------------------------------------- |
-| count           | query | integer | false    | Number of transactions to retrieve (maximum 1000).                        |
-| page            | query | integer | false    | Page number for paginated results.                                        |
-| txHash          | query | string  | false    | Transaction hash to query (must be 66 characters).                        |
-| address         | query | string  | false    | Account address to filter transactions (42 or 64 characters).             |
-| token           | query | string  | false    | Token address for additional filtering.                                   |
-| filterAddress   | query | string  | false    | Secondary filter for token balance (must be 42 characters).               |
-| txType          | query | integer | false    | Transaction type filter.                                                  |
-| startCycle      | query | integer | false    | Starting cycle number for transaction query.                              |
-| endCycle        | query | integer | false    | Ending cycle number for transaction query (max range of 100 cycles).      |
-| txId            | query | string  | false    | Unique transaction identifier.                                            |
-| type            | query | string  | false    | Additional flag; set to "requery" to force a fresh database lookup.       |
-| totalStakeData  | query | boolean | false    | Set "true" to retrieve total stake and unstake transaction data.          |
-| beforeTimestamp | query | integer | false    | Filter transactions with a timestamp before this value (in milliseconds). |
-| afterTimestamp  | query | integer | false    | Filter transactions with a timestamp after this value (in milliseconds).  |
-| blockNumber     | query | integer | false    | Block number for historical transaction retrieval (non-negative).         |
-| blockHash       | query | string  | false    | Block hash for historical transaction retrieval (must be 66 characters).  |
+| Name            | In    | Type   | Required | Description                                                               |
+| --------------- | ----- | ------ | -------- | ------------------------------------------------------------------------- |
+| count           | query | string | false    | Number of transactions to retrieve (maximum 1000).                        |
+| page            | query | string | false    | Page number for paginated results.                                        |
+| txHash          | query | string | false    | Transaction hash to query (must be 66 characters).                        |
+| address         | query | string | false    | Account address to filter transactions (42 or 64 characters).             |
+| token           | query | string | false    | Token address for additional filtering.                                   |
+| filterAddress   | query | string | false    | Secondary filter for token balance (must be 42 characters).               |
+| txType          | query | string | false    | Transaction type filter.                                                  |
+| startCycle      | query | string | false    | Starting cycle number for transaction query.                              |
+| endCycle        | query | string | false    | Ending cycle number for transaction query (max range of 100 cycles).      |
+| txId            | query | string | false    | Unique transaction identifier.                                            |
+| type            | query | string | false    | Additional flag; set to "requery" to force a fresh database lookup.       |
+| totalStakeData  | query | string | false    | Set "true" to retrieve total stake and unstake transaction data.          |
+| beforeTimestamp | query | string | false    | Filter transactions with a timestamp before this value (in milliseconds). |
+| afterTimestamp  | query | string | false    | Filter transactions with a timestamp after this value (in milliseconds).  |
+| blockNumber     | query | string | false    | Block number for historical transaction retrieval (non-negative).         |
+| blockHash       | query | string | false    | Block hash for historical transaction retrieval (must be 66 characters).  |
 
 > Example responses
 
@@ -158,8 +158,11 @@ _Get usage metrics_
 
 ```json
 {
-  "success": true,
-  "metrics": {}
+  "enabled": true,
+  "enabledAt": "",
+  "enableForInMinutes": 0,
+  "usage": {},
+  "errors": {}
 }
 ```
 
@@ -182,13 +185,13 @@ _Get receipt information_
 
 <h3 id="get__api_receipt-parameters">Parameters</h3>
 
-| Name       | In    | Type    | Required | Description                                   |
-| ---------- | ----- | ------- | -------- | --------------------------------------------- |
-| count      | query | integer | false    | Number of receipts to retrieve (maximum 1000) |
-| page       | query | integer | false    | Page number for pagination                    |
-| txId       | query | string  | false    | Transaction ID to retrieve a specific receipt |
-| startCycle | query | integer | false    | Starting cycle number for filtering receipts  |
-| endCycle   | query | integer | false    | Ending cycle number for filtering receipts    |
+| Name       | In    | Type   | Required | Description                                   |
+| ---------- | ----- | ------ | -------- | --------------------------------------------- |
+| count      | query | string | false    | Number of receipts to retrieve (maximum 1000) |
+| page       | query | string | false    | Page number for pagination                    |
+| txId       | query | string | false    | Transaction ID to retrieve a specific receipt |
+| startCycle | query | string | false    | Starting cycle number for filtering receipts  |
+| endCycle   | query | string | false    | Ending cycle number for filtering receipts    |
 
 > Example responses
 
@@ -220,16 +223,16 @@ _Get original transaction information_
 
 <h3 id="get__api_originaltx-parameters">Parameters</h3>
 
-| Name       | In    | Type    | Required | Description                                                  |
-| ---------- | ----- | ------- | -------- | ------------------------------------------------------------ |
-| count      | query | integer | false    | Number of original transactions to retrieve (maximum 1000)   |
-| page       | query | integer | false    | Page number for pagination                                   |
-| txId       | query | string  | false    | Transaction ID to retrieve a specific original transaction   |
-| txHash     | query | string  | false    | Transaction hash to retrieve a specific original transaction |
-| startCycle | query | integer | false    | Starting cycle number for filtering original transactions    |
-| endCycle   | query | integer | false    | Ending cycle number for filtering original transactions      |
-| decode     | query | string  | false    | Whether to decode the EVM raw transaction data               |
-| pending    | query | string  | false    | Filter for pending transactions                              |
+| Name       | In    | Type   | Required | Description                                                  |
+| ---------- | ----- | ------ | -------- | ------------------------------------------------------------ |
+| count      | query | string | false    | Number of original transactions to retrieve (maximum 1000)   |
+| page       | query | string | false    | Page number for pagination                                   |
+| txId       | query | string | false    | Transaction ID to retrieve a specific original transaction   |
+| txHash     | query | string | false    | Transaction hash to retrieve a specific original transaction |
+| startCycle | query | string | false    | Starting cycle number for filtering original transactions    |
+| endCycle   | query | string | false    | Ending cycle number for filtering original transactions      |
+| decode     | query | string | false    | Whether to decode the EVM raw transaction data               |
+| pending    | query | string | false    | Filter for pending transactions                              |
 
 > Example responses
 
@@ -263,19 +266,19 @@ _Get log information_
 
 <h3 id="get__api_log-parameters">Parameters</h3>
 
-| Name      | In    | Type    | Required | Description                               |
-| --------- | ----- | ------- | -------- | ----------------------------------------- |
-| count     | query | integer | false    | Number of logs to retrieve (maximum 1000) |
-| page      | query | integer | false    | Page number for pagination                |
-| address   | query | string  | false    | Filter logs by address                    |
-| topic0    | query | string  | false    | First topic filter                        |
-| topic1    | query | string  | false    | Second topic filter                       |
-| topic2    | query | string  | false    | Third topic filter                        |
-| topic3    | query | string  | false    | Fourth topic filter                       |
-| type      | query | string  | false    | Filter for transaction type               |
-| fromBlock | query | integer | false    | Starting block number for filtering logs  |
-| toBlock   | query | integer | false    | Ending block number for filtering logs    |
-| blockHash | query | string  | false    | Filter logs by block hash                 |
+| Name      | In    | Type   | Required | Description                               |
+| --------- | ----- | ------ | -------- | ----------------------------------------- |
+| count     | query | string | false    | Number of logs to retrieve (maximum 1000) |
+| page      | query | string | false    | Page number for pagination                |
+| address   | query | string | false    | Filter logs by address                    |
+| topic0    | query | string | false    | First topic filter                        |
+| topic1    | query | string | false    | Second topic filter                       |
+| topic2    | query | string | false    | Third topic filter                        |
+| topic3    | query | string | false    | Fourth topic filter                       |
+| type      | query | string | false    | Filter for transaction type               |
+| fromBlock | query | string | false    | Starting block number for filtering logs  |
+| toBlock   | query | string | false    | Ending block number for filtering logs    |
+| blockHash | query | string | false    | Filter logs by block hash                 |
 
 > Example responses
 
@@ -482,11 +485,10 @@ _Check if the collector server is alive._
 
 <h3 id="get__api_is-alive-responses">Responses</h3>
 
-| Status | Meaning                                                          | Description         | Schema                                |
-| ------ | ---------------------------------------------------------------- | ------------------- | ------------------------------------- |
-| 200    | [OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)          | Successful response | [IsAliveResponse](#schemaisaliveresponse)   |
-| 400    | [Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1) | Invalid request     | [ErrorResponse](#schemaerrorresponse) |
-
+| Status | Meaning                                                          | Description         | Schema                                    |
+| ------ | ---------------------------------------------------------------- | ------------------- | ----------------------------------------- |
+| 200    | [OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)          | Successful response | [IsAliveResponse](#schemaisaliveresponse) |
+| 400    | [Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1) | Invalid request     | [ErrorResponse](#schemaerrorresponse)     |
 
 <aside class="success">
 This operation does not require authentication.
@@ -511,15 +513,14 @@ _Assess if the collector server is healthy._
 
 <h3 id="get__api_is-healthy-responses">Responses</h3>
 
-| Status | Meaning                                                          | Description         | Schema                                |
-| ------ | ---------------------------------------------------------------- | ------------------- | ------------------------------------- |
-| 200    | [OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)          | Successful response | [IsHealthyResponse](#schemaishealthyresponse)   |
-| 400    | [Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1) | Invalid request     | [ErrorResponse](#schemaerrorresponse) |
+| Status | Meaning                                                          | Description         | Schema                                        |
+| ------ | ---------------------------------------------------------------- | ------------------- | --------------------------------------------- |
+| 200    | [OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)          | Successful response | [IsHealthyResponse](#schemaishealthyresponse) |
+| 400    | [Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1) | Invalid request     | [ErrorResponse](#schemaerrorresponse)         |
 
 <aside class="success">
 This operation does not require authentication.
 </aside>
-
 
 # Schemas
 
@@ -613,7 +614,7 @@ Example:
 | totalRewardTxs            | integer | false    | none         | Total number of reward transactions.                   |
 | totalUnstakeTxs           | integer | false    | none         | Total number of unstake transactions.                  |
 | filterAddressTokenBalance | number  | false    | none         | Token balance for the filtered address, if applicable. |
- 
+
 <h2 id="tocS_MetricsResponse">MetricsResponse</h2>
 <!-- backwards compatibility -->
 <a id="schemametricsresponse"></a>
@@ -625,8 +626,11 @@ Example:
 
 ```json
 {
-  "success": true,
-  "metrics": {}
+  "enabled": true,
+  "enabledAt": "",
+  "enableForInMinutes": 0,
+  "usage": {},
+  "errors": {}
 }
 ```
 
@@ -649,7 +653,7 @@ Example:
 ```json
 {
   "success": true,
-  "receipts": [],
+  "receipts": []
 }
 ```
 
@@ -753,7 +757,6 @@ Example:
 }
 ```
 
-
 ### Properties
 
 | Name    | Type    | Required | Restrictions | Description                                |
@@ -846,10 +849,10 @@ Example:
 
 ### Properties
 
-| Name    | Type    | Required | Restrictions | Description                                  |
-| ------- | ------- | -------- | ------------ | -------------------------------------------- |
-| success | boolean | false    | none         | Indicates if the operation was successful.   |
-| healthy | boolean | false    | none         | Indicates if the server is healthy.          |
+| Name    | Type    | Required | Restrictions | Description                                |
+| ------- | ------- | -------- | ------------ | ------------------------------------------ |
+| success | boolean | false    | none         | Indicates if the operation was successful. |
+| healthy | boolean | false    | none         | Indicates if the server is healthy.        |
 
 ### Properties
 
