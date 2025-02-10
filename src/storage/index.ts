@@ -48,6 +48,22 @@ export function initializeDB(): void {
   db.runCreate(
     'CREATE TABLE if not exists `transactions` (`txId` TEXT NOT NULL, `cycle` NUMBER NOT NULL, `timestamp` BIGINT NOT NULL, `blockNumber` NUMBER NOT NULL, `blockHash` TEXT NOT NULL, `wrappedEVMAccount` JSON NOT NULL, `txFrom` TEXT NOT NULL, `txTo` TEXT NOT NULL, `nominee` TEXT, `txHash` TEXT NOT NULL, `transactionType` INTEGER NOT NULL, `originalTxData` JSON, `internalTXType` INTEGER, PRIMARY KEY (`txId`, `txHash`))'
   )
+
+  // Check if 'internalTXType' column exists on transactions table
+  const result: Array<any> = db.get("PRAGMA table_info(transactions)");
+  let columnExists = result.some(row => row.name === "internalTXType");
+
+  if (!columnExists) {
+    console.log("Adding missing column 'internalTXType' to transactions table...");
+
+    // Add the new column
+    db.run("ALTER TABLE transactions ADD COLUMN internalTXType INTEGER");
+
+    console.log("Column 'internalTXType' added successfully.");
+  } else {
+    console.log("Column 'internalTXType' already exists.");
+  }
+
   // db.runCreate('Drop INDEX if exists `transactions_hash_id`');
   db.runCreate('CREATE INDEX if not exists `transactions_hash_id` ON `transactions` (`txHash`, `txId`)')
   db.runCreate('CREATE INDEX if not exists `transactions_txType` ON `transactions` (`transactionType`)')
