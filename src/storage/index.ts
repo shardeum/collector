@@ -50,7 +50,7 @@ export function initializeDB(): void {
   )
 
   // Check if 'internalTXType' column exists on transactions table
-  const result: Array<any> = db.get("PRAGMA table_info(transactions)");
+  const result: Array<any> = db.all("PRAGMA table_info(transactions)");
   let columnExists = result.some(row => row.name === "internalTXType");
 
   if (!columnExists) {
