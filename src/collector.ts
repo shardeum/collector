@@ -466,6 +466,12 @@ const startCollector = async () => {
       // Start verification and checkpointing process here
       // Check if we have cycle number 'checkPointer' in the db, if not, invoke patcher
       lastCheckpoint = await checkpoint.fetchCheckpoint() // last known verified checkpoint
+
+      if (lastCheckpoint === 0) {
+        // To sync accounts data that are from genesis accounts/accounts data that the network start with
+        await downloadAndSyncGenesisAccounts()
+      }
+
       const nextCheckpoint = lastCheckpoint + 1
       const nextCheckpointData = await cycle.queryCycleByCounter(nextCheckpoint)
       if (!nextCheckpointData) {
