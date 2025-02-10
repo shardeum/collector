@@ -52,7 +52,7 @@ export async function upsertBlocksForCycleCore(
   cycleCounter: number,
   startTimeInSeconds: number
 ): Promise<void> {
-  /*prettier-ignore*/ console.log(`block: Creating blocks for cycle ${cycleCounter} with start timestamp ${startTimeInSeconds}`)
+  /*prettier-ignore*/ if (config.verbose) console.log(`block: Creating blocks for cycle ${cycleCounter} with start timestamp ${startTimeInSeconds}`)
   const numBlocksPerCycle =
     config.blockIndexing.cycleDurationInSeconds / config.blockIndexing.blockProductionRate
   let firstBlockNumberForCycle = 0
