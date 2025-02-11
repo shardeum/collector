@@ -39,7 +39,7 @@ export async function fetchCheckpoint(type: string = 'cycle'): Promise<number> {
     if (result?.value === undefined) {
       // indicating that a checkpoint has not been inserted yet into the dB
       console.log(`a checkpoint has not been inserted yet into the dB, returning checkpoint as 0`)
-      return 0
+      return -1
     }
     return result.value
   } catch (e) {

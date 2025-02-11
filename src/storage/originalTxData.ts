@@ -55,7 +55,7 @@ export async function bulkInsertOriginalTxsData(
       sql = sql + ', (' + placeholders + ')'
     }
     db.run(sql, values)
-    console.log(`Successfully bulk inserted ${tableName}`, originalTxsData.length)
+    if (config.verbose) console.log(`Successfully bulk inserted ${tableName}`, originalTxsData.length)
   } catch (e) {
     console.log(e)
     console.log(`Unable to bulk insert ${tableName}`, originalTxsData.length)
