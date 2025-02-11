@@ -59,7 +59,7 @@ export async function bulkInsertLogs(logs: Log[]): Promise<void> {
       sql = sql + ', (' + placeholders + ')'
     }
     db.run(sql, values)
-    console.log('Successfully bulk inserted Logs', logs.length)
+    if (config.verbose) console.log('Successfully bulk inserted Logs', logs.length)
   } catch (e) {
     console.log(e)
     console.log('Unable to bulk insert Logs', logs.length)

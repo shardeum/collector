@@ -48,7 +48,7 @@ export function bulkInsertAccounts(accounts: Account[]): void {
       sql = sql + ', (' + placeholders + ')'
     }
     db.run(sql, values)
-    console.log('Successfully bulk inserted Accounts', accounts.length)
+    if (config.verbose) console.log('Successfully bulk inserted Accounts', accounts.length)
     if (isShardeumIndexerEnabled()) bulkInsertAccountEntries(accounts)
   } catch (e) {
     console.log(e)
@@ -64,7 +64,7 @@ export function updateAccount(_accountId: string, account: Partial<Account>): vo
           timestamp = @timestamp, 
           account = @account, 
           hash = @hash 
-      WHERE accountId = @accountId`;
+      WHERE accountId = @accountId`
     db.run(sql, {
       cycle: account.cycle,
       timestamp: account.timestamp,
@@ -131,10 +131,10 @@ export function queryAccountCount(type?: ContractType | AccountSearchType): numb
           type === AccountSearchType.GENERIC
             ? ContractType.GENERIC
             : type === AccountSearchType.ERC_20
-              ? ContractType.ERC_20
-              : type === AccountSearchType.ERC_721
-                ? ContractType.ERC_721
-                : ContractType.ERC_1155
+            ? ContractType.ERC_20
+            : type === AccountSearchType.ERC_721
+            ? ContractType.ERC_721
+            : ContractType.ERC_1155
         const sql = `SELECT COUNT(*) FROM accounts WHERE accountType=? AND contractType=?`
         accounts = db.get(sql, [AccountType.Account, type])
       }
@@ -149,11 +149,7 @@ export function queryAccountCount(type?: ContractType | AccountSearchType): numb
   return accounts['COUNT(*)'] || 0
 }
 
-export function queryAccounts(
-  skip = 0,
-  limit = 10,
-  type?: AccountSearchType | ContractType
-): Account[] {
+export function queryAccounts(skip = 0, limit = 10, type?: AccountSearchType | ContractType): Account[] {
   let accounts: DbAccount[] = []
   try {
     if (type || type === AccountSearchType.All) {
@@ -173,10 +169,10 @@ export function queryAccounts(
           type === AccountSearchType.GENERIC
             ? ContractType.GENERIC
             : type === AccountSearchType.ERC_20
-              ? ContractType.ERC_20
-              : type === AccountSearchType.ERC_721
-                ? ContractType.ERC_721
-                : ContractType.ERC_1155
+            ? ContractType.ERC_20
+            : type === AccountSearchType.ERC_721
+            ? ContractType.ERC_721
+            : ContractType.ERC_1155
         const sql = `SELECT * FROM accounts WHERE accountType=? AND contractType=? ORDER BY cycle DESC, timestamp DESC LIMIT ${limit} OFFSET ${skip}`
         accounts = db.all(sql, [AccountType.Account, type])
       }
@@ -210,10 +206,7 @@ export function queryAccountByAccountId(accountId: string): Account | null {
   return null
 }
 
-export function queryAccountByAddress(
-  address: string,
-  accountType = AccountType.Account
-): Account | null {
+export function queryAccountByAddress(address: string, accountType = AccountType.Account): Account | null {
   try {
     const sql = `SELECT * FROM accounts WHERE accountType=? AND ethAddress=? ORDER BY accountType ASC LIMIT 1`
     const account: DbAccount = db.get(sql, [accountType, address])
@@ -228,10 +221,7 @@ export function queryAccountByAddress(
   return null
 }
 
-export function queryAccountCountBetweenCycles(
-  startCycleNumber: number,
-  endCycleNumber: number
-): number {
+export function queryAccountCountBetweenCycles(startCycleNumber: number, endCycleNumber: number): number {
   let accounts: { 'COUNT(*)': number } = { 'COUNT(*)': 0 }
   try {
     const sql = `SELECT COUNT(*) FROM accounts WHERE cycle BETWEEN ? AND ?`
@@ -273,7 +263,7 @@ export function queryAccountsBetweenCycles(
 export function queryTokensByAddress(address: string, detail = false): object[] {
   try {
     const sql = `SELECT * FROM tokens WHERE ethAddress=?`
-    const tokens = (db.all(sql, [address])) as Token[]
+    const tokens = db.all(sql, [address]) as Token[]
     const filterTokens: object[] = []
     if (detail) {
       for (const { contractAddress, tokenValue } of tokens) {

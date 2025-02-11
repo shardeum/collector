@@ -37,7 +37,7 @@ export async function bulkInsertBlocks(blocks: DbBlock[]): Promise<void> {
       sql = sql + ', (' + placeholders + ')'
     }
     db.run(sql, values)
-    /*prettier-ignore*/ console.log('block: Successfully bulk inserted blocks', blocks.length)
+    /*prettier-ignore*/ if (config.verbose) console.log('block: Successfully bulk inserted blocks', blocks.length)
   } catch (e) {
     console.log(e)
     /*prettier-ignore*/ console.log('block: Unable to bulk insert blocks', blocks.length)
@@ -52,7 +52,7 @@ export async function upsertBlocksForCycleCore(
   cycleCounter: number,
   startTimeInSeconds: number
 ): Promise<void> {
-  /*prettier-ignore*/ console.log(`block: Creating blocks for cycle ${cycleCounter} with start timestamp ${startTimeInSeconds}`)
+  /*prettier-ignore*/ if (config.verbose) console.log(`block: Creating blocks for cycle ${cycleCounter} with start timestamp ${startTimeInSeconds}`)
   const numBlocksPerCycle =
     config.blockIndexing.cycleDurationInSeconds / config.blockIndexing.blockProductionRate
   let firstBlockNumberForCycle = 0
@@ -66,7 +66,7 @@ export async function upsertBlocksForCycleCore(
     const newBlockTimestampInSecond =
       startTimeInSeconds +
       (blockNumber - config.blockIndexing.initBlockNumber - firstBlockNumberForCycle) *
-      config.blockIndexing.blockProductionRate
+        config.blockIndexing.blockProductionRate
     const newBlockTimestamp = newBlockTimestampInSecond * 1000
     const block = createNewBlock(blockNumber, newBlockTimestamp)
     /*prettier-ignore*/ if (config.verbose) console.log(`Block number: ${block.header.number}, timestamp: ${block.header.timestamp}, hash: ${bytesToHex(block.header.hash())}`)
@@ -74,7 +74,9 @@ export async function upsertBlocksForCycleCore(
       const readableBlock = await convertToReadableBlock(block)
       // non-blocking
       newHeadsSubscribers.forEach((subscriber) => {
-        subscriber.socket.send(StringUtils.safeStringify({ method: 'newBlock_produced', payload: readableBlock }))
+        subscriber.socket.send(
+          StringUtils.safeStringify({ method: 'newBlock_produced', payload: readableBlock })
+        )
       })
       await insertBlock({
         number: Number(block.header.number),

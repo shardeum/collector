@@ -3,7 +3,6 @@ import { extractValues, extractValuesFromArray } from './sqlite3storage'
 import { config } from '../config/index'
 import { Account, AccountType } from '../types'
 import * as ReceiptDB from './receipt'
-import { eth } from 'web3'
 
 export interface AccountHistoryState {
   accountId: string
@@ -50,7 +49,8 @@ export async function bulkInsertAccountHistoryStates(
       sql = sql + ', (' + placeholders + ')'
     }
     db.run(sql, values)
-    console.log('Successfully bulk inserted AccountHistoryStates', accountHistoryStates.length)
+    if (config.verbose)
+      console.log('Successfully bulk inserted AccountHistoryStates', accountHistoryStates.length)
   } catch (e) {
     console.log(e)
     console.log('Unable to bulk insert AccountHistoryStates', accountHistoryStates.length)
