@@ -154,19 +154,20 @@ export async function queryOriginalTxDataCount(
   try {
     let sql = `SELECT COUNT(*) FROM originalTxsData`
     const values: unknown[] = []
+    const startCycleAndEndCycleValid = isNumber(startCycle) && isNumber(endCycle)
 
-    if (isNumber(startCycle) && isNumber(endCycle)) {
+    if (startCycleAndEndCycleValid) {
       sql += ` WHERE cycle BETWEEN ? AND ?`
       values.push(startCycle, endCycle)
     }
     if (afterTimestamp) {
-      if (isNumber(startCycle) && isNumber(endCycle)) sql += ` AND timestamp>?`
+      if (startCycleAndEndCycleValid) sql += ` AND timestamp>?`
       else sql += ` WHERE timestamp>?`
       values.push(afterTimestamp)
     }
     if (txType) {
       sql = sql.replace('originalTxsData', 'originalTxsData2')
-      if ((isNumber(startCycle) && isNumber(endCycle)) || afterTimestamp) sql += ` AND`
+      if (startCycleAndEndCycleValid || afterTimestamp) sql += ` AND`
       else sql += ` WHERE`
       if (txType === TransactionSearchType.AllExceptInternalTx) {
         sql += ` transactionType!=?`
@@ -213,18 +214,19 @@ export async function queryOriginalTxsData(
     let sql = `SELECT * FROM originalTxsData`
     const sqlSuffix = ` ORDER BY cycle DESC, timestamp DESC LIMIT ${limit} OFFSET ${skip}`
     const values: unknown[] = []
-    if (isNumber(startCycle) && isNumber(endCycle)) {
+    const startCycleAndEndCycleValid = isNumber(startCycle) && isNumber(endCycle)
+    if (startCycleAndEndCycleValid) {
       sql += ` WHERE cycle BETWEEN ? AND ?`
       values.push(startCycle, endCycle)
     }
     if (afterTimestamp) {
-      if (isNumber(startCycle) && isNumber(endCycle)) sql += ` AND timestamp>?`
+      if (startCycleAndEndCycleValid) sql += ` AND timestamp>?`
       else sql += ` WHERE timestamp>?`
       values.push(afterTimestamp)
     }
     if (txType) {
       sql = sql.replace('originalTxsData', 'originalTxsData2')
-      if ((isNumber(startCycle) && isNumber(endCycle)) || afterTimestamp) sql += ` AND`
+      if (startCycleAndEndCycleValid || afterTimestamp) sql += ` AND`
       else sql += ` WHERE`
       if (txType === TransactionSearchType.AllExceptInternalTx) {
         sql += ` transactionType!=?`
