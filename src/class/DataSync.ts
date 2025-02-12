@@ -556,6 +556,7 @@ export const downloadCyclcesBetweenCycles = async (
   totalCyclesToSync: number,
   saveOnlyNewData = false
 ): Promise<void> => {
+  const originalStartCycle = startCycle
   const bucketSize = 100
   let endCycle = startCycle + bucketSize
   for (; startCycle <= totalCyclesToSync; ) {
@@ -603,7 +604,12 @@ export const downloadCyclcesBetweenCycles = async (
     startCycle = endCycle + 1
     endCycle += bucketSize
   }
-  console.log('Download completed for cycles between counter', startCycle, 'and', endCycle)
+  console.log(
+    'Download completed for cycles between counter',
+    originalStartCycle,
+    'and',
+    endCycle - bucketSize // if it reaches here it means we had added bucketSize to endCycle, subtracting to log correct endCycle
+  )
 }
 
 export const downloadReceiptsBetweenCycles = async (
