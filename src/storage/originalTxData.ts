@@ -12,6 +12,7 @@ import {
 import { getTransactionObj, isStakingEVMTx, getStakeTxBlobFromEVMTx } from '../utils/decodeEVMRawTx'
 import { bytesToHex } from '@ethereumjs/util'
 import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
+import { isNumber } from '../utils/number'
 
 type DbOriginalTxData = OriginalTxData & {
   originalTxData: string
@@ -153,18 +154,20 @@ export async function queryOriginalTxDataCount(
   try {
     let sql = `SELECT COUNT(*) FROM originalTxsData`
     const values: unknown[] = []
-    if (startCycle && endCycle) {
+    const startCycleAndEndCycleValid = isNumber(startCycle) && isNumber(endCycle)
+
+    if (startCycleAndEndCycleValid) {
       sql += ` WHERE cycle BETWEEN ? AND ?`
       values.push(startCycle, endCycle)
     }
     if (afterTimestamp) {
-      if (startCycle && endCycle) sql += ` AND timestamp>?`
+      if (startCycleAndEndCycleValid) sql += ` AND timestamp>?`
       else sql += ` WHERE timestamp>?`
       values.push(afterTimestamp)
     }
     if (txType) {
       sql = sql.replace('originalTxsData', 'originalTxsData2')
-      if ((startCycle && endCycle) || afterTimestamp) sql += ` AND`
+      if (startCycleAndEndCycleValid || afterTimestamp) sql += ` AND`
       else sql += ` WHERE`
       if (txType === TransactionSearchType.AllExceptInternalTx) {
         sql += ` transactionType!=?`
@@ -211,18 +214,19 @@ export async function queryOriginalTxsData(
     let sql = `SELECT * FROM originalTxsData`
     const sqlSuffix = ` ORDER BY cycle DESC, timestamp DESC LIMIT ${limit} OFFSET ${skip}`
     const values: unknown[] = []
-    if (startCycle && endCycle) {
+    const startCycleAndEndCycleValid = isNumber(startCycle) && isNumber(endCycle)
+    if (startCycleAndEndCycleValid) {
       sql += ` WHERE cycle BETWEEN ? AND ?`
       values.push(startCycle, endCycle)
     }
     if (afterTimestamp) {
-      if (startCycle && endCycle) sql += ` AND timestamp>?`
+      if (startCycleAndEndCycleValid) sql += ` AND timestamp>?`
       else sql += ` WHERE timestamp>?`
       values.push(afterTimestamp)
     }
     if (txType) {
       sql = sql.replace('originalTxsData', 'originalTxsData2')
-      if ((startCycle && endCycle) || afterTimestamp) sql += ` AND`
+      if (startCycleAndEndCycleValid || afterTimestamp) sql += ` AND`
       else sql += ` WHERE`
       if (txType === TransactionSearchType.AllExceptInternalTx) {
         sql += ` transactionType!=?`
