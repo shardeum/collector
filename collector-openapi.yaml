@@ -685,16 +685,20 @@ components:
     IsAliveResponse:
       type: object
       properties:
-        success:
-          type: boolean
-        alive:
-          type: boolean
+        OK:
+          type: string
     IsHealthyResponse:
       type: object
       properties:
-        success:
+        status:
+          type: string
+        uptime:
+          type: number
+        timestamp:
+          type: string
+        database:
           type: boolean
-        healthy:
+        shardeumIndexerDb:
           type: boolean
     CycleInfoResponse:
       type: object
