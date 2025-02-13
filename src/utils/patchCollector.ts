@@ -23,12 +23,19 @@ const patchOnlyMissingData = true
  * @returns {Promise<void>} A promise that resolves when the patching process is complete.
  */
 export async function startPatching(startCycle: number, endCycle?: number): Promise<boolean> {
+  if (startCycle < 0 || endCycle < 0) {
+    console.error(
+      `Please provide valid values for start(must be >= 0) and end cycle(if passed then must be >= 0)`
+    )
+    return false
+  }
+
   const maxRetries = 3
   let attempt = 0
 
   while (attempt < maxRetries) {
     try {
-      if (!endCycle) {
+      if (endCycle === undefined) {
         const response = await DataSync.queryFromDistributor(DataSync.DataType.TOTALDATA, {})
 
         if (response.data && response.data.totalReceipts >= 0 && response.data.totalCycles >= 0) {

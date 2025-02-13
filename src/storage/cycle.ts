@@ -48,7 +48,7 @@ export async function bulkInsertCycles(cycles: Cycle[]): Promise<void> {
       sql = sql + ', (' + placeholders + ')'
     }
     db.run(sql, values)
-    console.log('Successfully bulk inserted Cycles', cycles.length)
+    if (config.verbose) console.log('Successfully bulk inserted Cycles', cycles.length)
     if (isBlockIndexingEnabled()) await upsertBlocksForCycles(cycles)
   } catch (e) {
     console.log(e)

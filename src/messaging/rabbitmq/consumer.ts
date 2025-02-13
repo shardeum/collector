@@ -1,6 +1,7 @@
 import * as amqp from 'amqplib'
 import { addQueueToCheck } from '../../routes/healthCheck'
 import { config } from '../../config'
+import { sleep } from '../../utils'
 
 export default class RMQConsumer {
   name: string // can be used as identifier
@@ -12,6 +13,7 @@ export default class RMQConsumer {
   channel: amqp.Channel | null = null
   isConnected: boolean
   isConnClosing: boolean
+  isReconnecting: boolean
   lastMessageTimestamp: number | null = null
 
   constructor(name: string, queue: string, prefetch = 10, callback: (msg: string) => Promise<boolean>) {
@@ -20,6 +22,7 @@ export default class RMQConsumer {
     this.prefetch = prefetch
     this.isConnected = false
     this.isConnClosing = false
+    this.isReconnecting = false
     this.processFn = callback
     addQueueToCheck(this)
   }
@@ -41,29 +44,27 @@ export default class RMQConsumer {
       let failedCount = 0
 
       this.channel.consume(this.queue, async (msg) => {
-        if (msg) {
-          count++
-          if (config.verbose) console.log(`[Consumer ${this.name}]: Received message`)
-          try {
-            const success = await this.processFn(msg.content.toString())
-            if (success === true) {
-              successCount++
-              this.lastMessageTimestamp = Date.now() // Update timestamp when processing succeeds
-              this.channel!.ack(msg)
-              if (config.verbose) console.log(`[Consumer ${this.name}]: Successfully processed message`)
-            } else {
-              failedCount++
-              this.channel!.nack(msg, false, true)
-            }
-          } catch (e) {
+        if (!msg) return
+
+        count++
+        if (config.verbose) console.log(`[Consumer ${this.name}]: Received message`)
+        try {
+          const success = await this.processFn(msg.content.toString())
+          if (success === true) {
+            successCount++
+            this.lastMessageTimestamp = Date.now() // Update timestamp when processing succeeds
+            this.channel!.ack(msg)
+            if (config.verbose) console.log(`[Consumer ${this.name}]: Successfully processed message`)
+          } else {
             failedCount++
-            console.error(
-              `Consumer [${
-                this.name
-              }]: Error while processing message: ${e}\nMessage: ${msg.content.toString()}`
-            )
             this.channel!.nack(msg, false, true)
           }
+        } catch (e) {
+          failedCount++
+          let errMsg = `Consumer [${this.name}]: Error while processing message: ${e}`
+          if (config.verbose) errMsg += `\nMessage: ${msg.content.toString()}`
+          console.error(errMsg)
+          this.channel!.nack(msg, false, true)
         }
 
         if (count > 0 && count % 200 == 0) {
@@ -101,9 +102,11 @@ export default class RMQConsumer {
     }
   }
 
-  private async handleConnectionError(error: unknown): Promise<void> {
+  private handleConnectionError = async (error: unknown): Promise<void> => {
     console.error(`[Consumer ${this.name}]: Connection error: ${error}`)
     this.isConnected = false
+
+    await this.retryConnection()
   }
 
   private handleConnectionClose = async (): Promise<void> => {
@@ -113,27 +116,32 @@ export default class RMQConsumer {
     }
 
     this.isConnected = false
-    return new Promise<void>((resolve) => {
-      this.retryConnection()
-      resolve()
-    })
+    await this.retryConnection()
   }
 
-  private retryConnection(): void {
-    let attempt = 0
-    if (!this.isConnected) {
-      const interval = setInterval(async () => {
-        attempt++
-        console.log(`[retryConnection ${this.name}]: (Attempt ${attempt}) initiated connection retry...`)
-        try {
-          await this.consume()
-          console.log(`[retryConnection ${this.name}]: (Attempt ${attempt}) successfully connected...`)
-          this.isConnected = true
-          clearInterval(interval)
-        } catch (e) {
-          console.log(`[retryConnection ${this.name}]: (Attempt ${attempt}) unsuccessful. Err: ${e}`)
-        }
-      }, 5000) // Wait 5 seconds before retrying
+  private async retryConnection(): Promise<void> {
+    if (this.isReconnecting) {
+      console.warn(`[retryConnection ${this.name}]: Connection retry already in progress...`)
+      return
     }
+
+    this.isReconnecting = true
+    let attempt = 0
+    while (!this.isConnected) {
+      attempt++
+      console.log(`[retryConnection ${this.name}]: (Attempt ${attempt}) initiated connection retry...`)
+      try {
+        await this.consume()
+        console.log(`[retryConnection ${this.name}]: (Attempt ${attempt}) successfully connected...`)
+        this.isConnected = true
+        break
+      } catch (e) {
+        console.log(`[retryConnection ${this.name}]: (Attempt ${attempt}) unsuccessful. Err: ${e}`)
+      }
+
+      console.log(`[retryConnection ${this.name}]: (Attempt ${attempt}) waiting for 5s before retrying...`)
+      await sleep(5000) // Wait 5 seconds before retrying
+    }
+    this.isReconnecting = false
   }
 }

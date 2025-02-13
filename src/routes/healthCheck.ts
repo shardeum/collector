@@ -11,11 +11,11 @@ export function addQueueToCheck(queue: RMQConsumer): void {
 
 function isQueueStuck(queue: RMQConsumer): boolean {
   if (!queue.lastMessageTimestamp) {
-    return true // No messages have been processed yet
+    return false // No messages have been processed yet
   }
   const now = Date.now()
   const STUCK_THRESHOLD = 60_000 * 5
-  return now - this.lastMessageTimestamp > STUCK_THRESHOLD
+  return now - queue.lastMessageTimestamp > STUCK_THRESHOLD
 }
 
 export const healthCheckRouter: FastifyPluginCallback = function (fastify, opts, done) {
