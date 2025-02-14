@@ -127,6 +127,14 @@ export default class RMQConsumer {
 
     this.isReconnecting = true
     let attempt = 0
+
+    try {
+      // cleanup the connections before retrying
+      await this.cleanUp()
+    } catch (e) {
+      console.error(`[retryConnection ${this.name}]: error in cleanup: `, e)
+    }
+
     while (!this.isConnected) {
       attempt++
       console.log(`[retryConnection ${this.name}]: (Attempt ${attempt}) initiated connection retry...`)
