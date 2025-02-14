@@ -130,7 +130,7 @@ export default class RMQConsumer {
 
     try {
       // cleanup the connections before retrying
-      this.cleanUp()
+      await this.cleanUp()
     } catch (e) {
       console.error(`[retryConnection ${this.name}]: error in cleanup: `, e)
     }
