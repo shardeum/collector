@@ -31,13 +31,19 @@ export default class RMQConsumer {
     try {
       if (!this.isConnected || this.conn === null) {
         this.conn = await this.connect()
+        this.isConnected = true
       }
+
+      // Remove previous event listeners to prevent duplicates
+      this.conn.removeAllListeners('error')
+      this.conn.removeAllListeners('close')
 
       this.conn.on('error', this.handleConnectionError)
       this.conn.on('close', this.handleConnectionClose)
 
       this.channel = await this.conn.createChannel()
       this.channel.prefetch(this.prefetch)
+
       console.log(`[Consumer ${this.name}]: Started listening to queue: ${this.queue}`)
       let count = 0
       let successCount = 0
@@ -75,7 +81,7 @@ export default class RMQConsumer {
         }
       })
     } catch (e) {
-      console.error(`[Consumer ${this.name}]: Unexpected error occurred, retyring connection. Err: ${e}`)
+      console.error(`[Consumer ${this.name}]: Unexpected error occurred, retrying connection. Err: ${e}`)
       throw e
     }
   }
@@ -90,15 +96,58 @@ export default class RMQConsumer {
     })
   }
 
-  public async cleanUp(): Promise<void> {
-    this.isConnClosing = true
-    if (this.channel != null) {
-      await this.channel.close()
-      console.log(`[Consumer ${this.name}]: Closed channel successfully`)
-    }
-    if (this.conn !== null) {
-      await this.conn.close()
-      console.log(`[Consumer ${this.name}]: Closed connection successfully`)
+  public async cleanUp(isConnClosing = false): Promise<void> {
+    this.isConnClosing = isConnClosing
+
+    try {
+      // Check if channel exists and is still open
+      if (this.channel?.connection) {
+        try {
+          console.log(`[Consumer ${this.name}]: Nacking all...`)
+          await Promise.race([
+            this.channel.nackAll(true),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('nackAll timeout')), 10000)),
+          ])
+        } catch (error) {
+          console.warn(`[Consumer ${this.name}]: Error or timeout in nackAll - ${error}`)
+        }
+
+        try {
+          console.log(`[Consumer ${this.name}]: Closing channel...`)
+          await Promise.race([
+            this.channel.close(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('channel close timeout')), 10000)),
+          ])
+          console.log(`[Consumer ${this.name}]: Closed channel successfully.`)
+        } catch (error) {
+          console.warn(`[Consumer ${this.name}]: Error or timeout closing channel - ${error}`)
+        }
+      }
+
+      // Force clear the channel reference
+      this.channel = null
+
+      // Check if connection exists
+      if (this.conn) {
+        try {
+          console.log(`[Consumer ${this.name}]: Closing connection...`)
+          await Promise.race([
+            this.conn.close(),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('connection close timeout')), 10000)
+            ),
+          ])
+          console.log(`[Consumer ${this.name}]: Closed connection successfully.`)
+        } catch (error) {
+          console.warn(`[Consumer ${this.name}]: Error or timeout closing connection - ${error}`)
+        }
+      }
+
+      // Force clear the connection reference
+      this.conn = null
+      this.isConnected = false
+    } catch (error) {
+      console.error(`[Consumer ${this.name}]: Error in cleanup - ${error}`)
     }
   }
 
