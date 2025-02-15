@@ -100,6 +100,7 @@ if (config.env == envEnum.DEV) {
 let rmqCyclesConsumer: RMQCyclesConsumer
 let rmqTransactionsConsumer: RMQOriginalTxsConsumer
 let rmqReceiptsConsumer: RMQReceiptsConsumer
+let stopCheckpointVerificationProcess = false
 
 async function startHttpServer() {
   if (!CONFIG.enableCollectorSocketServer) {
@@ -365,14 +366,6 @@ const startRMQEventsConsumers = (): void => {
   rmqCyclesConsumer.start()
   rmqTransactionsConsumer.start()
   rmqReceiptsConsumer.start()
-
-  // add signal listeners
-  process.on('SIGTERM', async () => {
-    await stopRMQEventsConsumers()
-  })
-  process.on('SIGINT', async () => {
-    await stopRMQEventsConsumers()
-  })
 }
 
 const stopRMQEventsConsumers = async (): Promise<void> => {
@@ -391,7 +384,18 @@ const addSigListeners = (): void => {
     console.log('Config reloaded', CONFIG)
   })
   process.on('SIGINT', async () => {
+    stopCheckpointVerificationProcess = true
     console.log('DETECTED SIGINT SIGNAL')
+    await stopRMQEventsConsumers()
+    await sleep(5000)
+    db.close()
+    process.exit(0)
+  })
+  process.on('SIGTERM', async () => {
+    stopCheckpointVerificationProcess = true
+    console.log('DETECTED SIGTERM SIGNAL')
+    await stopRMQEventsConsumers()
+    await sleep(5000)
     db.close()
     process.exit(0)
   })
@@ -412,7 +416,6 @@ const startCollector = async () => {
 
   // Initialize the database
   Storage.initializeDB()
-  Storage.addExitListeners(ws)
 
   // Initialize data log writer if enabled
   if (CONFIG.dataLogWrite) await initDataLogWriter()
@@ -444,7 +447,11 @@ const startCollector = async () => {
     // Perform any necessary cleanup here
     db.close() // Close the database connection
     console.log('Collector shut down complete.')
-    if (CONFIG.collectorMode === collectorMode.MQ) await stopRMQEventsConsumers()
+    if (CONFIG.collectorMode === collectorMode.MQ) {
+      await stopRMQEventsConsumers()
+      await sleep(5000)
+      db.close()
+    }
     process.exit(1) // Restart the process
   }
 
@@ -466,6 +473,7 @@ const startCollector = async () => {
 
   // rolling checkpoint mechanism
   while (true) {
+    if (stopCheckpointVerificationProcess) return
     try {
       // Start verification and checkpointing process here
       // Check if we have cycle number 'checkPointer' in the db, if not, invoke patcher
@@ -478,6 +486,7 @@ const startCollector = async () => {
         throw Error('Verification failed')
       }
       while (endPointer < nextCheckpointData.counter + config.checkpointWindow) {
+        if (stopCheckpointVerificationProcess) return
         // this allows us to have a rolling checkpointer
         // Wait till we have 21 cycles of data [ checkpointWindow = 21 ]
         const latestCycle = await cycle.queryLatestCycleRecords(1)
