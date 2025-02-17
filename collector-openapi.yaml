@@ -11,42 +11,52 @@ paths:
           in: query
           schema:
             type: string
+          description: Number of accounts to retrieve (maximum 1000)
         - name: page
           in: query
           schema:
             type: string
+          description: Page number for paginated results
         - name: address
           in: query
           schema:
             type: string
+          description: Account address to retrieve
         - name: type
           in: query
           schema:
             type: string
+          description: Filter accounts by type
         - name: accountType
           in: query
           schema:
             type: string
+          description: Specific account type to filter when querying by address
         - name: startCycle
           in: query
           schema:
             type: string
+          description: Starting cycle number for filtering accounts
         - name: endCycle
           in: query
           schema:
             type: string
+          description: Ending cycle number for filtering accounts
         - name: accountId
           in: query
           schema:
             type: string
+          description: Account ID to retrieve (must be 64 characters)
         - name: blockNumber
           in: query
           schema:
             type: string
+          description: Block number for historical account state retrieval
         - name: blockHash
           in: query
           schema:
             type: string
+          description: Block hash for historical account state retrieval
       responses:
         '200':
           description: Successful response
@@ -68,14 +78,22 @@ paths:
           in: query
           schema:
             type: string
+          description: Page number for paginated results
         - name: address
           in: query
           schema:
             type: string
+          description: Account address to retrieve tokens for
         - name: contractAddress
           in: query
           schema:
             type: string
+          description: Contract address to filter tokens
+        - name: tokenType
+          in: query
+          schema:
+            type: string
+          description: Type of token to filter
       responses:
         '200':
           description: Successful response
@@ -97,42 +115,82 @@ paths:
           in: query
           schema:
             type: string
+          description: Number of transactions to retrieve (maximum 1000)
         - name: page
           in: query
           schema:
             type: string
+          description: Page number for paginated results
         - name: txHash
           in: query
           schema:
             type: string
+          description: Transaction hash to query (must be 66 characters)
         - name: address
           in: query
           schema:
             type: string
+          description: Account address to filter transactions (42 or 64 characters)
         - name: token
           in: query
           schema:
             type: string
+          description: Token address for additional filtering
         - name: filterAddress
           in: query
           schema:
             type: string
+          description: Secondary filter for token balance (must be 42 characters)
         - name: txType
           in: query
           schema:
             type: string
+          description: Transaction type filter
         - name: startCycle
           in: query
           schema:
             type: string
+          description: Starting cycle number for transaction query
         - name: endCycle
           in: query
           schema:
             type: string
+          description: Ending cycle number for transaction query (max range of 100 cycles)
         - name: txId
           in: query
           schema:
             type: string
+          description: Unique transaction identifier
+        - name: type
+          in: query
+          schema:
+            type: string
+          description: Additional flag; set to "requery" to force a fresh database lookup
+        - name: totalStakeData
+          in: query
+          schema:
+            type: string
+          description: Set "true" to retrieve total stake and unstake transaction data
+        - name: beforeTimestamp
+          in: query
+          schema:
+            type: string
+          description: Filter transactions with a timestamp before this value (in milliseconds)
+        - name: afterTimestamp
+          in: query
+          schema:
+            type: string
+          description: Filter transactions with a timestamp after this value (in milliseconds)
+        - name: blockNumber
+          in: query
+          schema:
+            type: string
+          description: Block number for historical transaction retrieval (non-negative)
+        - name: blockHash
+          in: query
+          schema:
+            type: string
+          description: Block hash for historical transaction retrieval (must be 66 characters)
       responses:
         '200':
           description: Successful response
@@ -149,6 +207,8 @@ paths:
   /usage/metrics:
     get:
       summary: Get usage metrics
+      security:
+        - usageKey: []
       responses:
         '200':
           description: Successful response
@@ -166,18 +226,31 @@ paths:
     get:
       summary: Get receipt information
       parameters:
-        - name: txHash
+        - name: count
           in: query
           schema:
             type: string
-        - name: blockNumber
+          description: Number of receipts to retrieve (maximum 1000)
+        - name: page
           in: query
           schema:
             type: string
-        - name: blockHash
+          description: Page number for pagination
+        - name: txId
           in: query
           schema:
             type: string
+          description: Transaction ID to retrieve a specific receipt
+        - name: startCycle
+          in: query
+          schema:
+            type: string
+          description: Starting cycle number for filtering receipts
+        - name: endCycle
+          in: query
+          schema:
+            type: string
+          description: Ending cycle number for filtering receipts
       responses:
         '200':
           description: Successful response
@@ -195,14 +268,46 @@ paths:
     get:
       summary: Get original transaction information
       parameters:
+        - name: count
+          in: query
+          schema:
+            type: string
+          description: Number of original transactions to retrieve (maximum 1000)
+        - name: page
+          in: query
+          schema:
+            type: string
+          description: Page number for pagination
+        - name: txId
+          in: query
+          schema:
+            type: string
+          description: Transaction ID to retrieve a specific original transaction
         - name: txHash
           in: query
           schema:
             type: string
+          description: Transaction hash to retrieve a specific original transaction
+        - name: startCycle
+          in: query
+          schema:
+            type: string
+          description: Starting cycle number for filtering original transactions
+        - name: endCycle
+          in: query
+          schema:
+            type: string
+          description: Ending cycle number for filtering original transactions
         - name: decode
           in: query
           schema:
             type: string
+          description: Whether to decode the EVM raw transaction data
+        - name: pending
+          in: query
+          schema:
+            type: string
+          description: Filter for pending transactions
       responses:
         '200':
           description: Successful response
@@ -220,22 +325,61 @@ paths:
     get:
       summary: Get log information
       parameters:
-        - name: fromBlock
+        - name: count
           in: query
           schema:
             type: string
-        - name: toBlock
+          description: Number of logs to retrieve (maximum 1000)
+        - name: page
           in: query
           schema:
             type: string
+          description: Page number for pagination
         - name: address
           in: query
           schema:
             type: string
-        - name: topics
+          description: Filter logs by address
+        - name: topic0
           in: query
           schema:
             type: string
+          description: First topic filter
+        - name: topic1
+          in: query
+          schema:
+            type: string
+          description: Second topic filter
+        - name: topic2
+          in: query
+          schema:
+            type: string
+          description: Third topic filter
+        - name: topic3
+          in: query
+          schema:
+            type: string
+          description: Fourth topic filter
+        - name: type
+          in: query
+          schema:
+            type: string
+          description: Additional flag; set to "requery" to force a fresh database lookup
+        - name: fromBlock
+          in: query
+          schema:
+            type: string
+          description: Block number for historical log retrieval (non-negative)
+        - name: toBlock
+          in: query
+          schema:
+            type: string
+          description: Block number for historical log retrieval (non-negative)
+        - name: blockHash
+          in: query
+          schema:
+            type: string
+          description: Block hash for historical log retrieval (must be 66 characters)
       responses:
         '200':
           description: Successful response
@@ -286,10 +430,12 @@ paths:
           in: query
           schema:
             type: string
+          description: A hexadecimal representation of the block number. Use "latest" or "earliest" to fetch the corresponding block, or provide a hex string for a specific block.
         - name: blockHash
           in: query
           schema:
             type: string
+          description: The block hash. Also accepts "latest" or "earliest" to retrieve a block by tag.
       responses:
         '200':
           description: Successful response
@@ -336,7 +482,76 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /is-alive:
+    get:
+      summary: Check if the server is alive
+      responses:
+        '200':
+          description: Server is alive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IsAliveResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /is-healthy:
+    get:
+      summary: Check if the server is healthy
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IsHealthyResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/cycleinfo:
+    get:
+      summary: Get the current cycle information
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CycleInfoResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /port:
+    get:
+      summary: Retrieve the collector server port
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
+  securitySchemes:
+    usageKey:
+      type: apiKey
+      name: x-usage-key
+      in: header
   schemas:
     AccountResponse:
       type: object
@@ -379,27 +594,60 @@ components:
           type: integer
         totalTransactions:
           type: integer
+        totalStakeTxs:
+          type: integer
+        totalRewardTxs:
+          type: integer
+        totalUnstakeTxs:
+          type: integer
+        filterAddressTokenBalance:
+          type: number
     MetricsResponse:
       type: object
       properties:
-        success:
+        enabled:
           type: boolean
-        metrics:
+        enabledAt:
+          type: string
+          format: date-time
+        enableForInMinutes:
+          type: integer
+        usage:
           type: object
+          additionalProperties:
+            type: integer
+        errors:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties:
+              type: integer
     ReceiptResponse:
       type: object
       properties:
         success:
           type: boolean
-        receipt:
-          type: object
+        receipts:
+          type: array
+          items:
+            type: object
+        totalPages:
+          type: integer
+        totalReceipts:
+          type: integer
     OriginalTxResponse:
       type: object
       properties:
         success:
           type: boolean
-        originalTx:
-          type: object
+        originalTxs:
+          type: array
+          items:
+            type: object
+        totalPages:
+          type: integer
+        totalOriginalTxs:
+          type: integer
     LogResponse:
       type: object
       properties:
@@ -409,6 +657,10 @@ components:
           type: array
           items:
             type: object
+        totalPages:
+          type: integer
+        totalLogs:
+          type: integer
     TotalDataResponse:
       type: object
       properties:
@@ -430,3 +682,36 @@ components:
           type: boolean
         error:
           type: string
+    IsAliveResponse:
+      type: object
+      properties:
+        OK:
+          type: string
+    IsHealthyResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        uptime:
+          type: number
+        timestamp:
+          type: string
+        database:
+          type: boolean
+        shardeumIndexerDb:
+          type: boolean
+    CycleInfoResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        cycles:
+          type: array
+          items:
+            type: object
+    PortResponse:
+      type: object
+      properties:
+        port:
+          type: integer
+          description: Port number of the collector server
