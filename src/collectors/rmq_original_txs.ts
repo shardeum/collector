@@ -22,7 +22,7 @@ export default class RMQOriginalTxsConsumer {
   }
 
   public async cleanUp(): Promise<void> {
-    await this.consumer.cleanUp(true)
+    await this.consumer.cleanUp()
   }
 
   private async processMessage(msgStr: string): Promise<boolean> {
