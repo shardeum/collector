@@ -14,6 +14,7 @@ import {
   ContractInfo,
   Account,
   Token,
+  TokenType,
 } from '../types'
 import * as db from './sqlite3storage'
 import { extractValues, extractValuesFromArray } from './sqlite3storage'
@@ -262,7 +263,7 @@ export async function processReceiptData(receipts: Receipt[], saveOnlyNewData = 
         }
         for (const tx of txs) {
           let accountExist: Account | null = null
-          if (tx.tokenType !== TransactionType.EVM_Internal)
+          if (tx.tokenType !== TokenType.EVM_Internal)
             accountExist = await AccountDB.queryAccountByAccountId(
               tx.contractAddress.slice(2).toLowerCase() + '0'.repeat(24) //Search by Shardus address
             )
@@ -280,7 +281,7 @@ export async function processReceiptData(receipts: Receipt[], saveOnlyNewData = 
               transactionFee: txObj.wrappedEVMAccount.amountSpent, // Maybe provide with actual token transfer cost
               contractInfo,
             }
-            if (tx.tokenType === TransactionType.ERC_1155) {
+            if (tx.tokenType === TokenType.ERC_1155) {
               combineTokenTransactions2.push(obj)
             } else {
               combineTokenTransactions.push(obj)

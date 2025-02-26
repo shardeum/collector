@@ -7,6 +7,7 @@ import {
   Transaction,
   ContractType,
   ContractInfo,
+  TokenType,
 } from '../types'
 import { getWeb3, queryTokenTxByTxId } from '../storage/transaction'
 import Web3, { Contract, ContractAbi } from 'web3'
@@ -124,7 +125,7 @@ export const decodeTx = async (
           if (log.topics[1] === ZERO_ADDRESS) tokenEvent = 'Mint'
           else if (log.topics[2] === ZERO_ADDRESS) tokenEvent = 'Burn'
           tokenTx = {
-            tokenType: log.topics[3] ? TransactionType.ERC_721 : TransactionType.ERC_20,
+            tokenType: log.topics[3] ? TokenType.ERC_721 : TokenType.ERC_20,
             tokenFrom: `0x${log.topics[1].substring(26)}`.toLowerCase(),
             tokenTo: `0x${log.topics[2].substring(26)}`.toLowerCase(),
             tokenValue: log.topics[3] || log.data,
@@ -134,9 +135,9 @@ export const decodeTx = async (
           const accountExist = await queryAccountByAccountId(
             log.address.slice(2).toLowerCase() + '0'.repeat(24) //Search by Shardus address
           )
-          let tokenType = TransactionType.ERC_721
+          let tokenType = TokenType.ERC_721
           if (accountExist && accountExist.contractType === ContractType.ERC_1155)
-            tokenType = TransactionType.ERC_1155
+            tokenType = TokenType.ERC_1155
           tokenTx = {
             tokenType,
             tokenFrom: `0x${log.topics[1].substring(26)}`.toLowerCase(),
@@ -144,7 +145,7 @@ export const decodeTx = async (
             tokenValue: log.data,
             tokenEvent: 'Approval For All',
           } as TokenTx
-          if (tokenType === TransactionType.ERC_1155) tokenTx.tokenOperator = null
+          if (tokenType === TokenType.ERC_1155) tokenTx.tokenOperator = null
         } else if (log.topics.includes(ERC_TOKEN_TRANSFER_SINGLE_EVENT)) {
           if (!TransferTX && txs.length > 0) {
             if (txs[0].tokenEvent === 'Approval') txs.pop()
@@ -161,7 +162,7 @@ export const decodeTx = async (
               console.log(Web3.utils.hexToNumberString(`0x${log.data.substring(66, 130)}`))
             }
           tokenTx = {
-            tokenType: TransactionType.ERC_1155,
+            tokenType: TokenType.ERC_1155,
             tokenFrom: `0x${log.topics[2].substring(26)}`.toLowerCase(),
             tokenTo: `0x${log.topics[3].substring(26)}`.toLowerCase(),
             tokenValue: log.data,
@@ -193,7 +194,7 @@ export const decodeTx = async (
                 /* eslint-enable security/detect-object-injection */
                 const tokenValue = id + value
                 tokenTx = {
-                  tokenType: TransactionType.ERC_1155,
+                  tokenType: TokenType.ERC_1155,
                   tokenFrom: `0x${log.topics[2].substring(26)}`.toLowerCase(),
                   tokenTo: `0x${log.topics[3].substring(26)}`.toLowerCase(),
                   tokenValue,
@@ -217,7 +218,7 @@ export const decodeTx = async (
           } catch (e) {
             console.log('Error in decoding transferBatch', e)
             tokenTx = {
-              tokenType: TransactionType.ERC_1155,
+              tokenType: TokenType.ERC_1155,
               tokenFrom: `0x${log.topics[2].substring(26)}`.toLowerCase(),
               tokenTo: `0x${log.topics[3].substring(26)}`.toLowerCase(),
               tokenValue: log.data,
@@ -227,7 +228,7 @@ export const decodeTx = async (
           }
         } else if (!TransferTX && log.topics.includes(ERC_TOKEN_APPROVAL_EVENT)) {
           tokenTx = {
-            tokenType: log.topics[3] ? TransactionType.ERC_721 : TransactionType.ERC_20,
+            tokenType: log.topics[3] ? TokenType.ERC_721 : TokenType.ERC_20,
             tokenFrom: `0x${log.topics[1].substring(26)}`.toLowerCase(),
             tokenTo: `0x${log.topics[2].substring(26)}`.toLowerCase(),
             tokenValue: log.topics[3] || log.data,
@@ -260,7 +261,7 @@ export const decodeTx = async (
           if (config.verbose) console.log(Web3.utils.fromWei(log.data, 'ether'))
           if (tx.txTo !== log.address)
             tokenTx = {
-              tokenType: TransactionType.EVM_Internal,
+              tokenType: TokenType.EVM_Internal,
               tokenFrom: `0x${log.topics[1].substring(26)}`.toLowerCase(),
               tokenTo: log.address,
               tokenValue: log.data,
@@ -271,7 +272,7 @@ export const decodeTx = async (
           if (config.verbose) console.log(Web3.utils.fromWei(log.data, 'ether'))
           if (tx.txTo !== log.address)
             tokenTx = {
-              tokenType: TransactionType.EVM_Internal,
+              tokenType: TokenType.EVM_Internal,
               tokenFrom: log.address,
               tokenTo: `0x${log.topics[1].substring(26)}`.toLowerCase(),
               tokenValue: log.data,
@@ -296,16 +297,16 @@ export const decodeTx = async (
         if (
           tokenTx.tokenEvent !== 'Approval' &&
           tokenTx.tokenEvent !== 'Approval For All' &&
-          (tokenTx.tokenType === TransactionType.EVM_Internal ||
-            tokenTx.tokenType === TransactionType.ERC_20 ||
-            tokenTx.tokenType === TransactionType.ERC_721)
+          (tokenTx.tokenType === TokenType.EVM_Internal ||
+            tokenTx.tokenType === TokenType.ERC_20 ||
+            tokenTx.tokenType === TokenType.ERC_721)
         ) {
           const storageKey =
-            tokenTx.tokenType === TransactionType.ERC_20
+            tokenTx.tokenType === TokenType.ERC_20
               ? ERC_20_BALANCE_SLOT
-              : tokenTx.tokenType === TransactionType.ERC_721
-              ? ERC_721_BALANCE_SLOT
-              : ERC_1155_BALANCE_SLOT
+              : tokenTx.tokenType === TokenType.ERC_721
+                ? ERC_721_BALANCE_SLOT
+                : ERC_1155_BALANCE_SLOT
           if (tokenTx.tokenFrom !== ZERO_ETH_ADDRESS) {
             let tokenValue = '0'
             let calculatedKey = Web3.utils.soliditySha3(
@@ -464,7 +465,7 @@ export const decodeTx = async (
       ) {
         for (let i = 0; i < (result['0'] as unknown[]).length; i++) {
           const tokenTx = {
-            tokenType: TransactionType.EVM_Internal,
+            tokenType: TokenType.EVM_Internal,
             tokenFrom: tx.txTo,
             /* eslint-disable security/detect-object-injection */
             tokenTo: result['0'][i].toLowerCase(),
