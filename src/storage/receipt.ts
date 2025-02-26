@@ -206,10 +206,10 @@ export async function processReceiptData(receipts: Receipt[], saveOnlyNewData = 
         const internalTXType = txReceipt.data.readableReceipt.internalTx
           ? txReceipt.data.readableReceipt.internalTx.internalTXType
           : transactionType === TransactionType.StakeReceipt
-            ? InternalTXType.Stake
-            : transactionType === TransactionType.UnstakeReceipt
-              ? InternalTXType.Unstake
-              : null
+          ? InternalTXType.Stake
+          : transactionType === TransactionType.UnstakeReceipt
+          ? InternalTXType.Unstake
+          : null
         const txObj: Transaction = {
           txId: tx.txId,
           cycle: cycle,
@@ -224,7 +224,7 @@ export async function processReceiptData(receipts: Receipt[], saveOnlyNewData = 
             ? txReceipt.data.readableReceipt.to
             : txReceipt.data.readableReceipt.contractAddress,
           originalTxData: tx.originalTxData || {},
-          internalTXType
+          internalTXType,
         }
         if (txReceipt.data.readableReceipt.stakeInfo) {
           txObj.nominee = txReceipt.data.readableReceipt.stakeInfo.nominee

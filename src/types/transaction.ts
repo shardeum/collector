@@ -15,7 +15,7 @@ export interface Transaction {
   originalTxData: unknown
   tokenTxs?: TokenTx[]
   txStatus?: TxStatus
-  data?: unknown,
+  data?: unknown
   internalTXType?: InternalTXType
 }
 
