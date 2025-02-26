@@ -305,8 +305,8 @@ export const decodeTx = async (
             tokenTx.tokenType === TokenType.ERC_20
               ? ERC_20_BALANCE_SLOT
               : tokenTx.tokenType === TokenType.ERC_721
-                ? ERC_721_BALANCE_SLOT
-                : ERC_1155_BALANCE_SLOT
+              ? ERC_721_BALANCE_SLOT
+              : ERC_1155_BALANCE_SLOT
           if (tokenTx.tokenFrom !== ZERO_ETH_ADDRESS) {
             let tokenValue = '0'
             let calculatedKey = Web3.utils.soliditySha3(
