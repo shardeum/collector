@@ -26,11 +26,7 @@ export enum TransactionType {
   NodeRewardReceipt = 1,
   StakeReceipt = 2,
   UnstakeReceipt = 3,
-  EVM_Internal = 4,
-  ERC_20 = 5,
-  ERC_721 = 6,
-  ERC_1155 = 7,
-  InternalTxReceipt = 8,
+  InternalTxReceipt = 4,
 }
 
 export interface ContractInfo {
@@ -48,7 +44,7 @@ export interface TokenTx {
   tokenFrom: string
   tokenTo: string
   tokenValue: string
-  tokenType: TransactionType
+  tokenType: TokenType
   tokenEvent: string
   tokenOperator?: string | null
   transactionFee: string
@@ -56,6 +52,13 @@ export interface TokenTx {
   // references another tx
   txId?: string
   txHash: string
+}
+
+export enum TokenType {
+  EVM_Internal = 0,
+  ERC_20 = 1,
+  ERC_721 = 2,
+  ERC_1155 = 3,
 }
 
 export enum InternalTXType {
@@ -72,6 +75,7 @@ export enum InternalTXType {
   ChangeNetworkParam = 10,
   ApplyNetworkParam = 11,
   Penalty = 12,
+  TransferFromSecureAccount = 13,
 }
 
 /**
@@ -112,6 +116,19 @@ export enum TransactionSearchType {
   InternalTxReceipt = 10,
   AllExceptInternalTx = 11, // Receipt + NodeRewardReceipt + StakeReceipt + UnstakeReceipt (exclude InternalTxReceipt)
   Pending = 12, // Pending Txs (AllExceptInternalTx) from originTxsData
+  InitNetwork = 13,         // ----
+  NodeReward = 14,          //    |
+  ChangeConfig = 15,        //    |
+  ApplyChangeConfig = 16,   //    |
+  SetCertTime = 17,         //    |
+  Stake = 18,               //    | --> INTERNAL TRANSACTION TYPES
+  Unstake = 19,             //    |
+  InitRewardTimes = 20,     //    |
+  ClaimReward = 21,         //    |
+  ChangeNetworkParam = 22,  //    |
+  ApplyNetworkParam = 23,   //    |
+  Penalty = 24,             // ----    
+  TransferFromSecureAccount = 25, // ----
 }
 
 export interface Log {

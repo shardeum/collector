@@ -9,6 +9,7 @@ import {
   Account,
   Token,
   TransactionType,
+  TokenType,
   TransactionSearchType,
   WrappedEVMAccount,
   WrappedDataReceipt,
@@ -249,7 +250,7 @@ export async function processTransactionData(transactions: RawTransaction[]): Pr
             transactionFee: txObj.wrappedEVMAccount.readableReceipt.gasUsed ?? '0', // Maybe provide with actual token transfer cost
             contractInfo,
           }
-          if (tx.tokenType === TransactionType.ERC_1155) {
+          if (tx.tokenType === TokenType.ERC_1155) {
             combineTokenTransactions2.push(obj)
           } else {
             combineTokenTransactions.push(obj)
@@ -359,12 +360,12 @@ export async function queryTransactionCount(
       ) {
         const ty =
           txType === TransactionSearchType.EVM_Internal
-            ? TransactionType.EVM_Internal
+            ? TokenType.EVM_Internal
             : txType === TransactionSearchType.ERC_20
-            ? TransactionType.ERC_20
+            ? TokenType.ERC_20
             : txType === TransactionSearchType.ERC_721
-            ? TransactionType.ERC_721
-            : TransactionType.ERC_1155
+            ? TokenType.ERC_721
+            : TokenType.ERC_1155
         const sql = `SELECT COUNT(*) FROM tokenTxs WHERE (tokenFrom=? OR tokenTo=? OR tokenOperator=?) AND tokenType=?`
         transactions = db.get(sql, [address, address, address, ty])
       } else if (txType === TransactionSearchType.TokenTransfer) {
@@ -375,11 +376,11 @@ export async function queryTransactionCount(
             filterAddress,
             filterAddress,
             filterAddress,
-            TransactionType.EVM_Internal,
+            TokenType.EVM_Internal,
           ])
         } else {
           const sql = `SELECT COUNT(*) FROM tokenTxs WHERE contractAddress=? AND NOT tokenType=?`
-          transactions = db.get(sql, [address, TransactionType.EVM_Internal])
+          transactions = db.get(sql, [address, TokenType.EVM_Internal])
         }
       }
     } else if (txType || txType === TransactionSearchType.All) {
@@ -420,12 +421,12 @@ export async function queryTransactionCount(
       ) {
         const ty =
           txType === TransactionSearchType.EVM_Internal
-            ? TransactionType.EVM_Internal
+            ? TokenType.EVM_Internal
             : txType === TransactionSearchType.ERC_20
-            ? TransactionType.ERC_20
+            ? TokenType.ERC_20
             : txType === TransactionSearchType.ERC_721
-            ? TransactionType.ERC_721
-            : TransactionType.ERC_1155
+            ? TokenType.ERC_721
+            : TokenType.ERC_1155
         const sql = `SELECT COUNT(*) FROM tokenTxs WHERE tokenType=?`
         transactions = db.get(sql, [ty])
       }
@@ -503,12 +504,12 @@ export async function queryTransactions(
       ) {
         const ty =
           txType === TransactionSearchType.EVM_Internal
-            ? TransactionType.EVM_Internal
+            ? TokenType.EVM_Internal
             : txType === TransactionSearchType.ERC_20
-            ? TransactionType.ERC_20
+            ? TokenType.ERC_20
             : txType === TransactionSearchType.ERC_721
-            ? TransactionType.ERC_721
-            : TransactionType.ERC_1155
+            ? TokenType.ERC_721
+            : TokenType.ERC_1155
         const sql = `SELECT * FROM tokenTxs WHERE (tokenFrom=? OR tokenTo=? OR tokenOperator=?) AND tokenType=? ORDER BY cycle DESC, timestamp DESC LIMIT ${limit} OFFSET ${skip}`
         transactions = db.all(sql, [address, address, address, ty])
       } else if (txType === TransactionSearchType.TokenTransfer) {
@@ -519,11 +520,11 @@ export async function queryTransactions(
             filterAddress,
             filterAddress,
             filterAddress,
-            TransactionType.EVM_Internal,
+            TokenType.EVM_Internal,
           ])
         } else {
           const sql = `SELECT * FROM tokenTxs WHERE contractAddress=? AND NOT (tokenType=?) ORDER BY cycle DESC, timestamp DESC LIMIT ${limit} OFFSET ${skip}`
-          transactions = db.all(sql, [address, TransactionType.EVM_Internal])
+          transactions = db.all(sql, [address, TokenType.EVM_Internal])
         }
       }
     } else if (txType) {
@@ -567,12 +568,12 @@ export async function queryTransactions(
       ) {
         const ty =
           txType === TransactionSearchType.EVM_Internal
-            ? TransactionType.EVM_Internal
+            ? TokenType.EVM_Internal
             : txType === TransactionSearchType.ERC_20
-            ? TransactionType.ERC_20
+            ? TokenType.ERC_20
             : txType === TransactionSearchType.ERC_721
-            ? TransactionType.ERC_721
-            : TransactionType.ERC_1155
+            ? TokenType.ERC_721
+            : TokenType.ERC_1155
         const sql = `SELECT * FROM tokenTxs WHERE tokenType=? ORDER BY cycle DESC, timestamp DESC LIMIT ${limit} OFFSET ${skip}`
         transactions = db.all(sql, [ty])
       }
@@ -718,12 +719,12 @@ export async function queryTransactionsBetweenCycles(
       ) {
         const ty =
           txType === TransactionSearchType.EVM_Internal
-            ? TransactionType.EVM_Internal
+            ? TokenType.EVM_Internal
             : txType === TransactionSearchType.ERC_20
-            ? TransactionType.ERC_20
+            ? TokenType.ERC_20
             : txType === TransactionSearchType.ERC_721
-            ? TransactionType.ERC_721
-            : TransactionType.ERC_1155
+            ? TokenType.ERC_721
+            : TokenType.ERC_1155
         const sql = `SELECT * FROM tokenTxs WHERE cycle BETWEEN ? and ? AND (tokenFrom=? OR tokenTo=? OR tokenOperator=?) AND tokenType=? ORDER BY cycle ASC, timestamp ASC LIMIT ${limit} OFFSET ${skip}`
         transactions = db.all(sql, [start, end, address, address, address, ty])
       } else if (txType === TransactionSearchType.TokenTransfer) {
@@ -736,11 +737,11 @@ export async function queryTransactionsBetweenCycles(
             filterAddress,
             filterAddress,
             filterAddress,
-            TransactionType.EVM_Internal,
+            TokenType.EVM_Internal,
           ])
         } else {
           const sql = `SELECT * FROM tokenTxs WHERE cycle BETWEEN ? and ? AND contractAddress=? AND NOT (tokenType=?) ORDER BY cycle ASC, timestamp ASC LIMIT ${limit} OFFSET ${skip}`
-          transactions = db.all(sql, [start, end, address, TransactionType.EVM_Internal])
+          transactions = db.all(sql, [start, end, address, TokenType.EVM_Internal])
         }
       }
     } else if (txType) {
@@ -796,12 +797,12 @@ export async function queryTransactionsBetweenCycles(
       ) {
         const ty =
           txType === TransactionSearchType.EVM_Internal
-            ? TransactionType.EVM_Internal
+            ? TokenType.EVM_Internal
             : txType === TransactionSearchType.ERC_20
-            ? TransactionType.ERC_20
+            ? TokenType.ERC_20
             : txType === TransactionSearchType.ERC_721
-            ? TransactionType.ERC_721
-            : TransactionType.ERC_1155
+            ? TokenType.ERC_721
+            : TokenType.ERC_1155
         const sql = `SELECT * FROM tokenTxs WHERE cycle BETWEEN ? and ? AND tokenType=? ORDER BY cycle ASC, timestamp ASC LIMIT ${limit} OFFSET ${skip}`
         transactions = db.all(sql, [start, end, ty])
       }
@@ -880,12 +881,12 @@ export async function queryTransactionCountBetweenCycles(
       ) {
         const ty =
           txType === TransactionSearchType.EVM_Internal
-            ? TransactionType.EVM_Internal
+            ? TokenType.EVM_Internal
             : txType === TransactionSearchType.ERC_20
-            ? TransactionType.ERC_20
+            ? TokenType.ERC_20
             : txType === TransactionSearchType.ERC_721
-            ? TransactionType.ERC_721
-            : TransactionType.ERC_1155
+            ? TokenType.ERC_721
+            : TokenType.ERC_1155
         const sql = `SELECT COUNT(*) FROM tokenTxs WHERE cycle BETWEEN ? and ? AND (tokenFrom=? OR tokenTo=? OR tokenOperator=?) AND tokenType=?`
         transactions = db.get(sql, [start, end, address, address, address, ty])
       } else if (txType === TransactionSearchType.TokenTransfer) {
@@ -898,11 +899,11 @@ export async function queryTransactionCountBetweenCycles(
             filterAddress,
             filterAddress,
             filterAddress,
-            TransactionType.EVM_Internal,
+            TokenType.EVM_Internal,
           ])
         } else {
           const sql = `SELECT COUNT(*) FROM tokenTxs WHERE cycle BETWEEN ? and ? AND contractAddress=? AND NOT tokenType=?`
-          transactions = db.get(sql, [start, end, address, TransactionType.EVM_Internal])
+          transactions = db.get(sql, [start, end, address, TokenType.EVM_Internal])
         }
       }
     } else if (txType || txType === TransactionSearchType.All) {
@@ -965,12 +966,12 @@ export async function queryTransactionCountBetweenCycles(
       ) {
         const ty =
           txType === TransactionSearchType.EVM_Internal
-            ? TransactionType.EVM_Internal
+            ? TokenType.EVM_Internal
             : txType === TransactionSearchType.ERC_20
-            ? TransactionType.ERC_20
+            ? TokenType.ERC_20
             : txType === TransactionSearchType.ERC_721
-            ? TransactionType.ERC_721
-            : TransactionType.ERC_1155
+            ? TokenType.ERC_721
+            : TokenType.ERC_1155
         const sql = `SELECT COUNT(*) FROM tokenTxs WHERE cycle BETWEEN ? and ? AND tokenType=?`
         transactions = db.get(sql, [start, end, ty])
       }
@@ -1104,21 +1105,21 @@ export async function queryTransactionCountByTimestamp(
       ) {
         const ty =
           txType === TransactionSearchType.EVM_Internal
-            ? TransactionType.EVM_Internal
+            ? TokenType.EVM_Internal
             : txType === TransactionSearchType.ERC_20
-            ? TransactionType.ERC_20
+            ? TokenType.ERC_20
             : txType === TransactionSearchType.ERC_721
-            ? TransactionType.ERC_721
-            : TransactionType.ERC_1155
+            ? TokenType.ERC_721
+            : TokenType.ERC_1155
         sql += `AND (tokenFrom=? OR tokenTo=? OR tokenOperator=?) AND tokenType=?`
         values.push(address, address, address, ty)
       } else if (txType === TransactionSearchType.TokenTransfer) {
         if (filterAddress) {
           sql += `AND contractAddress=? AND (tokenFrom=? OR tokenTo=? OR tokenOperator=?) AND NOT tokenType=?`
-          values.push(address, filterAddress, filterAddress, filterAddress, TransactionType.EVM_Internal)
+          values.push(address, filterAddress, filterAddress, filterAddress, TokenType.EVM_Internal)
         } else {
           sql += `AND contractAddress=? AND NOT tokenType=?`
-          values.push(address, TransactionType.EVM_Internal)
+          values.push(address, TokenType.EVM_Internal)
         }
       }
     } else if (txType) {
@@ -1153,12 +1154,12 @@ export async function queryTransactionCountByTimestamp(
       ) {
         const ty =
           txType === TransactionSearchType.EVM_Internal
-            ? TransactionType.EVM_Internal
+            ? TokenType.EVM_Internal
             : txType === TransactionSearchType.ERC_20
-            ? TransactionType.ERC_20
+            ? TokenType.ERC_20
             : txType === TransactionSearchType.ERC_721
-            ? TransactionType.ERC_721
-            : TransactionType.ERC_1155
+            ? TokenType.ERC_721
+            : TokenType.ERC_1155
         sql += `AND tokenType=?`
         values.push(ty)
       }
@@ -1245,21 +1246,21 @@ export async function queryTransactionsByTimestamp(
       ) {
         const ty =
           txType === TransactionSearchType.EVM_Internal
-            ? TransactionType.EVM_Internal
+            ? TokenType.EVM_Internal
             : txType === TransactionSearchType.ERC_20
-            ? TransactionType.ERC_20
+            ? TokenType.ERC_20
             : txType === TransactionSearchType.ERC_721
-            ? TransactionType.ERC_721
-            : TransactionType.ERC_1155
+            ? TokenType.ERC_721
+            : TokenType.ERC_1155
         sql += `AND (tokenFrom=? OR tokenTo=? OR tokenOperator=?) AND tokenType=?`
         values.push(address, address, address, ty)
       } else if (txType === TransactionSearchType.TokenTransfer) {
         if (filterAddress) {
           sql += `AND contractAddress=? AND (tokenFrom=? OR tokenTo=? OR tokenOperator=?) AND NOT (tokenType=?)`
-          values.push(address, filterAddress, filterAddress, filterAddress, TransactionType.EVM_Internal)
+          values.push(address, filterAddress, filterAddress, filterAddress, TokenType.EVM_Internal)
         } else {
           sql += `AND contractAddress=? AND NOT (tokenType=?)`
-          values.push(address, TransactionType.EVM_Internal)
+          values.push(address, TokenType.EVM_Internal)
         }
       }
     } else if (txType) {
@@ -1294,12 +1295,12 @@ export async function queryTransactionsByTimestamp(
       ) {
         const ty =
           txType === TransactionSearchType.EVM_Internal
-            ? TransactionType.EVM_Internal
+            ? TokenType.EVM_Internal
             : txType === TransactionSearchType.ERC_20
-            ? TransactionType.ERC_20
+            ? TokenType.ERC_20
             : txType === TransactionSearchType.ERC_721
-            ? TransactionType.ERC_721
-            : TransactionType.ERC_1155
+            ? TokenType.ERC_721
+            : TokenType.ERC_1155
         sql += `AND tokenType=?`
         values.push(ty)
       }
