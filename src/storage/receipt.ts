@@ -15,6 +15,7 @@ import {
   Account,
   Token,
   TokenType,
+  InternalTXType,
 } from '../types'
 import * as db from './sqlite3storage'
 import { extractValues, extractValuesFromArray } from './sqlite3storage'
@@ -203,6 +204,13 @@ export async function processReceiptData(receipts: Receipt[], saveOnlyNewData = 
       if (!blockHash) console.error(`Transaction ${tx.txId} has no blockHash`)
       blockNumber = parseInt(txReceipt.data?.readableReceipt?.blockNumber)
       if (transactionType !== (-1 as TransactionType)) {
+        const internalTXType = txReceipt.data.readableReceipt.internalTx
+          ? txReceipt.data.readableReceipt.internalTx.internalTXType
+          : transactionType === TransactionType.StakeReceipt
+          ? InternalTXType.Stake
+          : transactionType === TransactionType.UnstakeReceipt
+          ? InternalTXType.Unstake
+          : null
         const txObj: Transaction = {
           txId: tx.txId,
           cycle: cycle,
@@ -217,6 +225,7 @@ export async function processReceiptData(receipts: Receipt[], saveOnlyNewData = 
             ? txReceipt.data.readableReceipt.to
             : txReceipt.data.readableReceipt.contractAddress,
           originalTxData: tx.originalTxData || {},
+          internalTXType,
         }
         if (txReceipt.data.readableReceipt.stakeInfo) {
           txObj.nominee = txReceipt.data.readableReceipt.stakeInfo.nominee

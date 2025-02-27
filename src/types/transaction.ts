@@ -16,6 +16,7 @@ export interface Transaction {
   tokenTxs?: TokenTx[]
   txStatus?: TxStatus
   data?: unknown
+  internalTXType?: InternalTXType
 }
 
 export type TxStatus = 'Pending' | 'Expired'

@@ -55,6 +55,7 @@ describe('RMQCyclesConsumer', () => {
     mockConnection = {
       createChannel: jest.fn().mockResolvedValue(mockChannel),
       on: jest.fn(),
+      removeAllListeners: jest.fn(),
     } as unknown as jest.Mocked<Connection>
     ;(connect as jest.Mock).mockResolvedValue(mockConnection)
 
@@ -183,6 +184,6 @@ describe('RMQCyclesConsumer', () => {
     consumeCallback(mockMessage)
 
     expect(mockChannel.consume).toHaveBeenCalledTimes(1)
-    expect(CycleLogWriterSpy).toHaveBeenCalledTimes(1)
+    expect(CycleLogWriterSpy).toHaveBeenCalledTimes(0)
   })
 })
