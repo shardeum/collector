@@ -497,63 +497,33 @@ const start = async (): Promise<void> => {
         reply.send({ success: false, error: 'Invalid count' })
         return
       }
-      // Temp change to show the last <count> transactions excluding internal txs
+      
+      // Get transactions with proper address filtering if address is provided
       transactions = await Transaction.queryTransactions(
         0,
         count,
-        null,
+        query.address ? query.address.toLowerCase() : null,  // Apply address filter if present
         TransactionSearchType.AllExceptInternalTx
       )
-    } else if (query.startCycle) {
-      const startCycle: number = parseInt(query.startCycle)
-      if (startCycle < 0 || Number.isNaN(startCycle)) {
-        reply.send({ success: false, error: 'Invalid start cycle number' })
-        return
+    
+      // Get total transaction count with proper address filtering
+      if (query.address) {
+        totalTransactions = await Transaction.queryTransactionCount(
+          query.address.toLowerCase(),
+          TransactionSearchType.AllExceptInternalTx
+        )
+      } else {
+        totalTransactions = await Transaction.queryTransactionCount(
+          null,
+          TransactionSearchType.AllExceptInternalTx
+        )
       }
-      let endCycle = startCycle + 100
-      if (query.endCycle) {
-        endCycle = parseInt(query.endCycle)
-        if (endCycle < 0 || Number.isNaN(endCycle)) {
-          reply.send({ success: false, error: 'Invalid end cycle number' })
-          return
-        }
-        if (endCycle - startCycle > 100) {
-          reply.send({ success: false, error: 'The cycle range is too big. Max cycle range is 100 cycles.' })
-          return
-        }
-      }
-      totalTransactions = await Transaction.queryTransactionCountBetweenCycles(
-        startCycle,
-        endCycle,
-        query.address && query.address.toLowerCase()
-      )
+    
       const res: TransactionResponse = {
         success: true,
+        transactions,
         totalTransactions,
-      }
-      if (query.page) {
-        const page: number = parseInt(query.page)
-        if (page <= 0 || Number.isNaN(page)) {
-          reply.send({ success: false, error: 'Invalid page number' })
-          return
-        }
-        // checking totalPages first
-        totalPages = Math.ceil(totalTransactions / itemsPerPage)
-        if (page > totalPages) {
-          reply.send({
-            success: false,
-            error: 'Page no is greater than the totalPage',
-          })
-        }
-        transactions = await Transaction.queryTransactionsBetweenCycles(
-          (page - 1) * itemsPerPage,
-          itemsPerPage,
-          startCycle,
-          endCycle,
-          query.address && query.address.toLowerCase()
-        )
-        res.transactions = transactions
-        res.totalPages = totalPages
+        totalPages: Math.ceil(totalTransactions / count)
       }
       reply.send(res)
       return
