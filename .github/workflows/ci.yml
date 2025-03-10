@@ -10,7 +10,7 @@ on:
       - main
   pull_request:
     branches:
-      - mainnet-*
+      - '**'
   issue_comment:
     inputs:
       workflowBranch:
