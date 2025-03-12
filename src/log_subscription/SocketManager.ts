@@ -1,7 +1,7 @@
 import { SocketStream } from '@fastify/websocket'
 import { LogFilterOptions } from './CollectorDataParser'
 
-interface Subscription {
+interface LogSubscription {
   subscriptionId: string
   socketId: string
   filterOptions: LogFilterOptions
@@ -21,7 +21,7 @@ export const removeLogSocketClient = (socketId: string): void => {
   logSocketClient.delete(socketId)
 }
 
-export const logSubscriptionMap = new Map<string, Subscription>()
+export const logSubscriptionMap = new Map<string, LogSubscription>()
 
 export const addLogSubscriptions = (
   subscriptionId: string,
