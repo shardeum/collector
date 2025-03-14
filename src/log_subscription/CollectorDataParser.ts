@@ -1,7 +1,8 @@
 import { Receipt, WrappedAccount, Log } from '../types'
 
 export const extractLogsFromReceipts = (receipts: Receipt[]): Log[] => {
-  const readableReceipts: WrappedAccount[] = receipts.map((receipt) => receipt.appReceiptData).flat()
+  const parsedReceipts = typeof receipts === 'string' ? JSON.parse(receipts) : receipts
+  const readableReceipts: WrappedAccount[] = parsedReceipts.map((receipt) => receipt.appReceiptData).flat()
 
   // extract logs from readableReceipts
   const logs = readableReceipts
