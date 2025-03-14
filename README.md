@@ -10,8 +10,7 @@ The Data Distribution System is designed to efficiently handle the flow of data 
 
 ```bash
 git clone https://github.com/shardeum/relayer-collector.git
-cd relayer-collector/
-git checkout dev
+cd collector
 npm install
 ```
 
@@ -46,10 +45,6 @@ node scripts/generateWallet.js
 
 ```bash
 enableShardeumIndexer: false,
-blockIndexing: {
-  enabled: true,
-},
-enableCollectorSocketServer: false
 ```
 
 The `enableShardeumIndexer` flag, when enabled, allows the collector to save accounts data in a format required by the service Validator, in addition to its standard data storage; it's typically set to `false` for most use cases.
