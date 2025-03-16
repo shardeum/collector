@@ -4,9 +4,9 @@ import { IndexedLogs, extractLogsFromReceipts } from './CollectorDataParser'
 import { getLogSocketClient, logSubscriptionMap } from './SocketManager'
 import { Cycle, Receipt } from '../types'
 import { CycleDataWsEvent, ReceiptDataWsEvent, BlockDataWsEvent } from './CollectorSocketconnection'
-import { newHeadsSubscribers } from '../storage/block'
 import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
 import { Socket } from 'socket.io-client'
+import { newHeadsSubscribers } from '../log_server'
 
 export const setupCollectorListener = async (): Promise<void> => {
   const socket: Socket = socketClient.connect(`http://${config.host}:${config.port.collector}`, {
@@ -60,7 +60,6 @@ const receiptDataHandler = async (data: Receipt[]): Promise<void> => {
 const blockDataHandler = async (blockData: any): Promise<void> => {
   console.log('Received new block data')
 
-  // Forward block data to all newHead subscribers
   for (const subscriber of newHeadsSubscribers) {
     try {
       subscriber.socket.send(

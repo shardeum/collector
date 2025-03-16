@@ -7,13 +7,9 @@ import { Cycle, DbBlock } from '../types'
 import { getLatestBlock } from '../cache/LatestBlockCache'
 import { blockQueryDelayInMillis } from '../utils/block'
 import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
-import { SocketStream } from '@fastify/websocket'
-import { SocketStream } from '@fastify/websocket'
 import { forwardBlockData } from '../log_subscription/CollectorSocketconnection'
-import { Utils as StringUtils } from '@shardus/types'
 
 const evmCommon = new Common({ chain: 'mainnet', hardfork: Hardfork.Istanbul, eips: [3855] })
-const newHeadsSubscribers = new Set<SocketStream>()
 
 export type ShardeumBlockOverride = EthBlock & { number?: string; hash?: string }
 
@@ -228,27 +224,5 @@ export async function queryLatestBlocks(count: number): Promise<DbBlock[]> {
     console.log(e)
   }
   return []
-}
-
-export const newHeadSubscriptionController = (connection: SocketStream): void => {
-  connection.socket.on('message', () => {
-    try {
-      if (newHeadsSubscribers.has(connection)) {
-        connection.socket.send(StringUtils.safeStringify({ error: 'Already subscribed' }))
-        return
-      }
-      newHeadsSubscribers.add(connection)
-    } catch (e) {
-      connection.socket.send(StringUtils.safeStringify({ error: e.message }))
-      return
-    }
-  })
-  connection.socket.on('close', () => {
-    try {
-      newHeadsSubscribers.delete(connection)
-    } catch (e) {
-      console.error(e)
-    }
-  })
 }
 
