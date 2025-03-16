@@ -3,10 +3,13 @@ import { config } from '../config'
 import { IndexedLogs, extractLogsFromReceipts } from './CollectorDataParser'
 import { getLogSocketClient, logSubscriptionMap } from './SocketManager'
 import { Cycle, Receipt } from '../types'
-import { CycleDataWsEvent, ReceiptDataWsEvent } from './CollectorSocketconnection'
+import { CycleDataWsEvent, ReceiptDataWsEvent, BlockDataWsEvent } from './CollectorSocketconnection'
+import { newHeadsSubscribers } from '../storage/block'
+import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
+import { Socket } from 'socket.io-client'
 
 export const setupCollectorListener = async (): Promise<void> => {
-  const socket = socketClient.connect(`http://${config.host}:${config.port.collector}`, {
+  const socket: Socket = socketClient.connect(`http://${config.host}:${config.port.collector}`, {
     reconnection: true,
     reconnectionAttempts: 10,
   })
@@ -19,6 +22,7 @@ export const setupCollectorListener = async (): Promise<void> => {
   // Register custom socket event handlers
   socket.on(CycleDataWsEvent, cycleDataHandler)
   socket.on(ReceiptDataWsEvent, receiptDataHandler)
+  socket.on(BlockDataWsEvent, blockDataHandler)
 }
 
 const cycleDataHandler = async (data: Cycle[]): Promise<void> => {
@@ -49,6 +53,24 @@ const receiptDataHandler = async (data: Receipt[]): Promise<void> => {
           JSON.stringify({ method: 'log_found', subscription_id: subscriptionId, logs: filteredLogs })
         )
       }
+    }
+  }
+}
+
+const blockDataHandler = async (blockData: any): Promise<void> => {
+  console.log('Received new block data')
+
+  // Forward block data to all newHead subscribers
+  for (const subscriber of newHeadsSubscribers) {
+    try {
+      subscriber.socket.send(
+        StringUtils.safeStringify({
+          method: 'newHead',
+          data: blockData,
+        })
+      )
+    } catch (e) {
+      console.error(`Error sending block data to subscriber: ${e}`)
     }
   }
 }

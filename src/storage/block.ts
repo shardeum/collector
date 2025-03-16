@@ -8,23 +8,50 @@ import { getLatestBlock } from '../cache/LatestBlockCache'
 import { blockQueryDelayInMillis } from '../utils/block'
 import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
 import { SocketStream } from '@fastify/websocket'
+import { SocketStream } from '@fastify/websocket'
+import { forwardBlockData } from '../log_subscription/CollectorSocketconnection'
+import { Utils as StringUtils } from '@shardus/types'
 
 const evmCommon = new Common({ chain: 'mainnet', hardfork: Hardfork.Istanbul, eips: [3855] })
 const newHeadsSubscribers = new Set<SocketStream>()
 
 export type ShardeumBlockOverride = EthBlock & { number?: string; hash?: string }
 
-export async function insertBlock(block: DbBlock): Promise<void> {
+export const insertBlock = async (block: ShardeumBlockOverride): Promise<void> => {
   try {
-    const fields = Object.keys(block).join(', ')
-    const placeholders = Object.keys(block).fill('?').join(', ')
-    const values = db.extractValues(block)
-    const sql = 'INSERT OR REPLACE INTO blocks (' + fields + ') VALUES (' + placeholders + ')'
+    const blockNumber = block.number || bigIntToHex(block.header.number)
+    const blockHash = block.hash || bytesToHex(block.hash())
+    const parentHash = bytesToHex(block.header.parentHash)
+    const timestamp = bigIntToHex(block.header.timestamp)
+
+    const dbBlock = {
+      number: blockNumber,
+      hash: blockHash,
+      parent_hash: parentHash,
+      timestamp,
+    }
+
+    // Insert into database
+    const fields = Object.keys(dbBlock).join(', ')
+    const placeholders = Object.keys(dbBlock)
+      .map(() => '?')
+      .join(', ')
+    const values = Object.values(dbBlock)
+    const sql = `INSERT OR REPLACE INTO blocks (${fields}) VALUES (${placeholders})`
     db.run(sql, values)
-    /*prettier-ignore*/ if (config.verbose) console.log('block: Successfully inserted block', block.number, block.hash)
+
+    // Forward block data to log servers
+    await forwardBlockData({
+      number: blockNumber,
+      hash: blockHash,
+      parentHash,
+      timestamp,
+    })
+
+    if (config.verbose) console.log('block: Successfully inserted block', blockNumber, blockHash)
   } catch (e) {
-    console.log(e)
-    /*prettier-ignore*/ console.log('block: Unable to insert block or it is already stored in to database', block.number, block.hash)
+    console.error('Error inserting block:', e)
+    throw e
   }
 }
 
