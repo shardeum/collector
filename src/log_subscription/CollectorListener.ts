@@ -66,7 +66,7 @@ const blockDataHandler = async (blockData: any): Promise<void> => {
       subscriber.socket.send(
         StringUtils.safeStringify({
           method: 'newBlock_produced',
-          data: blockData,
+          payload: blockData,
         })
       )
     } catch (e) {
