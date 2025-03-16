@@ -24,8 +24,6 @@ export async function insertBlock(block: DbBlock): Promise<void> {
     const values = db.extractValues(block)
     const sql = 'INSERT OR REPLACE INTO blocks (' + fields + ') VALUES (' + placeholders + ')'
     db.run(sql, values)
-    // Forward block data to log servers
-    await forwardBlockData(block)
   } catch (e) {
     console.error('Error inserting block:', e)
     throw e
@@ -78,11 +76,7 @@ export async function upsertBlocksForCycleCore(
     try {
       const readableBlock = await convertToReadableBlock(block)
       // non-blocking
-      newHeadsSubscribers.forEach((subscriber) => {
-        subscriber.socket.send(
-          StringUtils.safeStringify({ method: 'newBlock_produced', payload: readableBlock })
-        )
-      })
+      await forwardBlockData(readableBlock)
       await insertBlock({
         number: Number(block.header.number),
         numberHex: '0x' + block.header.number.toString(16),
