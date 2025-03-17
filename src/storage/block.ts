@@ -196,7 +196,7 @@ export async function createNewBlock(blockNumber: number, timestamp: number): Pr
 
   const blockData = {
     header: { number: blockNumber, timestamp: timestampInSecond },
-    transactions: blockTransactions,
+    txsData: blockTransactions,
     uncleHeaders: [],
   }
   const block = EthBlock.fromBlockData(blockData, { common: evmCommon })
