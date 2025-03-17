@@ -60,11 +60,14 @@ export async function validateData(data: Data): Promise<boolean> {
     }
     await insertOrUpdateCycle(data.cycle)
 
-    // Create blocks for next cycle (optimistically)
+    // Create blocks for current cycle (optimistically)
+    await upsertBlocksForCycleCore(data.cycle.counter, data.cycle.cycleRecord.start, true)
+
+    // Send blocks from previous cycle
     await upsertBlocksForCycleCore(
-      data.cycle.counter + 1,
-      data.cycle.cycleRecord.start + CONFIG.blockIndexing.cycleDurationInSeconds,
-      true
+      data.cycle.counter - 1,
+      data.cycle.cycleRecord.start - CONFIG.blockIndexing.cycleDurationInSeconds,
+      false
     )
     return true
   }
