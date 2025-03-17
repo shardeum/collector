@@ -8,6 +8,7 @@ import { getLatestBlock } from '../cache/LatestBlockCache'
 import { blockQueryDelayInMillis } from '../utils/block'
 import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
 import { forwardBlockData } from '../log_subscription/CollectorSocketconnection'
+import { queryTransactionsByBlock } from './transaction'
 
 const evmCommon = new Common({ chain: 'mainnet', hardfork: Hardfork.Istanbul, eips: [3855] })
 
@@ -73,7 +74,7 @@ export async function upsertBlocksForCycleCore(
       (blockNumber - config.blockIndexing.initBlockNumber - firstBlockNumberForCycle) *
         config.blockIndexing.blockProductionRate
     const newBlockTimestamp = newBlockTimestampInSecond * 1000
-    const block = createNewBlock(blockNumber, newBlockTimestamp)
+    const block = await createNewBlock(blockNumber, newBlockTimestamp)
     console.log(
       `Creating block ${i + 1}/${numBlocksPerCycle} - number: ${block.header.number}, timestamp: ${
         block.header.timestamp
@@ -81,6 +82,10 @@ export async function upsertBlocksForCycleCore(
     )
     try {
       const readableBlock = await convertToReadableBlock(block)
+
+      // Create a copy of readableBlock without transactions
+      const blockWithoutTxs = { ...readableBlock }
+      blockWithoutTxs.transactions = []
 
       // Only forward if not an optimistic insert
       if (!isOptimistic) {
@@ -96,7 +101,7 @@ export async function upsertBlocksForCycleCore(
         hash: bytesToHex(block.header.hash()),
         timestamp: newBlockTimestamp,
         cycle: cycleCounter,
-        readableBlock: StringUtils.safeStringify(readableBlock),
+        readableBlock: StringUtils.safeStringify(blockWithoutTxs),
       })
     } catch (e) {
       console.error(`Error creating block ${blockNumber} for cycle ${cycleCounter}:`, e)
@@ -158,11 +163,38 @@ export async function upsertBlocksForCycles(cycles: Cycle[]): Promise<void> {
   }
 }
 
-export function createNewBlock(blockNumber: number, timestamp: number): EthBlock {
+export async function createNewBlock(blockNumber: number, timestamp: number): Promise<EthBlock> {
   const timestampInSecond = timestamp ? Math.round(timestamp / 1000) : Math.round(Date.now() / 1000)
+
+  // Get transactions for this block
+  const transactions = await queryTransactionsByBlock(blockNumber, '')
+
+  // Convert transactions to the format expected by EthBlock
+  const blockTransactions = transactions.map((tx) => {
+    // Deserialize the wrappedEVMAccount
+    const wrappedEVMAccount =
+      typeof tx.wrappedEVMAccount === 'string'
+        ? StringUtils.safeJsonParse(tx.wrappedEVMAccount)
+        : tx.wrappedEVMAccount
+
+    // The wrappedEVMAccount contains the transaction data
+    const txData = wrappedEVMAccount.readableReceipt
+    return {
+      nonce: '0x0', // We don't track nonce in our system
+      gasPrice: '0x0', // Gas price is not tracked
+      gasLimit: '0x0', // Gas limit is not tracked
+      to: txData.to || '0x', // Use 0x for contract creation
+      value: '0x0', // Value is not tracked
+      data: txData.input || '0x',
+      v: '0x0', // Signature components not tracked
+      r: '0x0',
+      s: '0x0',
+    }
+  })
+
   const blockData = {
     header: { number: blockNumber, timestamp: timestampInSecond },
-    transactions: [],
+    transactions: blockTransactions,
     uncleHeaders: [],
   }
   const block = EthBlock.fromBlockData(blockData, { common: evmCommon })
@@ -208,7 +240,7 @@ async function convertToReadableBlock(block: EthBlock): Promise<ShardeumBlockOve
     /*prettier-ignore*/ if (config.verbose) console.log(`block: convertToReadableBlock: Block timestamp ${block.header.timestamp}`)
     /*prettier-ignore*/ if (config.verbose) console.log(`block: convertToReadableBlock: Unable to find previous block ${previousBlockNumber} in database, creating a new one`)
     /*prettier-ignore*/ if (config.verbose) console.log(`block: convertToReadableBlock: Creating previous block ${previousBlockNumber} with timestamp ${(Number(block.header.timestamp) - config.blockIndexing.blockProductionRate) * 1000}`)
-    const previousBlock = createNewBlock(
+    const previousBlock = await createNewBlock(
       previousBlockNumber,
       (Number(block.header.timestamp) - config.blockIndexing.blockProductionRate) * 1000
     )
