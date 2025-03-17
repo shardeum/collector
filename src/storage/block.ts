@@ -72,7 +72,7 @@ export async function upsertBlocksForCycleCore(
     try {
       const readableBlock = await convertToReadableBlock(block)
       // non-blocking
-      await forwardBlockData(readableBlock)
+      forwardBlockData(readableBlock)
       await insertBlock({
         number: Number(block.header.number),
         numberHex: '0x' + block.header.number.toString(16),
