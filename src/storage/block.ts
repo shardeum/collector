@@ -168,6 +168,8 @@ export async function createNewBlock(blockNumber: number, timestamp: number): Pr
 
   // Get transactions for this block
   const transactions = await queryTransactionsByBlock(blockNumber, '')
+  console.log(`Found ${transactions.length} raw transactions for block ${blockNumber}`)
+  console.log('First raw transaction:', JSON.stringify(transactions[0], null, 2))
 
   // Convert transactions to the format expected by EthBlock
   const blockTransactions = transactions.map((tx) => {
@@ -177,11 +179,14 @@ export async function createNewBlock(blockNumber: number, timestamp: number): Pr
         ? StringUtils.safeJsonParse(tx.wrappedEVMAccount)
         : tx.wrappedEVMAccount
 
+    console.log('WrappedEVMAccount:', JSON.stringify(wrappedEVMAccount, null, 2))
+
     // The wrappedEVMAccount contains the transaction data
     const txData = wrappedEVMAccount.readableReceipt
+    console.log('Transaction data from readableReceipt:', JSON.stringify(txData, null, 2))
 
     // Create a transaction object with the correct format
-    return {
+    const formattedTx = {
       nonce: txData.nonce || '0x0',
       gasPrice: '0x0',
       gasLimit: '0x0',
@@ -192,14 +197,30 @@ export async function createNewBlock(blockNumber: number, timestamp: number): Pr
       r: '0x0',
       s: '0x0',
     }
+    console.log('Formatted transaction:', JSON.stringify(formattedTx, null, 2))
+    return formattedTx
   })
+
+  console.log(`Created ${blockTransactions.length} formatted transactions`)
+  console.log('First formatted transaction:', JSON.stringify(blockTransactions[0], null, 2))
 
   const blockData = {
     header: { number: blockNumber, timestamp: timestampInSecond },
     transactions: blockTransactions,
     uncleHeaders: [],
   }
+  console.log('Block data before EthBlock.fromBlockData:', JSON.stringify(blockData, null, 2))
+
   const block = EthBlock.fromBlockData(blockData, { common: evmCommon })
+  console.log('Block after creation:', {
+    transactionCount: block.transactions.length,
+    firstTransaction: block.transactions[0]
+      ? {
+          to: block.transactions[0].to.toString(),
+          data: block.transactions[0].data.toString(),
+        }
+      : null,
+  })
   return block
 }
 
