@@ -49,12 +49,9 @@ export async function upsertBlocksForCycle(cycle: Cycle): Promise<void> {
 
 export async function upsertBlocksForCycleCore(
   cycleCounter: number,
-  startTimeInSeconds: number,
-  isOptimistic: boolean = false
+  startTimeInSeconds: number
 ): Promise<void> {
-  console.log(
-    `Creating blocks for cycle ${cycleCounter} with start timestamp ${startTimeInSeconds} (isOptimistic: ${isOptimistic})`
-  )
+  console.log(`Creating blocks for cycle ${cycleCounter} with start timestamp ${startTimeInSeconds}`)
   const numBlocksPerCycle =
     config.blockIndexing.cycleDurationInSeconds / config.blockIndexing.blockProductionRate
   console.log(
@@ -82,13 +79,8 @@ export async function upsertBlocksForCycleCore(
     try {
       const readableBlock = await convertToReadableBlock(block)
 
-      // Only forward if not an optimistic insert
-      if (!isOptimistic) {
-        console.log(`Forwarding block ${blockNumber} to collector`)
-        forwardBlockData(readableBlock)
-      } else {
-        console.log(`Skipping forwarding for optimistic block ${blockNumber}`)
-      }
+      console.log(`Forwarding block ${blockNumber} to collector`)
+      forwardBlockData(readableBlock)
 
       await insertBlock({
         number: Number(block.header.number),
