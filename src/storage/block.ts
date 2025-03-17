@@ -83,10 +83,6 @@ export async function upsertBlocksForCycleCore(
     try {
       const readableBlock = await convertToReadableBlock(block)
 
-      // Create a copy of readableBlock without transactions
-      const blockWithoutTxs = { ...readableBlock }
-      blockWithoutTxs.transactions = []
-
       // Only forward if not an optimistic insert
       if (!isOptimistic) {
         console.log(`Forwarding block ${blockNumber} to collector`)
@@ -94,6 +90,9 @@ export async function upsertBlocksForCycleCore(
       } else {
         console.log(`Skipping forwarding for optimistic block ${blockNumber}`)
       }
+
+      const blockWithoutTxs = { ...readableBlock }
+      blockWithoutTxs.transactions = []
 
       await insertBlock({
         number: Number(block.header.number),
