@@ -71,8 +71,14 @@ export async function upsertBlocksForCycleCore(
     /*prettier-ignore*/ if (config.verbose) console.log(`Block number: ${block.header.number}, timestamp: ${block.header.timestamp}, hash: ${bytesToHex(block.header.hash())}`)
     try {
       const readableBlock = await convertToReadableBlock(block)
-      // non-blocking
-      forwardBlockData(readableBlock)
+
+      // Only forward blocks that are current or past
+      const currentTime = Date.now()
+      if (newBlockTimestamp <= currentTime) {
+        // non-blocking
+        forwardBlockData(readableBlock)
+      }
+
       await insertBlock({
         number: Number(block.header.number),
         numberHex: '0x' + block.header.number.toString(16),
