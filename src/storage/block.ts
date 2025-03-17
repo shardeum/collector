@@ -179,17 +179,8 @@ export async function createNewBlock(blockNumber: number, timestamp: number): Pr
 
     // The wrappedEVMAccount contains the transaction data
     const txData = wrappedEVMAccount.readableReceipt
-    return {
-      nonce: '0x0', // We don't track nonce in our system
-      gasPrice: '0x0', // Gas price is not tracked
-      gasLimit: '0x0', // Gas limit is not tracked
-      to: txData.to || '0x', // Use 0x for contract creation
-      value: '0x0', // Value is not tracked
-      data: txData.input || '0x',
-      v: '0x0', // Signature components not tracked
-      r: '0x0',
-      s: '0x0',
-    }
+
+    return txData
   })
 
   const blockData = {
