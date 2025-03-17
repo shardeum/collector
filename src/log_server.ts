@@ -88,18 +88,71 @@ const evmLogSubscriptionController = (connection: SocketStream): void => {
 }
 
 const newHeadSubscriptionController = (connection: SocketStream): void => {
-  connection.socket.on('message', () => {
+  connection.socket.on('message', (message) => {
     try {
-      if (newHeadsSubscribers.has(connection)) {
-        connection.socket.send(StringUtils.safeStringify({ error: 'Already subscribed' }))
+      const payload = StringUtils.safeJsonParse(message.toString())
+
+      if (payload.method === 'subscribe') {
+        if (newHeadsSubscribers.has(connection)) {
+          connection.socket.send(
+            StringUtils.safeStringify({
+              jsonrpc: '2.0',
+              id: payload.id,
+              error: 'Already subscribed',
+            })
+          )
+          return
+        }
+        newHeadsSubscribers.add(connection)
+        connection.socket.send(
+          StringUtils.safeStringify({
+            jsonrpc: '2.0',
+            id: payload.id,
+            result: 'newHeads_subscription',
+          })
+        )
         return
       }
-      newHeadsSubscribers.add(connection)
+
+      if (payload.method === 'unsubscribe') {
+        if (!newHeadsSubscribers.has(connection)) {
+          connection.socket.send(
+            StringUtils.safeStringify({
+              jsonrpc: '2.0',
+              id: payload.id,
+              error: 'Not subscribed',
+            })
+          )
+          return
+        }
+        newHeadsSubscribers.delete(connection)
+        connection.socket.send(
+          StringUtils.safeStringify({
+            jsonrpc: '2.0',
+            id: payload.id,
+            result: true,
+          })
+        )
+        return
+      }
+
+      connection.socket.send(
+        StringUtils.safeStringify({
+          jsonrpc: '2.0',
+          id: payload.id,
+          error: 'Invalid method',
+        })
+      )
     } catch (e) {
-      connection.socket.send(StringUtils.safeStringify({ error: e.message }))
-      return
+      connection.socket.send(
+        StringUtils.safeStringify({
+          jsonrpc: '2.0',
+          error: e.message,
+        })
+      )
     }
   })
+
   connection.socket.on('close', () => {
     try {
       newHeadsSubscribers.delete(connection)
