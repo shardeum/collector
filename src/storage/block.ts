@@ -72,9 +72,7 @@ export async function upsertBlocksForCycleCore(
     try {
       const readableBlock = await convertToReadableBlock(block)
 
-      // Only forward blocks that are current or past
-      const currentTime = Date.now()
-      if (newBlockTimestamp <= currentTime) {
+      if (newBlockTimestamp <= startTimeInSeconds * 1000) {
         // non-blocking
         forwardBlockData(readableBlock)
       }
