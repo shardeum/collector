@@ -59,10 +59,12 @@ export async function validateData(data: Data): Promise<boolean> {
       CycleLogWriter.writeToLog(`${StringUtils.safeStringify(data.cycle)}\n`)
     }
     await insertOrUpdateCycle(data.cycle)
-    // optimistically upsert blocks for next cycle if it is wrong, it will be corrected in next cycle
+
+    // Create blocks for next cycle (optimistically)
     await upsertBlocksForCycleCore(
       data.cycle.counter + 1,
-      data.cycle.cycleRecord.start + CONFIG.blockIndexing.cycleDurationInSeconds
+      data.cycle.cycleRecord.start + CONFIG.blockIndexing.cycleDurationInSeconds,
+      true
     )
     return true
   }

@@ -49,7 +49,8 @@ export async function upsertBlocksForCycle(cycle: Cycle): Promise<void> {
 
 export async function upsertBlocksForCycleCore(
   cycleCounter: number,
-  startTimeInSeconds: number
+  startTimeInSeconds: number,
+  isOptimistic: boolean = false
 ): Promise<void> {
   /*prettier-ignore*/ if (config.verbose) console.log(`block: Creating blocks for cycle ${cycleCounter} with start timestamp ${startTimeInSeconds}`)
   const numBlocksPerCycle =
@@ -72,8 +73,8 @@ export async function upsertBlocksForCycleCore(
     try {
       const readableBlock = await convertToReadableBlock(block)
 
-      if (newBlockTimestamp <= startTimeInSeconds * 1000) {
-        // non-blocking
+      // Only forward if not an optimistic insert
+      if (!isOptimistic) {
         forwardBlockData(readableBlock)
       }
 
