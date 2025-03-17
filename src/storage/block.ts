@@ -52,9 +52,14 @@ export async function upsertBlocksForCycleCore(
   startTimeInSeconds: number,
   isOptimistic: boolean = false
 ): Promise<void> {
-  /*prettier-ignore*/ if (config.verbose) console.log(`block: Creating blocks for cycle ${cycleCounter} with start timestamp ${startTimeInSeconds}`)
+  console.log(
+    `Creating blocks for cycle ${cycleCounter} with start timestamp ${startTimeInSeconds} (isOptimistic: ${isOptimistic})`
+  )
   const numBlocksPerCycle =
     config.blockIndexing.cycleDurationInSeconds / config.blockIndexing.blockProductionRate
+  console.log(
+    `Number of blocks per cycle: ${numBlocksPerCycle} (cycleDuration: ${config.blockIndexing.cycleDurationInSeconds}, blockProductionRate: ${config.blockIndexing.blockProductionRate})`
+  )
   let firstBlockNumberForCycle = 0
   for (let i = 0; i < numBlocksPerCycle; i++) {
     const blockNumber = Math.floor(
@@ -69,13 +74,20 @@ export async function upsertBlocksForCycleCore(
         config.blockIndexing.blockProductionRate
     const newBlockTimestamp = newBlockTimestampInSecond * 1000
     const block = createNewBlock(blockNumber, newBlockTimestamp)
-    /*prettier-ignore*/ if (config.verbose) console.log(`Block number: ${block.header.number}, timestamp: ${block.header.timestamp}, hash: ${bytesToHex(block.header.hash())}`)
+    console.log(
+      `Creating block ${i + 1}/${numBlocksPerCycle} - number: ${block.header.number}, timestamp: ${
+        block.header.timestamp
+      }`
+    )
     try {
       const readableBlock = await convertToReadableBlock(block)
 
       // Only forward if not an optimistic insert
       if (!isOptimistic) {
+        console.log(`Forwarding block ${blockNumber} to collector`)
         forwardBlockData(readableBlock)
+      } else {
+        console.log(`Skipping forwarding for optimistic block ${blockNumber}`)
       }
 
       await insertBlock({
@@ -87,10 +99,10 @@ export async function upsertBlocksForCycleCore(
         readableBlock: StringUtils.safeStringify(readableBlock),
       })
     } catch (e) {
-      /*prettier-ignore*/ console.log(`block: Unable to create block ${blockNumber} for cycle ${cycleCounter}`, e)
+      console.error(`Error creating block ${blockNumber} for cycle ${cycleCounter}:`, e)
     }
   }
-  /*prettier-ignore*/ if (config.verbose) console.log(`block: Successfully created ${numBlocksPerCycle} blocks for cycle ${cycleCounter}`)
+  console.log(`Successfully created ${numBlocksPerCycle} blocks for cycle ${cycleCounter}`)
 }
 
 export async function queryBlockByNumber(blockNumber: number): Promise<DbBlock | null> {
