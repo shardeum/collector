@@ -180,7 +180,18 @@ export async function createNewBlock(blockNumber: number, timestamp: number): Pr
     // The wrappedEVMAccount contains the transaction data
     const txData = wrappedEVMAccount.readableReceipt
 
-    return txData
+    // Create a transaction object with the correct format
+    return {
+      nonce: txData.nonce || '0x0',
+      gasPrice: '0x0',
+      gasLimit: '0x0',
+      to: txData.to || '0x',
+      value: txData.value || '0x0',
+      data: txData.data || '0x',
+      v: '0x1b', // Legacy transaction v value
+      r: '0x0',
+      s: '0x0',
+    }
   })
 
   const blockData = {
