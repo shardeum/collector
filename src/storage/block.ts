@@ -250,6 +250,7 @@ async function convertToReadableBlock(block: EthBlock): Promise<ShardeumBlockOve
   defaultBlock.number = bigIntToHex(block.header.number)
   defaultBlock.timestamp = bigIntToHex(block.header.timestamp)
   defaultBlock.hash = bytesToHex(block.header.hash())
+  defaultBlock.transactions = block.transactions
   const previousBlockNumber = Number(block.header.number) - 1
 
   let parentHash = '0x0000000000000000000000000000000000000000000000000000000000000000'
