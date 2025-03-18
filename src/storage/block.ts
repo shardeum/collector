@@ -192,9 +192,9 @@ export async function createNewBlock(blockNumber: number, timestamp: number): Pr
       to: txData.to || '0x',
       value: txData.value || '0x0',
       data: txData.data || '0x',
-      v: '0x1b', // Legacy transaction v value
-      r: '0x0',
-      s: '0x0',
+      v: txData.v || '0x1b',
+      r: txData.r || '0x0',
+      s: txData.s || '0x0',
     }
     console.log('Formatted transaction:', JSON.stringify(formattedTx, null, 2))
     return formattedTx
