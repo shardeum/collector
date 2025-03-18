@@ -57,14 +57,8 @@ export async function upsertBlocksForCycleCore(
   startTimeInSeconds: number,
   isOptimistic: boolean = false
 ): Promise<void> {
-  console.log(
-    `Creating blocks for cycle ${cycleCounter} with start timestamp ${startTimeInSeconds} (isOptimistic: ${isOptimistic})`
-  )
   const numBlocksPerCycle =
     config.blockIndexing.cycleDurationInSeconds / config.blockIndexing.blockProductionRate
-  console.log(
-    `Number of blocks per cycle: ${numBlocksPerCycle} (cycleDuration: ${config.blockIndexing.cycleDurationInSeconds}, blockProductionRate: ${config.blockIndexing.blockProductionRate})`
-  )
   let firstBlockNumberForCycle = 0
   for (let i = 0; i < numBlocksPerCycle; i++) {
     const blockNumber = Math.floor(
@@ -79,17 +73,11 @@ export async function upsertBlocksForCycleCore(
         config.blockIndexing.blockProductionRate
     const newBlockTimestamp = newBlockTimestampInSecond * 1000
     const block = await createNewBlock(blockNumber, newBlockTimestamp)
-    console.log(
-      `Creating block ${i + 1}/${numBlocksPerCycle} - number: ${block.header.number}, timestamp: ${
-        block.header.timestamp
-      }`
-    )
     try {
       const readableBlock = await convertToReadableBlock(block)
 
       // Only forward if not an optimistic insert
       if (!isOptimistic) {
-        console.log(`Forwarding block ${blockNumber} to collector`)
         forwardBlockData(readableBlock)
       } else {
         console.log(`Skipping forwarding for optimistic block ${blockNumber}`)
@@ -171,8 +159,6 @@ export async function createNewBlock(blockNumber: number, timestamp: number): Pr
 
   // Get transactions for this block
   const transactions = await queryTransactionsByBlock(blockNumber, '')
-  console.log(`Found ${transactions.length} raw transactions for block ${blockNumber}`)
-  console.log('First raw transaction:', JSON.stringify(transactions[0], null, 2))
 
   // Convert transactions to the format expected by EthBlock
   const blockTransactions = transactions.map((tx) => {
@@ -182,11 +168,8 @@ export async function createNewBlock(blockNumber: number, timestamp: number): Pr
         ? StringUtils.safeJsonParse(tx.wrappedEVMAccount)
         : tx.wrappedEVMAccount
 
-    console.log('WrappedEVMAccount:', JSON.stringify(wrappedEVMAccount, null, 2))
-
     // The wrappedEVMAccount contains the transaction data
     const txData = wrappedEVMAccount.readableReceipt
-    console.log('Transaction data from readableReceipt:', JSON.stringify(txData, null, 2))
 
     // Create a transaction object with the correct format
     const formattedTx = {
@@ -203,30 +186,16 @@ export async function createNewBlock(blockNumber: number, timestamp: number): Pr
       r: txData.r || '0x0',
       s: txData.s || '0x0',
     }
-    console.log('Formatted transaction:', JSON.stringify(formattedTx, null, 2))
     return formattedTx
   })
-
-  console.log(`Created ${blockTransactions.length} formatted transactions`)
-  console.log('First formatted transaction:', JSON.stringify(blockTransactions[0], null, 2))
 
   const blockData = {
     header: { number: blockNumber, timestamp: timestampInSecond },
     transactions: blockTransactions,
     uncleHeaders: [],
   }
-  console.log('Block data before EthBlock.fromBlockData:', JSON.stringify(blockData, null, 2))
 
   const block = EthBlock.fromBlockData(blockData, { common: evmCommon })
-  console.log('Block after creation:', {
-    transactionCount: block.transactions.length,
-    firstTransaction: block.transactions[0]
-      ? {
-          to: block.transactions[0].to.toString(),
-          data: block.transactions[0].data.toString(),
-        }
-      : null,
-  })
   return block
 }
 
