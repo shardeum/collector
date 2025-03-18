@@ -12,6 +12,9 @@ import { queryTransactionsByBlock } from './transaction'
 
 const evmCommon = new Common({ chain: 'mainnet', hardfork: Hardfork.Istanbul, eips: [3855] })
 
+// Override chainId to always return our custom chain ID
+// @ts-ignore
+evmCommon.chainId = () => BigInt(8082)
 
 export type ShardeumBlockOverride = EthBlock & { number?: string; hash?: string }
 
@@ -193,9 +196,9 @@ export async function createNewBlock(blockNumber: number, timestamp: number): Pr
       to: txData.to || '0x',
       value: txData.value || '0x0',
       data: txData.data || '0x',
-      v: '0x1b',
-      r: '0x0',
-      s: '0x0',
+      v: txData.v || '0x0',
+      r: txData.r || '0x0',
+      s: txData.s || '0x0',
     }
     console.log('Formatted transaction:', JSON.stringify(formattedTx, null, 2))
     return formattedTx
