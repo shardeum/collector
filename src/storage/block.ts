@@ -11,6 +11,9 @@ import { forwardBlockData } from '../log_subscription/CollectorSocketconnection'
 import { queryTransactionsByBlock } from './transaction'
 
 const evmCommon = new Common({ chain: 'mainnet', hardfork: Hardfork.Istanbul, eips: [3855] })
+Object.defineProperty(evmCommon, 'chainId', {
+  get: () => BigInt(8082),
+})
 
 export type ShardeumBlockOverride = EthBlock & { number?: string; hash?: string }
 
