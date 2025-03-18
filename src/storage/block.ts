@@ -250,7 +250,26 @@ async function convertToReadableBlock(block: EthBlock): Promise<ShardeumBlockOve
   defaultBlock.number = bigIntToHex(block.header.number)
   defaultBlock.timestamp = bigIntToHex(block.header.timestamp)
   defaultBlock.hash = bytesToHex(block.header.hash())
-  defaultBlock.transactions = block.transactions
+
+  // Format transactions to match standard Ethereum JSON-RPC format
+  defaultBlock.transactions = block.transactions.map((tx) => ({
+    hash: bytesToHex(tx.hash()),
+    nonce: bigIntToHex(tx.nonce),
+    blockHash: bytesToHex(block.header.hash()),
+    blockNumber: bigIntToHex(block.header.number),
+    transactionIndex: '0x0',
+    from: tx.getSenderAddress().toString(),
+    to: tx.to?.toString() || null,
+    value: bigIntToHex(tx.value),
+    gasPrice: '0x0', // Since we're using legacy transactions
+    gas: bigIntToHex(tx.gasLimit),
+    input: bytesToHex(tx.data),
+    v: bigIntToHex(tx.v),
+    r: bigIntToHex(tx.r),
+    s: bigIntToHex(tx.s),
+    type: '0x0',
+  }))
+
   const previousBlockNumber = Number(block.header.number) - 1
 
   let parentHash = '0x0000000000000000000000000000000000000000000000000000000000000000'
