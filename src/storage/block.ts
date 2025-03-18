@@ -190,19 +190,18 @@ export async function createNewBlock(blockNumber: number, timestamp: number): Pr
 
     // Create a transaction object with the correct format
     const formattedTx = {
-      nonce: Number(BigInt(txData.nonce || '0x0')), // index type
-      gasPrice: BigInt(txData.gasPrice || '0x0'), // quantity type
-      gas: BigInt(txData.gasLimit || '0x0'), // quantity type
-      to: txData.to || '0x', // Address | null
-      value: BigInt(txData.value || '0x0'), // quantity type
-      data: txData.data || '0x', // Hex
-      chainId: Number(BigInt(txData.chainId || '0x1f8a')), // index type
-      type: txData.type || '0x0', // Hex
-      typeHex: txData.type || '0x0', // Hex | null
-      transactionIndex: Number(BigInt(txData.transactionIndex || '0x0')), // index type
-      v: BigInt(txData.v || '0x0'), // quantity type
-      r: txData.r || '0x0', // Hex
-      s: txData.s || '0x0', // Hex
+      nonce: BigInt(txData.nonce) || '0x0',
+      gasPrice: BigInt(txData.gasPrice || '0x0'),
+      gasLimit: BigInt(txData.gasLimit || '0x0'),
+      to: txData.to || '0x',
+      value: BigInt(txData.value || '0x0'),
+      data: txData.data || '0x',
+      chainId: BigInt(txData.chainId || '8082'),
+      type: BigInt(txData.type || '0x0'),
+      transactionIndex: BigInt(txData.transactionIndex || '0x0'),
+      v: txData.v || '0x0',
+      r: txData.r || '0x0',
+      s: txData.s || '0x0',
     }
     console.log('Formatted transaction:', JSON.stringify(formattedTx, null, 2))
     return formattedTx
