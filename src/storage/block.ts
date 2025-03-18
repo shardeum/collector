@@ -10,7 +10,15 @@ import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
 import { forwardBlockData } from '../log_subscription/CollectorSocketconnection'
 import { queryTransactionsByBlock } from './transaction'
 
-const evmCommon = new Common({ chain: 'mainnet', hardfork: Hardfork.Istanbul, eips: [3855] })
+const evmCommon = new Common({
+  chain: {
+    name: 'shardeum',
+    chainId: 8082,
+    networkId: 8082,
+  },
+  hardfork: Hardfork.Istanbul,
+  eips: [3855],
+})
 
 export type ShardeumBlockOverride = EthBlock & { number?: string; hash?: string }
 
