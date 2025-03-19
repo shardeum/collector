@@ -14,7 +14,7 @@ const evmCommon = new Common({ chain: 'mainnet', hardfork: Hardfork.Istanbul, ei
 
 // Override chainId to always return our custom chain ID
 // @ts-ignore
-evmCommon.chainId = () => BigInt(8082)
+evmCommon.chainId = () => BigInt(config.chainId)
 
 export type ShardeumBlockOverride = EthBlock & { number?: string; hash?: string }
 
