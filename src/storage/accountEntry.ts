@@ -16,10 +16,7 @@ export function insertAccountEntry(account: Account): void {
     const sql = 'INSERT OR REPLACE INTO accountsEntry (' + fields + ') VALUES (' + placeholders + ')'
     db.run(sql, values, 'shardeumIndexer')
     if (config.verbose)
-      console.log(
-        'ShardeumIndexer: Successfully inserted AccountEntry',
-        account.ethAddress || account.accountId
-      )
+      console.log('ShardeumIndexer: Successfully inserted AccountEntry', account.ethAddress || account.accountId)
   } catch (e) {
     console.log(e)
     console.log(
@@ -48,8 +45,7 @@ export function bulkInsertAccountEntries(accounts: Account[]): void {
       sql = sql + ', (' + placeholders + ')'
     }
     db.run(sql, values, 'shardeumIndexer')
-    if (config.verbose)
-      console.log('ShardeumIndexer: Successfully bulk inserted AccountEntries', accountEntries.length)
+    if (config.verbose) console.log('ShardeumIndexer: Successfully bulk inserted AccountEntries', accountEntries.length)
   } catch (e) {
     console.log(e)
     console.log('ShardeumIndexer: Unable to bulk insert AccountEntries', accounts.length)
@@ -69,10 +65,7 @@ export function updateAccountEntry(_accountId: string, account: Partial<Account>
       'shardeumIndexer'
     )
     if (config.verbose)
-      console.log(
-        'ShardeumIndexer: Successfully updated AccountEntry',
-        account.ethAddress || account.accountId
-      )
+      console.log('ShardeumIndexer: Successfully updated AccountEntry', account.ethAddress || account.accountId)
   } catch (e) {
     console.log(e)
     console.log('ShardeumIndexer: Unable to update AccountEntry', account)

@@ -46,11 +46,11 @@ function getDb(dbName: DbName): Database {
 export function checkDatabaseHealth(dbName: DbName = 'default'): boolean {
   try {
     // Run a simple SELECT to check if the database is responding
-    getDb(dbName).prepare('SELECT 1').get();
-    return true;
+    getDb(dbName).prepare('SELECT 1').get()
+    return true
   } catch (error) {
-    console.error('Database health check failed:', error);
-    return false;
+    console.error('Database health check failed:', error)
+    return false
   }
 }
 
@@ -58,51 +58,39 @@ export async function runCreate(createStatement: string, dbName: DbName = 'defau
   run(createStatement, [], dbName)
 }
 
-export function run(
-  sql: string,
-  params: unknown[] | object = [],
-  dbName: DbName = 'default'
-): { id: number } {
+export function run(sql: string, params: unknown[] | object = [], dbName: DbName = 'default'): { id: number } {
   try {
-    const db = getDb(dbName);
-    const stmt = db.prepare(sql);
-    const result = stmt.run(params);
+    const db = getDb(dbName)
+    const stmt = db.prepare(sql)
+    const result = stmt.run(params)
 
-    return { id: result.lastInsertRowid as number };
+    return { id: result.lastInsertRowid as number }
   } catch (err) {
-    console.error('Error running SQL:', sql);
-    console.error(err);
-    throw err;
+    console.error('Error running SQL:', sql)
+    console.error(err)
+    throw err
   }
 }
 
-export function get<T>(
-  sql: string,
-  params: unknown[] | object = [],
-  dbName: DbName = 'default'
-): T {
+export function get<T>(sql: string, params: unknown[] | object = [], dbName: DbName = 'default'): T {
   try {
-    const db = getDb(dbName);
-    return db.prepare(sql).get(params) as T;
+    const db = getDb(dbName)
+    return db.prepare(sql).get(params) as T
   } catch (err) {
-    console.error('Error running SQL:', sql);
-    console.error(err);
-    throw err;
+    console.error('Error running SQL:', sql)
+    console.error(err)
+    throw err
   }
 }
 
-export function all<T>(
-  sql: string,
-  params: unknown[] | object = [],
-  dbName: DbName = 'default'
-): T[] {
+export function all<T>(sql: string, params: unknown[] | object = [], dbName: DbName = 'default'): T[] {
   try {
-    const db = getDb(dbName);
-    return db.prepare(sql).all(params) as T[];
+    const db = getDb(dbName)
+    return db.prepare(sql).all(params) as T[]
   } catch (err) {
-    console.error('Error running SQL:', sql);
-    console.error(err);
-    throw err;
+    console.error('Error running SQL:', sql)
+    console.error(err)
+    throw err
   }
 }
 
@@ -111,20 +99,20 @@ export function all<T>(
  */
 export function close(): void {
   try {
-    console.log('Terminating Database/Indexer Connections...');
+    console.log('Terminating Database/Indexer Connections...')
 
     if (db) {
-      db.close();
-      console.log('Database connection closed.');
+      db.close()
+      console.log('Database connection closed.')
     }
 
     if (config.enableShardeumIndexer && shardeumIndexerDb) {
-      shardeumIndexerDb.close();
-      console.log('Shardeum Indexer Database Connection closed.');
+      shardeumIndexerDb.close()
+      console.log('Shardeum Indexer Database Connection closed.')
     }
   } catch (err) {
-    console.error('Error thrown in db close() function:');
-    console.error(err);
+    console.error('Error thrown in db close() function:')
+    console.error(err)
   }
 }
 

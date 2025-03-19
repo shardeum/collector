@@ -51,11 +51,7 @@ const ignoreQueryValues = (url: string): string => {
 /**
  * Usage middleware, intercepts requests and counts them by endpoint, only if usage metrics are enabled.
  */
-export const usageMiddleware = (
-  req: FastifyRequest,
-  _: FastifyReply,
-  done: HookHandlerDoneFunction
-): void => {
+export const usageMiddleware = (req: FastifyRequest, _: FastifyReply, done: HookHandlerDoneFunction): void => {
   if (!usageMetrics.enabled) {
     done()
     return

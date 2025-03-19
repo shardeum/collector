@@ -72,8 +72,7 @@ export function updateTransaction(_txId: string, transaction: Partial<Transactio
     const sql = `UPDATE transactions SET result = $result, cycle = $cycle, wrappedEVMAccount = $wrappedEVMAccount, txHash = $txHash WHERE txId = $txId `
     db.run(sql, {
       $cycle: transaction.cycle,
-      $wrappedEVMAccount:
-        transaction.wrappedEVMAccount && StringUtils.safeStringify(transaction.wrappedEVMAccount),
+      $wrappedEVMAccount: transaction.wrappedEVMAccount && StringUtils.safeStringify(transaction.wrappedEVMAccount),
       $txHash: transaction.txHash,
       $txId: transaction.txId,
     })
@@ -191,9 +190,7 @@ export async function processTransactionData(transactions: RawTransaction[]): Pr
       const { txs, accs, tokens } = await decodeTx(txObj)
       for (const acc of accs) {
         if (acc === ZERO_ETH_ADDRESS) continue
-        const index = combineAccounts.findIndex(
-          (a) => a.accountId === acc.slice(2).toLowerCase() + '0'.repeat(24)
-        )
+        const index = combineAccounts.findIndex((a) => a.accountId === acc.slice(2).toLowerCase() + '0'.repeat(24))
         if (index > -1) {
           // eslint-disable-next-line security/detect-object-injection
           const accountExist = combineAccounts[index]
@@ -371,13 +368,7 @@ export async function queryTransactionCount(
       } else if (txType === TransactionSearchType.TokenTransfer) {
         if (filterAddress) {
           const sql = `SELECT COUNT(*) FROM tokenTxs WHERE contractAddress=? AND (tokenFrom=? OR tokenTo=? OR tokenOperator=?) AND NOT tokenType=?`
-          transactions = db.get(sql, [
-            address,
-            filterAddress,
-            filterAddress,
-            filterAddress,
-            TokenType.EVM_Internal,
-          ])
+          transactions = db.get(sql, [address, filterAddress, filterAddress, filterAddress, TokenType.EVM_Internal])
         } else {
           const sql = `SELECT COUNT(*) FROM tokenTxs WHERE contractAddress=? AND NOT tokenType=?`
           transactions = db.get(sql, [address, TokenType.EVM_Internal])
@@ -515,13 +506,7 @@ export async function queryTransactions(
       } else if (txType === TransactionSearchType.TokenTransfer) {
         if (filterAddress) {
           const sql = `SELECT * FROM tokenTxs WHERE contractAddress=? AND (tokenFrom=? OR tokenTo=? OR tokenOperator=?) AND NOT (tokenType=?) ORDER BY cycle DESC, timestamp DESC LIMIT ${limit} OFFSET ${skip}`
-          transactions = db.all(sql, [
-            address,
-            filterAddress,
-            filterAddress,
-            filterAddress,
-            TokenType.EVM_Internal,
-          ])
+          transactions = db.all(sql, [address, filterAddress, filterAddress, filterAddress, TokenType.EVM_Internal])
         } else {
           const sql = `SELECT * FROM tokenTxs WHERE contractAddress=? AND NOT (tokenType=?) ORDER BY cycle DESC, timestamp DESC LIMIT ${limit} OFFSET ${skip}`
           transactions = db.all(sql, [address, TokenType.EVM_Internal])
@@ -584,8 +569,7 @@ export async function queryTransactions(
 
     if (transactions.length > 0) {
       transactions.forEach((transaction: DbTransaction | DbTokenTx) => {
-        if ('transactionType' in transaction && transaction.transactionType)
-          deserializeDbTransaction(transaction)
+        if ('transactionType' in transaction && transaction.transactionType) deserializeDbTransaction(transaction)
         else if ('tokenType' in transaction && transaction.tokenType) deserializeDbToken(transaction)
       })
     }
@@ -812,8 +796,7 @@ export async function queryTransactionsBetweenCycles(
     }
     if (transactions.length > 0) {
       transactions.forEach((transaction: DbTransaction | DbTokenTx) => {
-        if ('transactionType' in transaction && transaction.transactionType)
-          deserializeDbTransaction(transaction)
+        if ('transactionType' in transaction && transaction.transactionType) deserializeDbTransaction(transaction)
         else if ('tokenType' in transaction && transaction.tokenType) deserializeDbToken(transaction)
       })
     }
@@ -1325,11 +1308,7 @@ export async function queryTransactionsByTimestamp(
 export async function queryTransactionCountByBlock(blockNumber: number, blockHash: string): Promise<number> {
   let transactions: { 'COUNT(*)': number } = { 'COUNT(*)': 0 }
   let sql = `SELECT COUNT(*) FROM transactions WHERE transactionType IN (?,?,?) `
-  const values: unknown[] = [
-    TransactionType.Receipt,
-    TransactionType.StakeReceipt,
-    TransactionType.UnstakeReceipt,
-  ]
+  const values: unknown[] = [TransactionType.Receipt, TransactionType.StakeReceipt, TransactionType.UnstakeReceipt]
   if (blockNumber > 0) {
     sql += `AND blockNumber=? `
     values.push(blockNumber)
@@ -1347,17 +1326,10 @@ export async function queryTransactionCountByBlock(blockNumber: number, blockHas
 }
 
 // transactions with txType = Receipt, StakeReceipt, UnstakeReceipt
-export async function queryTransactionsByBlock(
-  blockNumber: number,
-  blockHash: string
-): Promise<DbTransaction[]> {
+export async function queryTransactionsByBlock(blockNumber: number, blockHash: string): Promise<DbTransaction[]> {
   let transactions: DbTransaction[] = []
   let sql = `SELECT * FROM transactions WHERE transactionType IN (?,?,?) `
-  const values: unknown[] = [
-    TransactionType.Receipt,
-    TransactionType.StakeReceipt,
-    TransactionType.UnstakeReceipt,
-  ]
+  const values: unknown[] = [TransactionType.Receipt, TransactionType.StakeReceipt, TransactionType.UnstakeReceipt]
   if (blockNumber >= 0) {
     sql += `AND blockNumber=? `
     values.push(blockNumber)

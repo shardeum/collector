@@ -37,9 +37,7 @@ const start = async (): Promise<void> => {
   console.log('Time in millisecond is: ', end_time[0] * 1000 + end_time[1] / 1000000)
 
   start_time = process.hrtime()
-  await Transaction.queryTransactionByHash(
-    '0x06155712daeba2dcb25fc4d13e43006e34dac29150f0cc74a240de2103c03e07'
-  )
+  await Transaction.queryTransactionByHash('0x06155712daeba2dcb25fc4d13e43006e34dac29150f0cc74a240de2103c03e07')
   end_time = process.hrtime(start_time)
 
   console.log('End Time', end_time)
@@ -195,9 +193,7 @@ const start = async (): Promise<void> => {
   console.log('Time in millisecond is: ', end_time[0] * 1000 + end_time[1] / 1000000)
 
   start_time = process.hrtime()
-  const block = await Block.queryBlockByHash(
-    '0x7fb292e81297fd1ca3ea8eb3aeadb895d4b77b3af5b8a28987a2ee1bf27a6d30'
-  )
+  const block = await Block.queryBlockByHash('0x7fb292e81297fd1ca3ea8eb3aeadb895d4b77b3af5b8a28987a2ee1bf27a6d30')
   // console.log(block)
   await Transaction.queryTransactionsByBlock(block.number, undefined)
   end_time = process.hrtime(start_time)

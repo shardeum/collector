@@ -133,9 +133,7 @@ export default class RMQConsumer {
           console.log(`[Consumer ${this.name}]: Closing connection...`)
           await Promise.race([
             this.conn.close(),
-            new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('connection close timeout')), 10000)
-            ),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('connection close timeout')), 10000)),
           ])
           console.log(`[Consumer ${this.name}]: Closed connection successfully.`)
         } catch (error) {

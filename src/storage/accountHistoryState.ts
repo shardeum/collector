@@ -37,9 +37,7 @@ export async function insertAccountHistoryState(accountHistoryState: AccountHist
   }
 }
 
-export async function bulkInsertAccountHistoryStates(
-  accountHistoryStates: AccountHistoryState[]
-): Promise<void> {
+export async function bulkInsertAccountHistoryStates(accountHistoryStates: AccountHistoryState[]): Promise<void> {
   try {
     const fields = Object.keys(accountHistoryStates[0]).join(', ')
     const placeholders = Object.keys(accountHistoryStates[0]).fill('?').join(', ')
@@ -49,8 +47,7 @@ export async function bulkInsertAccountHistoryStates(
       sql = sql + ', (' + placeholders + ')'
     }
     db.run(sql, values)
-    if (config.verbose)
-      console.log('Successfully bulk inserted AccountHistoryStates', accountHistoryStates.length)
+    if (config.verbose) console.log('Successfully bulk inserted AccountHistoryStates', accountHistoryStates.length)
   } catch (e) {
     console.log(e)
     console.log('Unable to bulk insert AccountHistoryStates', accountHistoryStates.length)
@@ -83,10 +80,7 @@ export function queryAccountHistoryState(
       }
       const filterAccount = receipt.afterStates.filter((account) => account.accountId === _accountId)
       if (filterAccount.length === 0) {
-        console.log(
-          'Unable to find account in receipt for AccountHistoryState',
-          accountHistoryState.receiptId
-        )
+        console.log('Unable to find account in receipt for AccountHistoryState', accountHistoryState.receiptId)
         return null
       }
       const account = filterAccount[0]

@@ -10,7 +10,6 @@ import { createWriteStream, WriteStream, existsSync } from 'fs'
 
 const LOG_WRITER_CONFIG = config.dataLogWriter
 
-
 interface deleteOldLogFilesResponse {
   oldLogFiles: string[]
   promises: Promise<void>[]

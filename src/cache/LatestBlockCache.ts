@@ -12,15 +12,16 @@ function getLatestBlockFromDB(): DbBlock {
   const before = Date.now()
 
   const delayInMillis = blockQueryDelayInMillis()
-  const sql = `SELECT * FROM (SELECT * FROM blocks ORDER BY number DESC LIMIT 100) AS subquery WHERE timestamp <= ${Date.now() - delayInMillis
-    }`
+  const sql = `SELECT * FROM (SELECT * FROM blocks ORDER BY number DESC LIMIT 100) AS subquery WHERE timestamp <= ${
+    Date.now() - delayInMillis
+  }`
 
   //Shouldn't the highest block number always be the latest block?
   //This query seems much faster for the same thing
-  // A:  nope, some reason this only updates once only 10 cycles or so.. even if they come to us out 
+  // A:  nope, some reason this only updates once only 10 cycles or so.. even if they come to us out
   // of order I would think the sort on primary key would still work... oh... it could be because
   // earlier blocks are sent.   I think maybe this also needs the timestamp check,
-  // or we get 10 and then sort through and find one that works 
+  // or we get 10 and then sort through and find one that works
 
   //const sql = `SELECT * FROM blocks ORDER BY number DESC LIMIT 1`
 

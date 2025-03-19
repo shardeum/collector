@@ -13,7 +13,6 @@ export function setCryptoHashKey(hashkey: string): void {
 
 export const hashObj = core.hashObj
 
-
 // Asymmetric Encyption Sign/Verify API
 export type SignedMessage = SignedObject
 

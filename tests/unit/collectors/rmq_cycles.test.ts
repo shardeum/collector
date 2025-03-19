@@ -1,13 +1,6 @@
 import RMQCyclesConsumer from '../../../src/collectors/rmq_cycles'
 import * as crypto from '@shardeum-foundation/lib-crypto-utils'
-import {
-  Channel,
-  Connection,
-  ConsumeMessage,
-  ConsumeMessageFields,
-  MessageProperties,
-  connect,
-} from 'amqplib'
+import { Channel, Connection, ConsumeMessage, ConsumeMessageFields, MessageProperties, connect } from 'amqplib'
 import { CycleLogWriter } from '../../../src/class/DataLogWriter'
 import { config } from '../../../src/config'
 import { insertOrUpdateCycle } from '../../../src/storage/cycle'
@@ -68,9 +61,7 @@ describe('RMQCyclesConsumer', () => {
 
   it('[cycle consumer] should throw an error if queue name is not provided', () => {
     delete process.env.RMQ_CYCLES_QUEUE_NAME
-    expect(() => new RMQCyclesConsumer()).toThrow(
-      '[RMQCyclesConsumer]: please provide queue name for consumer'
-    )
+    expect(() => new RMQCyclesConsumer()).toThrow('[RMQCyclesConsumer]: please provide queue name for consumer')
   })
 
   it('[cycle consumer] should fail invalid object', async () => {

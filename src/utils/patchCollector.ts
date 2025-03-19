@@ -24,9 +24,7 @@ const patchOnlyMissingData = true
  */
 export async function startPatching(startCycle: number, endCycle?: number): Promise<boolean> {
   if (startCycle < 0 || endCycle < 0) {
-    console.error(
-      `Please provide valid values for start(must be >= 0) and end cycle(if passed then must be >= 0)`
-    )
+    console.error(`Please provide valid values for start(must be >= 0) and end cycle(if passed then must be >= 0)`)
     return false
   }
 
@@ -43,10 +41,7 @@ export async function startPatching(startCycle: number, endCycle?: number): Prom
         }
 
         if (endCycle === undefined) {
-          console.error(
-            "The distributor wasn't able to return a valid response object for endCycle",
-            response.data
-          )
+          console.error("The distributor wasn't able to return a valid response object for endCycle", response.data)
           throw new Error('Unable to fetch the end cycle')
         }
       }
@@ -66,12 +61,7 @@ export async function startPatching(startCycle: number, endCycle?: number): Prom
       return true
     } catch (error) {
       attempt++
-      console.error(
-        `Error during patching process (attempt ${attempt}):`,
-        error.message,
-        'for the cycle',
-        startCycle
-      )
+      console.error(`Error during patching process (attempt ${attempt}):`, error.message, 'for the cycle', startCycle)
       if (attempt >= maxRetries) {
         console.error('Max retries reached. Patching failed.')
         return false

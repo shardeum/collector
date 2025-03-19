@@ -32,16 +32,18 @@ export const healthCheckRouter: FastifyPluginCallback = function (fastify, opts,
 
     let overallStatus = defaultDbHealthy && (!config.enableShardeumIndexer || shardeumIndexerDbHealthy)
 
-    const stuckResult = queuesToCheck.map((queue) => {
-      const isStuck = isQueueStuck(queue)
-      if (isStuck) {
-        overallStatus = false
-      }
-      return {queue, isStuck}
-    }).reduce((acc, {queue, isStuck}) => {
-      acc[queue.name] = isStuck ? 'stuck' : 'healthy'
-      return acc
-    }, {})
+    const stuckResult = queuesToCheck
+      .map((queue) => {
+        const isStuck = isQueueStuck(queue)
+        if (isStuck) {
+          overallStatus = false
+        }
+        return { queue, isStuck }
+      })
+      .reduce((acc, { queue, isStuck }) => {
+        acc[queue.name] = isStuck ? 'stuck' : 'healthy'
+        return acc
+      }, {})
 
     const result = {
       status: overallStatus ? 'healthy' : 'degraded',
@@ -49,7 +51,7 @@ export const healthCheckRouter: FastifyPluginCallback = function (fastify, opts,
       timestamp: new Date().toISOString(),
       database: defaultDbHealthy,
       shardeumIndexerDb: shardeumIndexerDbHealthy,
-      ...stuckResult
+      ...stuckResult,
     }
 
     // fastify automatically converts 500 body if not explicitly set like this
