@@ -9,8 +9,8 @@ import { removeLogSubscriptionBySocketId } from './log_subscription/SocketManage
 import * as Storage from './storage'
 import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
 import { healthCheckRouter } from './routes/healthCheck'
-import { newHeadSubscriptionController } from './storage/block'
 
+export const newHeadsSubscribers = new Set<SocketStream>()
 const start = async (): Promise<void> => {
   // Init dependencies
   Storage.initializeDB()
@@ -81,6 +81,81 @@ const evmLogSubscriptionController = (connection: SocketStream): void => {
   connection.socket.on('close', () => {
     try {
       removeLogSubscriptionBySocketId(socketId)
+    } catch (e) {
+      console.error(e)
+    }
+  })
+}
+
+const newHeadSubscriptionController = (connection: SocketStream): void => {
+  connection.socket.on('message', (message) => {
+    try {
+      const payload = StringUtils.safeJsonParse(message.toString())
+
+      if (payload.method === 'subscribe') {
+        if (newHeadsSubscribers.has(connection)) {
+          connection.socket.send(
+            StringUtils.safeStringify({
+              jsonrpc: '2.0',
+              id: payload.id,
+              error: 'Already subscribed',
+            })
+          )
+          return
+        }
+        newHeadsSubscribers.add(connection)
+        connection.socket.send(
+          StringUtils.safeStringify({
+            jsonrpc: '2.0',
+            id: payload.id,
+            result: 'newHeads_subscription',
+          })
+        )
+        return
+      }
+
+      if (payload.method === 'unsubscribe') {
+        if (!newHeadsSubscribers.has(connection)) {
+          connection.socket.send(
+            StringUtils.safeStringify({
+              jsonrpc: '2.0',
+              id: payload.id,
+              error: 'Not subscribed',
+            })
+          )
+          return
+        }
+        newHeadsSubscribers.delete(connection)
+        connection.socket.send(
+          StringUtils.safeStringify({
+            jsonrpc: '2.0',
+            id: payload.id,
+            result: true,
+          })
+        )
+        return
+      }
+
+      connection.socket.send(
+        StringUtils.safeStringify({
+          jsonrpc: '2.0',
+          id: payload.id,
+          error: 'Invalid method',
+        })
+      )
+    } catch (e) {
+      connection.socket.send(
+        StringUtils.safeStringify({
+          jsonrpc: '2.0',
+          error: e.message,
+        })
+      )
+    }
+  })
+
+  connection.socket.on('close', () => {
+    try {
+      newHeadsSubscribers.delete(connection)
     } catch (e) {
       console.error(e)
     }

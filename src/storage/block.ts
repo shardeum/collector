@@ -7,10 +7,14 @@ import { Cycle, DbBlock } from '../types'
 import { getLatestBlock } from '../cache/LatestBlockCache'
 import { blockQueryDelayInMillis } from '../utils/block'
 import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
-import { SocketStream } from '@fastify/websocket'
+import { forwardBlockData } from '../log_subscription/CollectorSocketconnection'
+import { queryTransactionsByBlock } from './transaction'
 
 const evmCommon = new Common({ chain: 'mainnet', hardfork: Hardfork.Istanbul, eips: [3855] })
-const newHeadsSubscribers = new Set<SocketStream>()
+
+// Override chainId to always return our custom chain ID
+// @ts-ignore
+evmCommon.chainId = () => BigInt(config.chainId)
 
 export type ShardeumBlockOverride = EthBlock & { number?: string; hash?: string }
 
@@ -21,10 +25,9 @@ export async function insertBlock(block: DbBlock): Promise<void> {
     const values = db.extractValues(block)
     const sql = 'INSERT OR REPLACE INTO blocks (' + fields + ') VALUES (' + placeholders + ')'
     db.run(sql, values)
-    /*prettier-ignore*/ if (config.verbose) console.log('block: Successfully inserted block', block.number, block.hash)
   } catch (e) {
-    console.log(e)
-    /*prettier-ignore*/ console.log('block: Unable to insert block or it is already stored in to database', block.number, block.hash)
+    console.error('Error inserting block:', e)
+    throw e
   }
 }
 
@@ -51,9 +54,9 @@ export async function upsertBlocksForCycle(cycle: Cycle): Promise<void> {
 
 export async function upsertBlocksForCycleCore(
   cycleCounter: number,
-  startTimeInSeconds: number
+  startTimeInSeconds: number,
+  isOptimistic: boolean = false
 ): Promise<void> {
-  /*prettier-ignore*/ if (config.verbose) console.log(`block: Creating blocks for cycle ${cycleCounter} with start timestamp ${startTimeInSeconds}`)
   const numBlocksPerCycle =
     config.blockIndexing.cycleDurationInSeconds / config.blockIndexing.blockProductionRate
   let firstBlockNumberForCycle = 0
@@ -69,29 +72,33 @@ export async function upsertBlocksForCycleCore(
       (blockNumber - config.blockIndexing.initBlockNumber - firstBlockNumberForCycle) *
         config.blockIndexing.blockProductionRate
     const newBlockTimestamp = newBlockTimestampInSecond * 1000
-    const block = createNewBlock(blockNumber, newBlockTimestamp)
-    /*prettier-ignore*/ if (config.verbose) console.log(`Block number: ${block.header.number}, timestamp: ${block.header.timestamp}, hash: ${bytesToHex(block.header.hash())}`)
+    const block = await createNewBlock(blockNumber, newBlockTimestamp)
     try {
       const readableBlock = await convertToReadableBlock(block)
-      // non-blocking
-      newHeadsSubscribers.forEach((subscriber) => {
-        subscriber.socket.send(
-          StringUtils.safeStringify({ method: 'newBlock_produced', payload: readableBlock })
-        )
-      })
+
+      // Only forward if not an optimistic insert
+      if (!isOptimistic) {
+        forwardBlockData(readableBlock)
+      } else {
+        console.log(`Skipping forwarding for optimistic block ${blockNumber}`)
+      }
+
+      const blockWithoutTxs = { ...readableBlock }
+      blockWithoutTxs.transactions = []
+
       await insertBlock({
         number: Number(block.header.number),
         numberHex: '0x' + block.header.number.toString(16),
         hash: bytesToHex(block.header.hash()),
         timestamp: newBlockTimestamp,
         cycle: cycleCounter,
-        readableBlock: StringUtils.safeStringify(readableBlock),
+        readableBlock: StringUtils.safeStringify(blockWithoutTxs),
       })
     } catch (e) {
-      /*prettier-ignore*/ console.log(`block: Unable to create block ${blockNumber} for cycle ${cycleCounter}`, e)
+      console.error(`Error creating block ${blockNumber} for cycle ${cycleCounter}:`, e)
     }
   }
-  /*prettier-ignore*/ if (config.verbose) console.log(`block: Successfully created ${numBlocksPerCycle} blocks for cycle ${cycleCounter}`)
+  console.log(`Successfully created ${numBlocksPerCycle} blocks for cycle ${cycleCounter}`)
 }
 
 export async function queryBlockByNumber(blockNumber: number): Promise<DbBlock | null> {
@@ -147,13 +154,47 @@ export async function upsertBlocksForCycles(cycles: Cycle[]): Promise<void> {
   }
 }
 
-export function createNewBlock(blockNumber: number, timestamp: number): EthBlock {
+export async function createNewBlock(blockNumber: number, timestamp: number): Promise<EthBlock> {
   const timestampInSecond = timestamp ? Math.round(timestamp / 1000) : Math.round(Date.now() / 1000)
+
+  // Get transactions for this block
+  const transactions = await queryTransactionsByBlock(blockNumber, '')
+
+  // Convert transactions to the format expected by EthBlock
+  const blockTransactions = transactions.map((tx) => {
+    // Deserialize the wrappedEVMAccount
+    const wrappedEVMAccount =
+      typeof tx.wrappedEVMAccount === 'string'
+        ? StringUtils.safeJsonParse(tx.wrappedEVMAccount)
+        : tx.wrappedEVMAccount
+
+    // The wrappedEVMAccount contains the transaction data
+    const txData = wrappedEVMAccount.readableReceipt
+
+    // Create a transaction object with the correct format
+    const formattedTx = {
+      nonce: BigInt(txData.nonce) || '0x0',
+      gasPrice: BigInt(txData.gasPrice || '0x0'),
+      gasLimit: BigInt(txData.gasLimit || '0x0'),
+      to: txData.to || '0x',
+      value: BigInt(txData.value || '0x0'),
+      data: txData.data || '0x',
+      chainId: BigInt(txData.chainId || '8082'),
+      type: BigInt(txData.type || '0x0'),
+      transactionIndex: BigInt(txData.transactionIndex || '0x0'),
+      v: txData.v || '0x0',
+      r: txData.r || '0x0',
+      s: txData.s || '0x0',
+    }
+    return formattedTx
+  })
+
   const blockData = {
     header: { number: blockNumber, timestamp: timestampInSecond },
-    transactions: [],
+    transactions: blockTransactions,
     uncleHeaders: [],
   }
+
   const block = EthBlock.fromBlockData(blockData, { common: evmCommon })
   return block
 }
@@ -185,6 +226,26 @@ async function convertToReadableBlock(block: EthBlock): Promise<ShardeumBlockOve
   defaultBlock.number = bigIntToHex(block.header.number)
   defaultBlock.timestamp = bigIntToHex(block.header.timestamp)
   defaultBlock.hash = bytesToHex(block.header.hash())
+
+  // Format transactions to match standard Ethereum JSON-RPC format
+  defaultBlock.transactions = block.transactions.map((tx) => ({
+    hash: bytesToHex(tx.hash()),
+    nonce: bigIntToHex(tx.nonce),
+    blockHash: bytesToHex(block.header.hash()),
+    blockNumber: bigIntToHex(block.header.number),
+    transactionIndex: '0x0',
+    from: tx.getSenderAddress().toString(),
+    to: tx.to?.toString() || null,
+    value: bigIntToHex(tx.value),
+    gasPrice: '0x0', // Since we're using legacy transactions
+    gas: bigIntToHex(tx.gasLimit),
+    input: bytesToHex(tx.data),
+    v: bigIntToHex(tx.v),
+    r: bigIntToHex(tx.r),
+    s: bigIntToHex(tx.s),
+    type: '0x0',
+  }))
+
   const previousBlockNumber = Number(block.header.number) - 1
 
   let parentHash = '0x0000000000000000000000000000000000000000000000000000000000000000'
@@ -197,7 +258,7 @@ async function convertToReadableBlock(block: EthBlock): Promise<ShardeumBlockOve
     /*prettier-ignore*/ if (config.verbose) console.log(`block: convertToReadableBlock: Block timestamp ${block.header.timestamp}`)
     /*prettier-ignore*/ if (config.verbose) console.log(`block: convertToReadableBlock: Unable to find previous block ${previousBlockNumber} in database, creating a new one`)
     /*prettier-ignore*/ if (config.verbose) console.log(`block: convertToReadableBlock: Creating previous block ${previousBlockNumber} with timestamp ${(Number(block.header.timestamp) - config.blockIndexing.blockProductionRate) * 1000}`)
-    const previousBlock = createNewBlock(
+    const previousBlock = await createNewBlock(
       previousBlockNumber,
       (Number(block.header.timestamp) - config.blockIndexing.blockProductionRate) * 1000
     )
@@ -230,27 +291,5 @@ export async function queryLatestBlocks(count: number): Promise<DbBlock[]> {
     console.log(e)
   }
   return []
-}
-
-export const newHeadSubscriptionController = (connection: SocketStream): void => {
-  connection.socket.on('message', () => {
-    try {
-      if (newHeadsSubscribers.has(connection)) {
-        connection.socket.send(StringUtils.safeStringify({ error: 'Already subscribed' }))
-        return
-      }
-      newHeadsSubscribers.add(connection)
-    } catch (e) {
-      connection.socket.send(StringUtils.safeStringify({ error: e.message }))
-      return
-    }
-  })
-  connection.socket.on('close', () => {
-    try {
-      newHeadsSubscribers.delete(connection)
-    } catch (e) {
-      console.error(e)
-    }
-  })
 }
 

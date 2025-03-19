@@ -75,6 +75,7 @@ export interface Config {
   collectorMode: string
   storeReceiptBeforeStates: boolean
   checkpointWindow: number
+  chainId: string
 }
 
 let config: Config = {
@@ -138,6 +139,7 @@ let config: Config = {
   collectorMode: process.env.COLLECTOR_MODE || collectorMode.WS.toString(),
   storeReceiptBeforeStates: true,
   checkpointWindow: 21,
+  chainId: process.env.CHAIN_ID || '8082',
 }
 
 let DISTRIBUTOR_URL = `http://${config.distributorInfo.ip}:${config.distributorInfo.port}`

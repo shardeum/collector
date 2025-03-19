@@ -11,6 +11,7 @@ const ErrorEvent = 'error'
 
 export const CycleDataWsEvent = '/data/cycle'
 export const ReceiptDataWsEvent = '/data/receipt'
+export const BlockDataWsEvent = '/data/block'
 
 const registeredLogServers = new Map<string, Socket>()
 
@@ -47,4 +48,11 @@ export const forwardReceiptData = async (data: Receipt[]): Promise<void> => {
     socket.emit(ReceiptDataWsEvent, StringUtils.safeStringify(data))
   }
   /* prettier-ignore */ if (CONFIG.verbose) console.log(`Forwarded receipt data to ${registeredLogServers.size} LogServers`)
+}
+
+export const forwardBlockData = async (blockData: any): Promise<void> => {
+  for (const socket of registeredLogServers.values()) {
+    socket.emit(BlockDataWsEvent, StringUtils.safeStringify(blockData))
+  }
+  /* prettier-ignore */ if (CONFIG.verbose) console.log(`Forwarded block data to ${registeredLogServers.size} LogServers`)
 }
