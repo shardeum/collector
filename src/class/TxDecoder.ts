@@ -136,8 +136,7 @@ export const decodeTx = async (
             log.address.slice(2).toLowerCase() + '0'.repeat(24) //Search by Shardus address
           )
           let tokenType = TokenType.ERC_721
-          if (accountExist && accountExist.contractType === ContractType.ERC_1155)
-            tokenType = TokenType.ERC_1155
+          if (accountExist && accountExist.contractType === ContractType.ERC_1155) tokenType = TokenType.ERC_1155
           tokenTx = {
             tokenType,
             tokenFrom: `0x${log.topics[1].substring(26)}`.toLowerCase(),
@@ -205,11 +204,7 @@ export const decodeTx = async (
                   ...tokenTx,
                   contractAddress: log.address,
                 })
-                if (
-                  tokenTx.tokenTo !== tx.txFrom &&
-                  tokenTx.tokenTo !== tx.txTo &&
-                  !accs.includes(tokenTx.tokenTo)
-                ) {
+                if (tokenTx.tokenTo !== tx.txFrom && tokenTx.tokenTo !== tx.txTo && !accs.includes(tokenTx.tokenTo)) {
                   accs.push(tokenTx.tokenTo.toLowerCase())
                 }
               }
@@ -314,10 +309,7 @@ export const decodeTx = async (
               { type: 'uint', value: storageKey }
             )
             let contractStorage: Account | null = null
-            if (
-              Object.keys(storageKeyValueMap).length === 0 ||
-              !storageKeyValueMap[calculatedKey + log.address]
-            ) {
+            if (Object.keys(storageKeyValueMap).length === 0 || !storageKeyValueMap[calculatedKey + log.address]) {
               if (Object.keys(storageKeyValueMap).length === 0) {
                 const shardusAddress = log.address.slice(2).substring(0, 8) + calculatedKey?.substring(8)
                 contractStorage = await queryAccountByAccountId(shardusAddress)
@@ -378,10 +370,7 @@ export const decodeTx = async (
             )
             /* prettier-ignore */ if (config.verbose) console.log(tokenTx.tokenType, tokenTx.tokenTo, calculatedKey + log.address)
             let contractStorage: Account | null = null
-            if (
-              Object.keys(storageKeyValueMap).length === 0 ||
-              !storageKeyValueMap[calculatedKey + log.address]
-            ) {
+            if (Object.keys(storageKeyValueMap).length === 0 || !storageKeyValueMap[calculatedKey + log.address]) {
               if (Object.keys(storageKeyValueMap).length === 0) {
                 const shardusAddress = log.address.slice(2).substring(0, 8) + calculatedKey?.substring(8)
                 contractStorage = await queryAccountByAccountId(shardusAddress)
@@ -454,15 +443,9 @@ export const decodeTx = async (
       const web3 = new Web3()
       const result = web3.eth.abi.decodeParameters(
         ['address[]', 'uint256[]'],
-        'readableReceipt' in tx.wrappedEVMAccount
-          ? tx.wrappedEVMAccount.readableReceipt?.data.slice(10) || ''
-          : ''
+        'readableReceipt' in tx.wrappedEVMAccount ? tx.wrappedEVMAccount.readableReceipt?.data.slice(10) || '' : ''
       )
-      if (
-        result?.['0'] &&
-        result['1'] &&
-        (result['0'] as unknown[]).length === (result['1'] as unknown[]).length
-      ) {
+      if (result?.['0'] && result['1'] && (result['0'] as unknown[]).length === (result['1'] as unknown[]).length) {
         for (let i = 0; i < (result['0'] as unknown[]).length; i++) {
           const tokenTx = {
             tokenType: TokenType.EVM_Internal,
@@ -529,10 +512,7 @@ export const getContractInfo = async (
   if (!foundCorrectContract) {
     try {
       const web3 = (await getWeb3()) as Web3
-      const Token: Contract<Erc1155Abi> = new web3.eth.Contract(
-        ERC1155_ABI.abi as ContractAbi,
-        contractAddress
-      )
+      const Token: Contract<Erc1155Abi> = new web3.eth.Contract(ERC1155_ABI.abi as ContractAbi, contractAddress)
       const result = await Token.methods.supportsInterface(ERC_1155_INTERFACE).call()
       if (result) {
         foundCorrectContract = true

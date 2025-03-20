@@ -41,11 +41,7 @@ export async function insertLog(log: Log): Promise<void> {
     if (config.verbose) console.log('Successfully inserted Log', log.txHash, log.contractAddress)
   } catch (e) {
     console.log(e)
-    console.log(
-      'Unable to insert Log or it is already stored in to database',
-      log.txHash,
-      log.contractAddress
-    )
+    console.log('Unable to insert Log or it is already stored in to database', log.txHash, log.contractAddress)
   }
 }
 
@@ -188,10 +184,7 @@ export async function queryLogs(
   return logs
 }
 
-export async function queryLogCountBetweenCycles(
-  startCycleNumber: number,
-  endCycleNumber: number
-): Promise<number> {
+export async function queryLogCountBetweenCycles(startCycleNumber: number, endCycleNumber: number): Promise<number> {
   let logs: { 'COUNT(*)': number } = { 'COUNT(*)': 0 }
   try {
     const sql = `SELECT COUNT(*) FROM logs WHERE cycle BETWEEN ? AND ?`

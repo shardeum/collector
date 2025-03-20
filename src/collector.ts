@@ -27,14 +27,7 @@ import { DistributorSocketCloseCodes } from './types'
 import { initDataLogWriter } from './class/DataLogWriter'
 import { setupCollectorSocketServer } from './log_subscription/CollectorSocketconnection'
 // config variables
-import {
-  config as CONFIG,
-  DISTRIBUTOR_URL,
-  collectorMode,
-  config,
-  envEnum,
-  overrideDefaultConfig,
-} from './config'
+import { config as CONFIG, DISTRIBUTOR_URL, collectorMode, config, envEnum, overrideDefaultConfig } from './config'
 import { sleep } from './utils'
 import RMQCyclesConsumer from './collectors/rmq_cycles'
 import RMQOriginalTxsConsumer from './collectors/rmq_original_txs'
@@ -145,12 +138,7 @@ export const initialSync = async (): Promise<void> => {
   let lastStoredCycle = (await cycle.queryLatestCycleRecords(1))[0]
 
   if (lastStoredCycleCount > 0 && lastStoredCycle.counter !== lastStoredCycleCount - 1) {
-    console.log(
-      'lastStoredCycleCount',
-      lastStoredCycleCount,
-      'lastStoredCycleCounter',
-      lastStoredCycle.counter
-    )
+    console.log('lastStoredCycleCount', lastStoredCycleCount, 'lastStoredCycleCounter', lastStoredCycle.counter)
     // Check if the last stored cycle counter is correct
     throw Error(
       'The last stored cycle counter does not match with the last stored cycle count! Patch the missing cycle data and start the server again!'
@@ -316,9 +304,7 @@ const connectToDistributor = (): void => {
   const URL = `${DISTRIBUTOR_URL}?data=${queryString}`
   ws = new WebSocket(URL)
   ws.onopen = () => {
-    console.log(
-      `✅ Socket connected to the Distributor @ ${CONFIG.distributorInfo.ip}:${CONFIG.distributorInfo.port}}`
-    )
+    console.log(`✅ Socket connected to the Distributor @ ${CONFIG.distributorInfo.ip}:${CONFIG.distributorInfo.port}}`)
     connected = true
     reconnecting = false
   }
@@ -341,9 +327,7 @@ const connectToDistributor = (): void => {
     console.log('❌ Connection with Server Terminated!.')
     switch (closeEvent.code) {
       case DistributorSocketCloseCodes.DUPLICATE_CONNECTION_CODE:
-        console.log(
-          '❌ Socket Connection w/ same client credentials attempted. Dropping existing connection.'
-        )
+        console.log('❌ Socket Connection w/ same client credentials attempted. Dropping existing connection.')
         break
       case DistributorSocketCloseCodes.SUBSCRIBER_EXPIRATION_CODE:
         console.log('❌ Subscription Validity Expired. Connection Terminated.')
@@ -510,9 +494,7 @@ const startCollector = async () => {
       }
 
       if (config.verbose)
-        console.log(
-          `Time to validate data for checkpoint cycle ${nextCheckpoint}(previous: ${lastCheckpoint})`
-        )
+        console.log(`Time to validate data for checkpoint cycle ${nextCheckpoint}(previous: ${lastCheckpoint})`)
 
       // We should always have the next 11 cycles here. Fetch the data from distributor
       const response = await cycleDataCache.getCycleDataFor(nextCheckpoint)

@@ -1,13 +1,6 @@
 import RMQReceiptsConsumer from '../../../src/collectors/rmq_receipts'
 import * as crypto from '@shardeum-foundation/lib-crypto-utils'
-import {
-  Channel,
-  Connection,
-  ConsumeMessage,
-  ConsumeMessageFields,
-  MessageProperties,
-  connect,
-} from 'amqplib'
+import { Channel, Connection, ConsumeMessage, ConsumeMessageFields, MessageProperties, connect } from 'amqplib'
 import { ReceiptLogWriter } from '../../../src/class/DataLogWriter'
 import { config } from '../../../src/config'
 import { processReceiptData } from '../../../src/storage/receipt'
@@ -63,9 +56,7 @@ describe('RMQReceiptsConsumer', () => {
 
   it('[receipts consumer] should throw an error if queue name is not provided', () => {
     delete process.env.RMQ_RECEIPTS_QUEUE_NAME
-    expect(() => new RMQReceiptsConsumer()).toThrow(
-      '[RMQReceiptsConsumer]: please provide queue name for consumer'
-    )
+    expect(() => new RMQReceiptsConsumer()).toThrow('[RMQReceiptsConsumer]: please provide queue name for consumer')
   })
 
   it('[receipts consumer] should fail invalid object', async () => {

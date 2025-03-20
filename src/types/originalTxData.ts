@@ -1,6 +1,5 @@
 import { TransactionType } from './transaction'
 
-
 export interface RawTxData {
   raw: string
   timestamp: number

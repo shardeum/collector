@@ -139,10 +139,7 @@ export async function compareWithOldOriginalTxsData(
       `Can't fetch originalTxsData data from cycle ${startCycle} to cycle ${endCycle}  from distributor ${DISTRIBUTOR_URL}`
     )
   }
-  const oldOriginalTxDataCountByCycle = await OriginalTxData.queryOriginalTxDataCountByCycles(
-    startCycle,
-    endCycle
-  )
+  const oldOriginalTxDataCountByCycle = await OriginalTxData.queryOriginalTxDataCountByCycles(startCycle, endCycle)
   let success = false
   let matchedCycle = 0
   for (let i = 0; i < downloadedOriginalTxDataCountByCycles.length; i++) {
@@ -447,12 +444,8 @@ export async function compareOriginalTxsCountByCycles(
     )
     return
   }
-  const existingOriginalTxDataCountByCycle = await OriginalTxData.queryOriginalTxDataCountByCycles(
-    startCycle,
-    endCycle
-  )
-  if (config.verbose)
-    console.log('downloadedOriginalTxDataCountByCycle', downloadedOriginalTxDataCountByCycle)
+  const existingOriginalTxDataCountByCycle = await OriginalTxData.queryOriginalTxDataCountByCycles(startCycle, endCycle)
+  if (config.verbose) console.log('downloadedOriginalTxDataCountByCycle', downloadedOriginalTxDataCountByCycle)
   if (config.verbose) console.log('existingOriginalTxDataCountByCycle', existingOriginalTxDataCountByCycle)
   for (const downloadedOriginalTxData of downloadedOriginalTxDataCountByCycle) {
     const existingOriginalTxData = existingOriginalTxDataCountByCycle.find(
@@ -468,9 +461,7 @@ export async function compareOriginalTxsCountByCycles(
   return unMatchedCycle
 }
 
-export async function downloadReceiptsByCycle(
-  data: { cycle: number; receipts: number }[] = []
-): Promise<void> {
+export async function downloadReceiptsByCycle(data: { cycle: number; receipts: number }[] = []): Promise<void> {
   for (const { cycle, receipts } of data) {
     let page = 1
     let totalDownloadedReceipts = 0
@@ -500,9 +491,7 @@ export async function downloadReceiptsByCycle(
           break
         }
       } else {
-        console.log(
-          `Can't fetch receipts for  page ${page} of cycle ${cycle} from distributor ${DISTRIBUTOR_URL}`
-        )
+        console.log(`Can't fetch receipts for  page ${page} of cycle ${cycle} from distributor ${DISTRIBUTOR_URL}`)
         break
       }
     }
@@ -650,8 +639,7 @@ export const downloadReceiptsBetweenCycles = async (
         }
       }
     } else {
-      if (response && response.data && response.data.receipts !== 0)
-        console.log('Receipt', 'Invalid download response')
+      if (response && response.data && response.data.receipts !== 0) console.log('Receipt', 'Invalid download response')
     }
     startCycle = endCycle + 1
     endCycle += 100
@@ -666,8 +654,7 @@ export const downloadOriginalTxsDataBetweenCycles = async (
   let endCycle = startCycle + 100
   for (; startCycle <= totalCyclesToSync; ) {
     if (endCycle > totalCyclesToSync) endCycle = totalCyclesToSync
-    if (config.verbose)
-      console.log(`Downloading originalTxsData from cycle ${startCycle} to cycle ${endCycle}`)
+    if (config.verbose) console.log(`Downloading originalTxsData from cycle ${startCycle} to cycle ${endCycle}`)
     let response = await queryFromDistributor(DataType.ORIGINALTX, { startCycle, endCycle, type: 'count' })
     // Check status code
     if (response && response.status !== 200) {

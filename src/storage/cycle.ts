@@ -25,8 +25,7 @@ export async function insertCycle(cycle: Cycle): Promise<void> {
     const values = extractValues(cycle)
     const sql = 'INSERT OR REPLACE INTO cycles (' + fields + ') VALUES (' + placeholders + ')'
     db.run(sql, values)
-    if (config.verbose)
-      console.log('Successfully inserted Cycle', cycle.cycleRecord.counter, cycle.cycleMarker)
+    if (config.verbose) console.log('Successfully inserted Cycle', cycle.cycleRecord.counter, cycle.cycleMarker)
     if (isBlockIndexingEnabled()) await upsertBlocksForCycle(cycle)
   } catch (e) {
     console.log(e)
@@ -102,8 +101,7 @@ export async function queryLatestCycleRecords(count: number): Promise<Cycle[]> {
     const cycleRecords: DbCycle[] = await db.all(sql)
     if (cycleRecords.length > 0) {
       cycleRecords.forEach((cycleRecord: DbCycle) => {
-        if (cycleRecord.cycleRecord)
-          cycleRecord.cycleRecord = StringUtils.safeJsonParse(cycleRecord.cycleRecord)
+        if (cycleRecord.cycleRecord) cycleRecord.cycleRecord = StringUtils.safeJsonParse(cycleRecord.cycleRecord)
       })
     }
     if (config.verbose) console.log('cycle latest', cycleRecords)
@@ -121,8 +119,7 @@ export async function queryCycleRecordsBetween(start: number, end: number): Prom
     const cycles: DbCycle[] = await db.all(sql, [start, end])
     if (cycles.length > 0) {
       cycles.forEach((cycleRecord: DbCycle) => {
-        if (cycleRecord.cycleRecord)
-          cycleRecord.cycleRecord = StringUtils.safeJsonParse(cycleRecord.cycleRecord)
+        if (cycleRecord.cycleRecord) cycleRecord.cycleRecord = StringUtils.safeJsonParse(cycleRecord.cycleRecord)
       })
     }
     if (config.verbose) console.log('cycle between', cycles)
@@ -138,8 +135,7 @@ export async function queryCycleByMarker(marker: string): Promise<Cycle | null> 
     const sql = `SELECT * FROM cycles WHERE cycleMarker=? LIMIT 1`
     const cycleRecord: DbCycle = await db.get(sql, [marker])
     if (cycleRecord) {
-      if (cycleRecord.cycleRecord)
-        cycleRecord.cycleRecord = StringUtils.safeJsonParse(cycleRecord.cycleRecord)
+      if (cycleRecord.cycleRecord) cycleRecord.cycleRecord = StringUtils.safeJsonParse(cycleRecord.cycleRecord)
     }
     if (config.verbose) console.log('cycle marker', cycleRecord)
     return cycleRecord as unknown as Cycle
@@ -155,8 +151,7 @@ export async function queryCycleByCounter(counter: number): Promise<Cycle | null
     const sql = `SELECT * FROM cycles WHERE counter=? LIMIT 1`
     const cycleRecord: DbCycle = await db.get(sql, [counter])
     if (cycleRecord) {
-      if (cycleRecord.cycleRecord)
-        cycleRecord.cycleRecord = StringUtils.safeJsonParse(cycleRecord.cycleRecord)
+      if (cycleRecord.cycleRecord) cycleRecord.cycleRecord = StringUtils.safeJsonParse(cycleRecord.cycleRecord)
     }
     if (config.verbose) console.log('cycle counter', cycleRecord)
     return cycleRecord as unknown as Cycle

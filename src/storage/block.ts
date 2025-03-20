@@ -57,13 +57,10 @@ export async function upsertBlocksForCycleCore(
   startTimeInSeconds: number,
   isOptimistic: boolean = false
 ): Promise<void> {
-  const numBlocksPerCycle =
-    config.blockIndexing.cycleDurationInSeconds / config.blockIndexing.blockProductionRate
+  const numBlocksPerCycle = config.blockIndexing.cycleDurationInSeconds / config.blockIndexing.blockProductionRate
   let firstBlockNumberForCycle = 0
   for (let i = 0; i < numBlocksPerCycle; i++) {
-    const blockNumber = Math.floor(
-      config.blockIndexing.initBlockNumber + cycleCounter * numBlocksPerCycle + i
-    )
+    const blockNumber = Math.floor(config.blockIndexing.initBlockNumber + cycleCounter * numBlocksPerCycle + i)
     if (i === 0) {
       firstBlockNumberForCycle = blockNumber
     }
@@ -164,9 +161,7 @@ export async function createNewBlock(blockNumber: number, timestamp: number): Pr
   const blockTransactions = transactions.map((tx) => {
     // Deserialize the wrappedEVMAccount
     const wrappedEVMAccount =
-      typeof tx.wrappedEVMAccount === 'string'
-        ? StringUtils.safeJsonParse(tx.wrappedEVMAccount)
-        : tx.wrappedEVMAccount
+      typeof tx.wrappedEVMAccount === 'string' ? StringUtils.safeJsonParse(tx.wrappedEVMAccount) : tx.wrappedEVMAccount
 
     // The wrappedEVMAccount contains the transaction data
     const txData = wrappedEVMAccount.readableReceipt
@@ -292,4 +287,3 @@ export async function queryLatestBlocks(count: number): Promise<DbBlock[]> {
   }
   return []
 }
-

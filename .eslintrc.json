@@ -14,15 +14,17 @@
     "plugin:no-unsanitized/DOM",
     "prettier"
   ],
-  "ignorePatterns": ["**/server.ts", 
-                     "**/utils/*.ts", 
-                     "**/types/*.ts", 
-                     "**/storage/*.ts", 
-                     "**/class/*.ts", 
-                     "collector.ts", 
-                     "index.ts",
-                     "data_patcher.ts", 
-                     "CollectorListener.ts"],
+  "ignorePatterns": [
+    "**/server.ts",
+    "**/utils/*.ts",
+    "**/types/*.ts",
+    "**/storage/*.ts",
+    "**/class/*.ts",
+    "collector.ts",
+    "index.ts",
+    "data_patcher.ts",
+    "CollectorListener.ts"
+  ],
   "rules": {
     "no-empty": [
       1,

@@ -281,11 +281,7 @@ const start = async (): Promise<void> => {
         if (!blockNumber && !blockHash) {
           return reply.send({ success: false, error: 'blockNumber or blockHash is required' })
         }
-        const account = await AccountHistoryStateDB.queryAccountHistoryState(
-          accountId,
-          blockNumber,
-          blockHash
-        )
+        const account = await AccountHistoryStateDB.queryAccountHistoryState(accountId, blockNumber, blockHash)
         if (account) accounts = [account]
         return reply.send({ success: true, accounts })
       }
@@ -498,12 +494,7 @@ const start = async (): Promise<void> => {
         return
       }
       // Temp change to show the last <count> transactions excluding internal txs
-      transactions = await Transaction.queryTransactions(
-        0,
-        count,
-        null,
-        TransactionSearchType.AllExceptInternalTx
-      )
+      transactions = await Transaction.queryTransactions(0, count, null, TransactionSearchType.AllExceptInternalTx)
     } else if (query.startCycle) {
       const startCycle: number = parseInt(query.startCycle)
       if (startCycle < 0 || Number.isNaN(startCycle)) {
@@ -579,11 +570,7 @@ const start = async (): Promise<void> => {
         })
         return
       }
-      totalTransactions = await Transaction.queryTransactionCountByTimestamp(
-        beforeTimestamp,
-        afterTimestamp,
-        address
-      )
+      totalTransactions = await Transaction.queryTransactionCountByTimestamp(beforeTimestamp, afterTimestamp, address)
       const res: TransactionResponse = {
         success: true,
         totalTransactions,
@@ -689,12 +676,7 @@ const start = async (): Promise<void> => {
         })
       }
       if (query.txType) {
-        transactions = await Transaction.queryTransactions(
-          (page - 1) * itemsPerPage,
-          itemsPerPage,
-          null,
-          txType
-        )
+        transactions = await Transaction.queryTransactions((page - 1) * itemsPerPage, itemsPerPage, null, txType)
       } else {
         transactions = await Transaction.queryTransactions((page - 1) * itemsPerPage, itemsPerPage)
       }
@@ -719,8 +701,7 @@ const start = async (): Promise<void> => {
               decodeEVMRawTxData(originalTx)
               // Assume the tx is expired if the original tx is more than 15 seconds old
               const ExpiredTxTimestamp_MS = 15000
-              const txStatus =
-                Date.now() - originalTx.timestamp > ExpiredTxTimestamp_MS ? 'Expired' : 'Pending'
+              const txStatus = Date.now() - originalTx.timestamp > ExpiredTxTimestamp_MS ? 'Expired' : 'Pending'
               transactions = [{ ...originalTx, txStatus }]
             }
           }

@@ -121,8 +121,7 @@ export async function processReceiptData(receipts: Receipt[], saveOnlyNewData = 
           config.processData.decodeContractInfo &&
           accountType === AccountType.Account &&
           'account' in accObj.account &&
-          bytesToHex(Uint8Array.from(Object.values(accObj.account.account.codeHash))) !==
-            AccountDB.EOA_CodeHash
+          bytesToHex(Uint8Array.from(Object.values(accObj.account.account.codeHash))) !== AccountDB.EOA_CodeHash
         ) {
           const accountExist = await AccountDB.queryAccountByAccountId(accObj.accountId)
           if (config.verbose) console.log('accountExist', accountExist)
@@ -360,10 +359,8 @@ export async function processReceiptData(receipts: Receipt[], saveOnlyNewData = 
   if (combineReceipts.length > 0) await bulkInsertReceipts(combineReceipts)
   if (combineAccounts1.length > 0) await AccountDB.bulkInsertAccounts(combineAccounts1)
   if (combineTransactions.length > 0) await TransactionDB.bulkInsertTransactions(combineTransactions)
-  if (combineTokenTransactions.length > 0)
-    await TransactionDB.bulkInsertTokenTransactions(combineTokenTransactions)
-  if (combineTokenTransactions2.length > 0)
-    await TransactionDB.bulkInsertTokenTransactions(combineTokenTransactions2)
+  if (combineTokenTransactions.length > 0) await TransactionDB.bulkInsertTokenTransactions(combineTokenTransactions)
+  if (combineTokenTransactions2.length > 0) await TransactionDB.bulkInsertTokenTransactions(combineTokenTransactions2)
   if (combineTokens.length > 0) await AccountDB.bulkInsertTokens(combineTokens)
   if (accountHistoryStateList.length > 0)
     await AccountHistoryStateDB.bulkInsertAccountHistoryStates(accountHistoryStateList)
@@ -447,12 +444,7 @@ export async function queryReceiptCountByCycles(
   })
 }
 
-export async function queryReceiptsBetweenCycles(
-  skip = 0,
-  limit = 10,
-  start: number,
-  end: number
-): Promise<Receipt[]> {
+export async function queryReceiptsBetweenCycles(skip = 0, limit = 10, start: number, end: number): Promise<Receipt[]> {
   let receipts: DbReceipt[] = []
   try {
     const sql = `SELECT * FROM receipts WHERE cycle BETWEEN ? and ? ORDER BY cycle ASC, timestamp ASC LIMIT ${limit} OFFSET ${skip}`

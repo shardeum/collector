@@ -28,8 +28,7 @@ const start = async (): Promise<void> => {
   console.log('Cycle data check complete.')
 
   const expectedBlockCount =
-    lastStoredCycle.counter *
-    (config.blockIndexing.cycleDurationInSeconds / config.blockIndexing.blockProductionRate)
+    lastStoredCycle.counter * (config.blockIndexing.cycleDurationInSeconds / config.blockIndexing.blockProductionRate)
 
   const lastStoredBlockCount = await BlockDB.queryBlockCount()
   const lastStoredBlock = await BlockDB.queryLatestBlocks(1)
@@ -65,7 +64,7 @@ async function checkCycleData(startCycleNumber = 0, latestCycleNumber: number): 
     const batchSize = 1000
     const cycleBatches: number[][] = []
     let end = startCycleNumber + batchSize
-    for (let start = startCycleNumber; start <= latestCycleNumber;) {
+    for (let start = startCycleNumber; start <= latestCycleNumber; ) {
       if (end > latestCycleNumber) end = latestCycleNumber
       cycleBatches.push(generateNumberArray(start, end))
       start = end + 1
@@ -74,8 +73,7 @@ async function checkCycleData(startCycleNumber = 0, latestCycleNumber: number): 
 
     // Query cycle in batches in parallel using Promise.allSettled
     const promises = cycleBatches.map(async (cycleNumberBatch: number[]) => {
-      const sql =
-        'SELECT counter FROM cycles WHERE counter IN (' + cycleNumberBatch + ') ORDER BY counter ASC'
+      const sql = 'SELECT counter FROM cycles WHERE counter IN (' + cycleNumberBatch + ') ORDER BY counter ASC'
       return db.all(sql)
     })
 
@@ -104,7 +102,7 @@ async function checkBlockData(startBlockNumber = 0, latestBlockNumber: number): 
     const batchSize = 1000
     const blockBatches: number[][] = []
     let end = startBlockNumber + batchSize
-    for (let start = startBlockNumber; start <= latestBlockNumber;) {
+    for (let start = startBlockNumber; start <= latestBlockNumber; ) {
       if (end > latestBlockNumber) end = latestBlockNumber
       blockBatches.push(generateNumberArray(start, end))
       start = end + 1

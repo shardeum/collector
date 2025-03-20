@@ -1,4 +1,3 @@
-import WebSocket from "ws";
+import WebSocket from 'ws'
 
-export type WebSocketWithId = WebSocket & { id: string };
-
+export type WebSocketWithId = WebSocket & { id: string }

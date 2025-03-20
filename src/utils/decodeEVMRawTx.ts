@@ -4,9 +4,7 @@ import { RawTxData } from '../types'
 import { config } from '../config'
 import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
 
-export type TransactionObj =
-  | Transaction[TransactionType.Legacy]
-  | Transaction[TransactionType.AccessListEIP2930]
+export type TransactionObj = Transaction[TransactionType.Legacy] | Transaction[TransactionType.AccessListEIP2930]
 import { TransactionType as TransactionType2, OriginalTxDataInterface } from '../types'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -21,8 +19,7 @@ export function getTransactionObj(tx: RawTxData): TransactionObj {
   }
   if (!transactionObj) {
     try {
-      transactionObj =
-        TransactionFactory.fromSerializedData<TransactionType.AccessListEIP2930>(serializedInput)
+      transactionObj = TransactionFactory.fromSerializedData<TransactionType.AccessListEIP2930>(serializedInput)
     } catch (e) {
       /* prettier-ignore */ if (config.verbose) console.log('Unable to get transaction obj', e)
     }
@@ -44,9 +41,7 @@ export function isStakingEVMTx(
   return false
 }
 
-export type StakeTxBlobFromEVMTx =
-  | Transaction[TransactionType.Legacy]
-  | Transaction[TransactionType.AccessListEIP2930]
+export type StakeTxBlobFromEVMTx = Transaction[TransactionType.Legacy] | Transaction[TransactionType.AccessListEIP2930]
 
 export function getStakeTxBlobFromEVMTx(transaction: StakeTxBlobFromEVMTx): unknown {
   try {

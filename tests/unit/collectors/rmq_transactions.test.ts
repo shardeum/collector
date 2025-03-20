@@ -1,13 +1,6 @@
 import RMQOriginalTxsConsumer from '../../../src/collectors/rmq_original_txs'
 import * as crypto from '@shardeum-foundation/lib-crypto-utils'
-import {
-  Channel,
-  Connection,
-  ConsumeMessage,
-  ConsumeMessageFields,
-  MessageProperties,
-  connect,
-} from 'amqplib'
+import { Channel, Connection, ConsumeMessage, ConsumeMessageFields, MessageProperties, connect } from 'amqplib'
 import { OriginalTxDataLogWriter } from '../../../src/class/DataLogWriter'
 import { config } from '../../../src/config'
 import { processOriginalTxData } from '../../../src/storage/originalTxData'
