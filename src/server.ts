@@ -501,9 +501,28 @@ const start = async (): Promise<void> => {
       transactions = await Transaction.queryTransactions(
         0,
         count,
-        null,
+        query.address ? query.address.toLowerCase() : null,  // Apply address filter if provided
         TransactionSearchType.AllExceptInternalTx
       )
+      if (query.address) {
+        totalTransactions = await Transaction.queryTransactionCount(
+          query.address.toLowerCase(),
+          TransactionSearchType.AllExceptInternalTx
+        )
+      } else {
+        totalTransactions = await Transaction.queryTransactionCount(
+          null,
+          TransactionSearchType.AllExceptInternalTx
+        )
+      }
+      const res: TransactionResponse = {
+        success: true,
+        transactions,
+        totalTransactions,
+        totalPages: Math.ceil(totalTransactions / itemsPerPage)
+      }
+      reply.send(res)
+      return
     } else if (query.startCycle) {
       const startCycle: number = parseInt(query.startCycle)
       if (startCycle < 0 || Number.isNaN(startCycle)) {
