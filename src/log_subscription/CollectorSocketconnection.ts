@@ -56,7 +56,7 @@ const pendingBlocksQueue: { blockData: any; timestamp: number }[] = []
 // Function to process the pending blocks queue
 const processPendingBlocks = (): void => {
   const currentTime = Date.now()
-  const oneMinuteAgo = currentTime - 60000 // 60 seconds * 1000 ms
+  const oneMinuteAgo = currentTime - CONFIG.blockIndexing.cycleDurationInSeconds * 1000 // 60 seconds * 1000 ms
 
   // Process blocks that are now at least a minute old
   while (pendingBlocksQueue.length > 0 && pendingBlocksQueue[0].timestamp <= oneMinuteAgo) {
@@ -71,7 +71,7 @@ const processPendingBlocks = (): void => {
   // Schedule next check if there are still pending blocks
   if (pendingBlocksQueue.length > 0) {
     const nextBlockTime = pendingBlocksQueue[0].timestamp
-    const timeToWait = Math.max(nextBlockTime + 60000 - currentTime, 1000) // At least wait 1 second
+    const timeToWait = Math.max(nextBlockTime + CONFIG.blockIndexing.cycleDurationInSeconds * 1000 - currentTime, 1000) // At least wait 1 second
     setTimeout(processPendingBlocks, timeToWait)
   }
 }
@@ -79,7 +79,7 @@ const processPendingBlocks = (): void => {
 export const forwardBlockData = async (blockData: any): Promise<void> => {
   const blockTimestamp = parseInt(blockData.header.timestamp, 16) * 1000 // Convert hex timestamp to milliseconds
   const currentTime = Date.now()
-  const oneMinuteAgo = currentTime - 60000 // 60 seconds * 1000 ms
+  const oneMinuteAgo = currentTime - CONFIG.blockIndexing.cycleDurationInSeconds * 1000 // 60 seconds * 1000 ms
 
   if (blockTimestamp <= oneMinuteAgo) {
     // Block is already a minute old, emit immediately
@@ -96,7 +96,10 @@ export const forwardBlockData = async (blockData: any): Promise<void> => {
 
     // If this is the first block in the queue, start the processing timer
     if (pendingBlocksQueue.length === 1) {
-      const timeToWait = Math.max(blockTimestamp + 60000 - currentTime, 1000) // At least wait 1 second
+      const timeToWait = Math.max(
+        blockTimestamp + CONFIG.blockIndexing.cycleDurationInSeconds * 1000 - currentTime,
+        1000
+      ) // At least wait 1 second
       setTimeout(processPendingBlocks, timeToWait)
     }
   }
