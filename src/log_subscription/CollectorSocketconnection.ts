@@ -56,10 +56,10 @@ const pendingBlocksQueue: { blockData: any; timestamp: number }[] = []
 // Function to process the pending blocks queue
 const processPendingBlocks = (): void => {
   const currentTime = Date.now()
-  const oneMinuteAgo = currentTime - CONFIG.blockIndexing.cycleDurationInSeconds * 1000 // 60 seconds * 1000 ms
+  const oneCycleDurationAgo = currentTime - CONFIG.blockIndexing.cycleDurationInSeconds * 1000 // 60 seconds * 1000 ms
 
   // Process blocks that are now at least a minute old
-  while (pendingBlocksQueue.length > 0 && pendingBlocksQueue[0].timestamp <= oneMinuteAgo) {
+  while (pendingBlocksQueue.length > 0 && pendingBlocksQueue[0].timestamp <= oneCycleDurationAgo) {
     const { blockData } = pendingBlocksQueue.shift()!
 
     for (const socket of registeredLogServers.values()) {
@@ -79,9 +79,9 @@ const processPendingBlocks = (): void => {
 export const forwardBlockData = async (blockData: any): Promise<void> => {
   const blockTimestamp = parseInt(blockData.header.timestamp, 16) * 1000 // Convert hex timestamp to milliseconds
   const currentTime = Date.now()
-  const oneMinuteAgo = currentTime - CONFIG.blockIndexing.cycleDurationInSeconds * 1000 // 60 seconds * 1000 ms
+  const oneCycleDurationAgo = currentTime - CONFIG.blockIndexing.cycleDurationInSeconds * 1000 // 60 seconds * 1000 ms
 
-  if (blockTimestamp <= oneMinuteAgo) {
+  if (blockTimestamp <= oneCycleDurationAgo) {
     // Block is already a minute old, emit immediately
     for (const socket of registeredLogServers.values()) {
       socket.emit(BlockDataWsEvent, StringUtils.safeStringify(blockData))
