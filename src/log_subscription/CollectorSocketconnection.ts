@@ -77,7 +77,7 @@ const processPendingBlocks = (): void => {
 }
 
 export const forwardBlockData = async (blockData: any): Promise<void> => {
-  const blockTimestamp = parseInt(blockData.header.timestamp, 16) * 1000 // Convert hex timestamp to milliseconds
+  const blockTimestamp = parseInt(blockData.timestamp, 16) * 1000 // Convert hex timestamp to milliseconds
   const currentTime = Date.now()
   const oneCycleDurationAgo = currentTime - CONFIG.blockIndexing.cycleDurationInSeconds * 1000 // 60 seconds * 1000 ms
 
