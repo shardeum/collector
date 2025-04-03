@@ -129,7 +129,7 @@ let config: Config = {
     blockProductionRate: 6,
     initBlockNumber: 0,
     cycleDurationInSeconds: 60,
-    latestBehindBySeconds: 10,
+    latestBehindBySeconds: 120,
   },
   blockCache: {
     enabled: false,
