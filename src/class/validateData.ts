@@ -60,7 +60,6 @@ export async function validateData(data: Data): Promise<boolean> {
     }
     await insertOrUpdateCycle(data.cycle)
 
-    // Send blocks from previous cycle
     await upsertBlocksForCycleCore(
       data.cycle.counter + 1,
       data.cycle.cycleRecord.start + CONFIG.blockIndexing.cycleDurationInSeconds,
