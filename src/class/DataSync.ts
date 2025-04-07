@@ -314,12 +314,13 @@ export const downloadTxsDataAndCycles = async (
 }
 
 export const downloadAndSyncGenesisAccounts = async (): Promise<void> => {
+  const BATCH_SIZE = 1000
   let completeSyncingAccounts = false
   let completeSyncTransactions = false
   let startAccount = 0
-  let endAccount = startAccount + 10000
+  let endAccount = startAccount + BATCH_SIZE
   let startTransaction = 0
-  let endTransaction = startTransaction + 10000
+  let endTransaction = startTransaction + BATCH_SIZE
   let combineTransactions = []
 
   let totalGenesisAccounts = 0
@@ -345,7 +346,7 @@ export const downloadAndSyncGenesisAccounts = async (): Promise<void> => {
       console.log(`Downloading accounts from ${startAccount} to ${endAccount}`)
       const response = await queryFromDistributor(DataType.ACCOUNT, { startCycle: 0, endCycle: 5, page })
       if (response && response.data && response.data.accounts) {
-        if (response.data.accounts.length < 10000) {
+        if (response.data.accounts.length < BATCH_SIZE) {
           completeSyncingAccounts = true
           console.log('Download completed for accounts')
         }
@@ -356,7 +357,7 @@ export const downloadAndSyncGenesisAccounts = async (): Promise<void> => {
         console.log('Genesis Account', 'Invalid download response')
       }
       startAccount = endAccount
-      endAccount += 10000
+      endAccount += BATCH_SIZE
       page++
       // await sleep(1000);
     }
@@ -376,7 +377,7 @@ export const downloadAndSyncGenesisAccounts = async (): Promise<void> => {
       console.log(`Downloading transactions from ${startTransaction} to ${endTransaction}`)
       const response = await queryFromDistributor(DataType.TRANSACTION, { startCycle: 0, endCycle: 5, page })
       if (response && response.data && response.data.transactions) {
-        if (response.data.transactions.length < 10000) {
+        if (response.data.transactions.length < BATCH_SIZE) {
           completeSyncTransactions = true
           console.log('Download completed for transactions')
         }
@@ -386,7 +387,7 @@ export const downloadAndSyncGenesisAccounts = async (): Promise<void> => {
         console.log('Genesis Transaction Receipt', 'Invalid download response')
       }
       startTransaction = endTransaction
-      endTransaction += 10000
+      endTransaction += BATCH_SIZE
       page++
     }
   }
