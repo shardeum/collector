@@ -8,7 +8,6 @@ import { getLatestBlock } from '../cache/LatestBlockCache'
 import { blockQueryDelayInMillis } from '../utils/block'
 import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
 import { forwardBlockData } from '../log_subscription/CollectorSocketconnection'
-import { queryTransactionsByBlock } from './transaction'
 
 const evmCommon = new Common({ chain: 'mainnet', hardfork: Hardfork.Istanbul, eips: [3855] })
 
@@ -154,39 +153,9 @@ export async function upsertBlocksForCycles(cycles: Cycle[]): Promise<void> {
 export async function createNewBlock(blockNumber: number, timestamp: number): Promise<EthBlock> {
   const timestampInSecond = timestamp ? Math.round(timestamp / 1000) : Math.round(Date.now() / 1000)
 
-  // Get transactions for this block
-  const transactions = await queryTransactionsByBlock(blockNumber, '')
-
-  // Convert transactions to the format expected by EthBlock
-  const blockTransactions = transactions.map((tx) => {
-    // Deserialize the wrappedEVMAccount
-    const wrappedEVMAccount =
-      typeof tx.wrappedEVMAccount === 'string' ? StringUtils.safeJsonParse(tx.wrappedEVMAccount) : tx.wrappedEVMAccount
-
-    // The wrappedEVMAccount contains the transaction data
-    const txData = wrappedEVMAccount.readableReceipt
-
-    // Create a transaction object with the correct format
-    const formattedTx = {
-      nonce: BigInt(txData.nonce) || '0x0',
-      gasPrice: BigInt(txData.gasPrice || '0x0'),
-      gasLimit: BigInt(txData.gasLimit || '0x0'),
-      to: txData.to || '0x',
-      value: BigInt(txData.value || '0x0'),
-      data: txData.data || '0x',
-      chainId: BigInt(txData.chainId || '8082'),
-      type: BigInt(txData.type || '0x0'),
-      transactionIndex: BigInt(txData.transactionIndex || '0x0'),
-      v: txData.v || '0x0',
-      r: txData.r || '0x0',
-      s: txData.s || '0x0',
-    }
-    return formattedTx
-  })
-
   const blockData = {
     header: { number: blockNumber, timestamp: timestampInSecond },
-    transactions: blockTransactions,
+    transactions: [],
     uncleHeaders: [],
   }
 
