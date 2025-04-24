@@ -399,7 +399,7 @@ const startCollector = async () => {
   Crypto.setCryptoHashKey(CONFIG.hashKey)
 
   // Initialize the database
-  Storage.initializeDB()
+  await Storage.initializeDB()
 
   // Initialize data log writer if enabled
   if (CONFIG.dataLogWrite) await initDataLogWriter()
