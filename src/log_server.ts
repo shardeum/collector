@@ -13,7 +13,7 @@ import { healthCheckRouter } from './routes/healthCheck'
 export const newHeadsSubscribers = new Set<SocketStream>()
 const start = async (): Promise<void> => {
   // Init dependencies
-  Storage.initializeDB()
+  await Storage.initializeDB()
   Storage.addExitListeners()
   await setupCollectorListener()
 

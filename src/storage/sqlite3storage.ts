@@ -37,9 +37,13 @@ export async function init(config: DbOptions): Promise<void> {
 function getDb(dbName: DbName): Database {
   switch (dbName) {
     case 'default':
+      if (!db) throw new Error('Default database is not initialized!')
       return db
     case 'shardeumIndexer':
+      if (!shardeumIndexerDb) throw new Error('ShardeumIndexer database is not initialized!')
       return shardeumIndexerDb
+    default:
+      throw new Error(`Unknown database name: ${dbName}`)
   }
 }
 
