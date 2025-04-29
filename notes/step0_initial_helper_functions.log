@@ -1,0 +1,37 @@
+
+## 🔧 Prompt 0 — *Initial helper-insertion pass on `pg-upgrade-branch`*
+
+ **SYSTEM / CONTEXT**  
+ You have read-write access to the **`pg-upgrade-branch`** source tree.  
+ `src/storage/sqlHelpers.ts` (shown below) already exports utility functions such as `ph`, `cmp`, `appendTextCast`, `whereOrAnd`, `rowPlaceholders`, `between`, etc.  
+ The codebase’s SQL is currently written **only for SQLite** (plain `?` placeholders, JSON stored as text, `strftime` for dates, etc.). There is **no** `config.postgresEnabled` switching in this branch.  
+  
+ **YOUR TASK**  
+ 1. Traverse all `*.ts` and `*.js` files under `src/`.  
+ 2. Detect raw SQL template literals / string concat fragments that can be generalized via the helpers in `sqlHelpers.ts`. Typical patterns to convert:  
+    * **Placeholders**: `?` → `${ph(n)}` (maintain existing order).  
+    * **Text casts**: explicit `|| ''`, `CAST(col AS TEXT)`, or duplicated JSON parsing → `${appendTextCast('col')}`.  
+    * **Datetime formatting**: `strftime('…', col)` → `${formatDate('col','YYYY-MM-DD')}`.  
+    * **`IN` lists** built with manual `?, ?, ?` strings → `whereIn(column, len, startIndex)`.  
+    * **`BETWEEN ? AND ?`** → `between(column, startIndex)`.  
+    * Hard-coded `LIMIT … OFFSET …` → `${paginate(limit, offset)}` if variables are already present.  
+ 3. For each change, generate a *patch object* with:  
+    * `"file"` – relative path  
+    * `"search"` – exact or minimally-anchored snippet to replace  
+    * `"replaceWith"` – helper-based version  
+ 4. When a helper you need is **not yet** defined in `sqlHelpers.ts`, create an entry in `"newHelpers"` with:  
+    * `"name"` – helper function name  
+    * `"postgresImpl"` – Postgres-side template string (may include `${col}` placeholder)  
+    * `"sqliteImpl"` – SQLite-side template string  
+  
+ **OUTPUT FORMAT** – a single JSON object:  
+ ```jsonc
+ {
+   "patches": [ { "file": "...", "search": "...", "replaceWith": "..." }, … ],
+   "newHelpers": [ { "name": "...", "postgresImpl": "...", "sqliteImpl": "..." }, … ]
+ }
+ ```  
+ **No prose.**  
+  
+ **HELPERS AVAILABLE**  
+ *(full content of `src/storage/sqlHelpers.ts` is already loaded in context for you)*

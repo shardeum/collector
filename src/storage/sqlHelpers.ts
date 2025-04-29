@@ -1,7 +1,7 @@
 import { config } from '../config/index';
 
 /** Whether PostgreSQL is enabled */
-export const pgEnabled = config.postgresEnabled;
+export const pgEnabled = config.postgresEnabled;  //need to add this to config !!
 
 /**
  * Creates the appropriate placeholder for parameterized queries
