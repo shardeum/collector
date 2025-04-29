@@ -1,0 +1,120 @@
+Below are three ready-to-paste **“prompts for the LLM”** you can drop into your code-scanning / code-mod pipeline.
+
+---
+
+## 1 Prompt — *Scan the legacy branch and build a “casting report”*
+
+> **SYSTEM / TOOLING CONTEXT**  
+> You have full read-only access to the repository checkout of the **legacy branch**.  
+> The codebase is TypeScript/JavaScript and uses a feature flag `config.postgresEnabled` to branch between Postgres and SQLite SQL text.  
+>  
+> **YOUR TASK**  
+> 1. Walk every `*.ts` and `*.js` file.  
+> 2. Detect every code block where `config.postgresEnabled` (or similar variable) is used **inside a SQL‐building string**.  
+> 3. Limit the report to cases that involve *data-type adjustments* for Postgres that do **not** appear on SQLite, e.g.  
+>    * `::TEXT`, `::JSONB`, `::bytea`, `::bigint`  
+>    * `extract(epoch from …)` or other timestamp manipulations  
+>    * Postgres-only functions (`jsonb_build_object`, `to_hex`, etc.).  
+> 4. For each finding output one JSON object with:  
+>    * `"file"` – relative path  
+>    * `"function"` – nearest enclosing function or `"<top-level>"`  
+>    * `"postgres_fragment"` – the Postgres side of the ternary / template literal  
+>    * `"sqlite_fragment"` – the SQLite side  
+>    * `"placeholder_numbers"` – list of `$n` indices referenced in that fragment (empty for SQLite)  
+>    * `"needs_helper"` – `true|false` → mark **true** if a dedicated helper (cast, epoch, etc.) will be required to remove the branch.  
+>  
+> **OUTPUT**  
+> A single JSON array in the order you encounter files. No prose.  
+> Example element:  
+> ```jsonc
+> {
+>   "file": "src/db/transactions.ts",
+>   "function": "queryOriginalTxsData",
+>   "postgres_fragment": ", originalTxData::TEXT",
+>   "sqlite_fragment": "",
+>   "placeholder_numbers": [],
+>   "needs_helper": true
+> }
+> ```  
+> **Do not** include any locations where the difference is only the placeholder character (`$n` vs `?`)—those are already handled by `ph()`.
+
+---
+
+## 2 Prompt — *Read the report and generate code-mod suggestions*
+
+> **SYSTEM / TOOLING CONTEXT**  
+> You are given the JSON “casting report” produced by the previous step, plus write-access to a **work-in-progress branch** that has already removed `config.postgresEnabled` branching for placeholders.  
+> The helpers that exist in this branch are:  
+> ```ts
+> export function ph(n: number): string;
+> export function cmp(op: 'eq' | 'neq', n: number): string;
+> // Add new helpers if needed:
+> //   toText(col: string)  → , col::TEXT | ''
+> //   epochMs(col: string) → (extract(epoch from col)*1000)::bigint | col
+> ```
+>  
+> **YOUR TASK**  
+> 1. Load the casting report.  
+> 2. For every entry where `"needs_helper": true`, decide whether it maps to:  
+>    * `toText(col)` – simple `::TEXT` suffix  
+>    * `epochMs(col)` – Postgres `extract(epoch …)` vs plain column  
+>    * **or** specify a *new* helper and write its signature + Postgres/SQLite templates.  
+> 3. Produce a set of **patch instructions**:  
+>    * `"file"` – path  
+>    * `"search"` – exact code snippet (or a minimal regex) to replace  
+>    * `"replaceWith"` – the helper-based expression  
+> 4. Also output any **new helper implementations** that must be added to `dbSqlHelpers.ts`.  
+>  
+> **OUTPUT FORMAT**  
+> ```jsonc
+> {
+>   "patches": [
+>     {
+>       "file": "src/db/transactions.ts",
+>       "search": ", originalTxData::TEXT",
+>       "replaceWith": "${toText('originalTxData')}"
+>     },
+>     …
+>   ],
+>   "newHelpers": [
+>     {
+>       "name": "epochMs",
+>       "postgresImpl": "(extract(epoch from ${col})*1000)::bigint",
+>       "sqliteImpl": "${col}"
+>     }
+>   ]
+> }
+> ```  
+> **No additional commentary.**
+
+---
+
+## 3 Prompt — *Audit the upgrade branch against the casting report*
+
+> **SYSTEM / TOOLING CONTEXT**  
+> You have the *final* upgrade branch and the original “casting report” JSON.  
+> Helper functions now live in `src/db/dbSqlHelpers.ts`.  
+>  
+> **YOUR TASK**  
+> 1. For each object in the casting report:  
+>    * Confirm that the old Postgres-specific fragment **no longer** exists in the same file.  
+>    * Confirm that one of the approved helpers (`toText`, `epochMs`, or others listed in `dbSqlHelpers.ts`) is present in the same function/file.  
+> 2. Produce a **summary table** (markdown):  
+>    * File  
+>    * Function  
+>    * “Status” → **OK**, **Missing helper**, or **Leftover PG code**  
+> 3. At the bottom list any *missing* or *unused* helpers you detect.  
+>  
+> **OUTPUT**  
+> Well-formatted markdown only.  
+> Example:
+> ```
+> | File                         | Function              | Status              |
+> |------------------------------|-----------------------|---------------------|
+> | src/db/transactions.ts       | queryOriginalTxsData  | OK                  |
+> | src/db/users.ts              | getUsersAfter         | Missing helper      |
+> | src/db/rewards.ts            | <top-level>           | Leftover PG code    |
+> 
+> **Helpers not referenced:** epochMs
+> **Helpers referenced but not defined:** toBytea
+> ```

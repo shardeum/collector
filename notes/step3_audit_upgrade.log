@@ -1,0 +1,30 @@
+---
+
+## 3 Prompt — *Audit the upgrade branch against the casting report*
+**SYSTEM / TOOLING CONTEXT**  
+You have the *final* upgrade branch and the original “casting report” JSON.  
+Helper functions now live in `src/db/dbSqlHelpers.ts`.  
+ 
+**YOUR TASK**  
+1. For each object in the casting report:  
+   * Confirm that the old Postgres-specific fragment **no longer** exists in the same file.  
+   * Confirm that one of the approved helpers (`toText`, `epochMs`, or others listed in `dbSqlHelpers.ts`) is present in the same function/ile.  
+2. Produce a **summary table** (markdown):  
+   * File  
+   * Function  
+   * “Status” → **OK**, **Missing helper**, or **Leftover PG code**  
+3. At the bottom list any *missing* or *unused* helpers you detect.  
+ 
+**OUTPUT**  
+Well-formatted markdown only.  
+Example:
+```
+| File                         | Function              | Status              |
+|------------------------------|-----------------------|---------------------|
+| src/db/transactions.ts       | queryOriginalTxsData  | OK                  |
+| src/db/users.ts              | getUsersAfter         | Missing helper      |
+| src/db/rewards.ts            | <top-level>           | Leftover PG code    |
+
+**Helpers not referenced:** epochMs
+**Helpers referenced but not defined:** toBytea
+```

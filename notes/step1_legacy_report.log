@@ -1,0 +1,36 @@
+
+## 1 Prompt — *Scan the legacy branch and build a “casting report”*
+
+ **SYSTEM / TOOLING CONTEXT**  
+ You have full read-only access to the repository checkout of the **legacy branch**.  
+ The codebase is TypeScript/JavaScript and uses a feature flag `config.postgresEnabled` to branch between Postgres and SQLite SQL text.  
+  
+ **YOUR TASK**  
+ 1. Walk every `*.ts` and `*.js` file.  
+ 2. Detect every code block where `config.postgresEnabled` (or similar variable) is used **inside a SQL‐building string**.  
+ 3. Limit the report to cases that involve *data-type adjustments* for Postgres that do **not** appear on SQLite, e.g.  
+    * `::TEXT`, `::JSONB`, `::bytea`, `::bigint`  
+    * `extract(epoch from …)` or other timestamp manipulations  
+    * Postgres-only functions (`jsonb_build_object`, `to_hex`, etc.).  
+ 4. For each finding output one JSON object with:  
+    * `"file"` – relative path  
+    * `"function"` – nearest enclosing function or `"<top-level>"`  
+    * `"postgres_fragment"` – the Postgres side of the ternary / template literal  
+    * `"sqlite_fragment"` – the SQLite side  
+    * `"placeholder_numbers"` – list of `$n` indices referenced in that fragment (empty for SQLite)  
+    * `"needs_helper"` – `true|false` → mark **true** if a dedicated helper (cast, epoch, etc.) will be required to remove the branch.  
+  
+ **OUTPUT**  
+ A single JSON array in the order you encounter files. No prose.  
+ Example element:  
+ ```jsonc
+ {
+   "file": "src/db/transactions.ts",
+   "function": "queryOriginalTxsData",
+   "postgres_fragment": ", originalTxData::TEXT",
+   "sqlite_fragment": "",
+   "placeholder_numbers": [],
+   "needs_helper": true
+ }
+ ```  
+ **Do not** include any locations where the difference is only the placeholder character (`$n` vs `?`)—those are already handled by `ph()`.
