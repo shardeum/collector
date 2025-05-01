@@ -8,6 +8,7 @@ import { getLatestBlock } from '../cache/LatestBlockCache'
 import { blockQueryDelayInMillis } from '../utils/block'
 import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
 import { forwardBlockData } from '../log_subscription/CollectorSocketconnection'
+import { upsertSQL, bulkInsertSQL, ph } from './sqlHelpers'
 
 const evmCommon = new Common({ chain: 'mainnet', hardfork: Hardfork.Istanbul, eips: [3855] })
 
@@ -19,10 +20,9 @@ export type ShardeumBlockOverride = EthBlock & { number?: string; hash?: string 
 
 export async function insertBlock(block: DbBlock): Promise<void> {
   try {
-    const fields = Object.keys(block).join(', ')
-    const placeholders = Object.keys(block).fill('?').join(', ')
+    const fields = Object.keys(block)
     const values = db.extractValues(block)
-    const sql = 'INSERT OR REPLACE INTO blocks (' + fields + ') VALUES (' + placeholders + ')'
+    const sql = upsertSQL('blocks', fields, ['number'])
     db.run(sql, values)
   } catch (e) {
     console.error('Error inserting block:', e)
@@ -32,13 +32,9 @@ export async function insertBlock(block: DbBlock): Promise<void> {
 
 export async function bulkInsertBlocks(blocks: DbBlock[]): Promise<void> {
   try {
-    const fields = Object.keys(blocks[0]).join(', ')
-    const placeholders = Object.keys(blocks[0]).fill('?').join(', ')
+    const fields = Object.keys(blocks[0])
+    const { sql, getParamIndex } = bulkInsertSQL('blocks', fields, blocks.length, ['number'])
     const values = db.extractValuesFromArray(blocks)
-    let sql = 'INSERT OR REPLACE INTO blocks (' + fields + ') VALUES (' + placeholders + ')'
-    for (let i = 1; i < blocks.length; i++) {
-      sql = sql + ', (' + placeholders + ')'
-    }
     db.run(sql, values)
     /*prettier-ignore*/ if (config.verbose) console.log('block: Successfully bulk inserted blocks', blocks.length)
   } catch (e) {
@@ -100,7 +96,7 @@ export async function upsertBlocksForCycleCore(
 export async function queryBlockByNumber(blockNumber: number): Promise<DbBlock | null> {
   /*prettier-ignore*/ if (config.verbose) console.log('block: Querying block by number', blockNumber)
   try {
-    const sql = 'SELECT * FROM blocks WHERE number = ?'
+    const sql = `SELECT * FROM blocks WHERE number = ${ph(1)}`
     const values = [blockNumber]
     const block: DbBlock = await db.get(sql, values)
     if (block && block.timestamp > Date.now() - blockQueryDelayInMillis()) {
@@ -130,7 +126,7 @@ export async function queryBlockByTag(tag: 'earliest' | 'latest'): Promise<DbBlo
 export async function queryBlockByHash(blockHash: string): Promise<DbBlock | null> {
   /*prettier-ignore*/ if (config.verbose) console.log('block: Querying block by hash', blockHash)
   try {
-    const sql = 'SELECT * FROM blocks WHERE hash = ?'
+    const sql = `SELECT * FROM blocks WHERE hash = ${ph(1)}`
     const values = [blockHash]
     const block: DbBlock = await db.get(sql, values)
     if (block && block.timestamp > Date.now() - blockQueryDelayInMillis()) {
@@ -247,12 +243,10 @@ export async function queryBlockCount(): Promise<number> {
 
 export async function queryLatestBlocks(count: number): Promise<DbBlock[]> {
   try {
-    const sql = `SELECT * FROM blocks ORDER BY number DESC LIMIT ${count}`
-    const blocks: DbBlock[] = await db.all(sql)
-    if (config.verbose) console.log('block latest', blocks)
-    return blocks
+    const sql = `SELECT * FROM blocks ORDER BY number DESC LIMIT ${ph(1)}`
+    return await db.all(sql, [count])
   } catch (e) {
-    console.log(e)
+    console.error('Error getting latest blocks:', e)
+    return []
   }
-  return []
 }

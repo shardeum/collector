@@ -23,6 +23,7 @@ import { decodeTx, getContractInfo, ZERO_ETH_ADDRESS } from '../class/TxDecoder'
 import { bytesToHex } from '@ethereumjs/util'
 import { forwardReceiptData } from '../log_subscription/CollectorSocketconnection'
 import { zip } from 'lodash'
+import { upsertSQL, bulkInsertSQL, ph, countStar } from './sqlHelpers'
 
 type DbReceipt = Receipt & {
   tx: string
@@ -36,10 +37,9 @@ export const receiptsMap: Map<string, number> = new Map()
 
 export async function insertReceipt(receipt: Receipt): Promise<void> {
   try {
-    const fields = Object.keys(receipt).join(', ')
-    const placeholders = Object.keys(receipt).fill('?').join(', ')
+    const fields = Object.keys(receipt)
     const values = extractValues(receipt)
-    const sql = 'INSERT OR REPLACE INTO receipts (' + fields + ') VALUES (' + placeholders + ')'
+    const sql = upsertSQL('receipts', fields, ['receiptId'])
     db.run(sql, values)
     if (config.verbose) console.log('Successfully inserted Receipt', receipt.receiptId)
   } catch (e) {
@@ -50,13 +50,9 @@ export async function insertReceipt(receipt: Receipt): Promise<void> {
 
 export async function bulkInsertReceipts(receipts: Receipt[]): Promise<void> {
   try {
-    const fields = Object.keys(receipts[0]).join(', ')
-    const placeholders = Object.keys(receipts[0]).fill('?').join(', ')
+    const fields = Object.keys(receipts[0])
+    const { sql, getParamIndex } = bulkInsertSQL('receipts', fields, receipts.length, ['receiptId'])
     const values = extractValuesFromArray(receipts)
-    let sql = 'INSERT OR REPLACE INTO receipts (' + fields + ') VALUES (' + placeholders + ')'
-    for (let i = 1; i < receipts.length; i++) {
-      sql = sql + ', (' + placeholders + ')'
-    }
     db.run(sql, values)
     if (config.verbose) console.log('Successfully bulk inserted receipts', receipts.length)
   } catch (e) {
@@ -368,7 +364,7 @@ export async function processReceiptData(receipts: Receipt[], saveOnlyNewData = 
 
 export function queryReceiptByReceiptId(receiptId: string): Receipt | null {
   try {
-    const sql = `SELECT * FROM receipts WHERE receiptId=?`
+    const sql = `SELECT * FROM receipts WHERE receiptId=${ph(1)}`
     const receipt: DbReceipt = db.get(sql, [receiptId])
     if (receipt) deserializeDbReceipt(receipt)
     if (config.verbose) console.log('Receipt receiptId', receipt)
@@ -382,8 +378,8 @@ export function queryReceiptByReceiptId(receiptId: string): Receipt | null {
 
 export async function queryLatestReceipts(count: number): Promise<Receipt[]> {
   try {
-    const sql = `SELECT * FROM receipts ORDER BY cycle DESC, timestamp DESC LIMIT ${count}`
-    const receipts: DbReceipt[] = await db.all(sql)
+    const sql = `SELECT * FROM receipts ORDER BY cycle DESC, timestamp DESC LIMIT ${ph(1)}`
+    const receipts: DbReceipt[] = await db.all(sql, [count])
 
     receipts.forEach((receipt: DbReceipt) => deserializeDbReceipt(receipt))
 
@@ -399,8 +395,8 @@ export async function queryLatestReceipts(count: number): Promise<Receipt[]> {
 export async function queryReceipts(skip = 0, limit = 10000): Promise<Receipt[]> {
   let receipts: DbReceipt[] = []
   try {
-    const sql = `SELECT * FROM receipts ORDER BY cycle ASC, timestamp ASC LIMIT ${limit} OFFSET ${skip}`
-    receipts = await db.all(sql)
+    const sql = `SELECT * FROM receipts ORDER BY cycle ASC, timestamp ASC LIMIT ${ph(1)} OFFSET ${ph(2)}`
+    receipts = await db.all(sql, [limit, skip])
     receipts.forEach((receipt: DbReceipt) => deserializeDbReceipt(receipt))
   } catch (e) {
     console.log(e)
@@ -411,16 +407,19 @@ export async function queryReceipts(skip = 0, limit = 10000): Promise<Receipt[]>
 }
 
 export async function queryReceiptCount(): Promise<number> {
-  let receipts: { 'COUNT(*)': number } = { 'COUNT(*)': 0 }
   try {
-    const sql = `SELECT COUNT(*) FROM receipts`
-    receipts = await db.get(sql, [])
+    const sql = `SELECT ${countStar()} FROM receipts`
+    const result = await db.get(sql, [])
+
+    // Handle the result safely for both database types
+    const count = result ? result['COUNT(*)'] || result['count(*)'] || 0 : 0
+
+    if (config.verbose) console.log('Receipt count', count)
+    return count
   } catch (e) {
     console.log(e)
+    return 0
   }
-  if (config.verbose) console.log('Receipt count', receipts)
-
-  return receipts['COUNT(*)'] || 0
 }
 
 export async function queryReceiptCountByCycles(
@@ -429,7 +428,9 @@ export async function queryReceiptCountByCycles(
 ): Promise<{ receipts: number; cycle: number }[]> {
   let receipts: { cycle: number; 'COUNT(*)': number }[] = []
   try {
-    const sql = `SELECT cycle, COUNT(*) FROM receipts GROUP BY cycle HAVING cycle BETWEEN ? AND ? ORDER BY cycle ASC`
+    const sql = `SELECT cycle, ${countStar()} FROM receipts GROUP BY cycle HAVING cycle BETWEEN ${ph(1)} AND ${ph(
+      2
+    )} ORDER BY cycle ASC`
     receipts = await db.all(sql, [start, end])
   } catch (e) {
     console.log(e)
@@ -447,8 +448,10 @@ export async function queryReceiptCountByCycles(
 export async function queryReceiptsBetweenCycles(skip = 0, limit = 10, start: number, end: number): Promise<Receipt[]> {
   let receipts: DbReceipt[] = []
   try {
-    const sql = `SELECT * FROM receipts WHERE cycle BETWEEN ? and ? ORDER BY cycle ASC, timestamp ASC LIMIT ${limit} OFFSET ${skip}`
-    receipts = await db.all(sql, [start, end])
+    const sql = `SELECT * FROM receipts WHERE cycle BETWEEN ${ph(1)} and ${ph(
+      2
+    )} ORDER BY cycle ASC, timestamp ASC LIMIT ${ph(3)} OFFSET ${ph(4)}`
+    receipts = await db.all(sql, [start, end, limit, skip])
     receipts.forEach((receipt: DbReceipt) => deserializeDbReceipt(receipt))
   } catch (e) {
     console.log(e)
@@ -459,16 +462,19 @@ export async function queryReceiptsBetweenCycles(skip = 0, limit = 10, start: nu
 }
 
 export async function queryReceiptCountBetweenCycles(start: number, end: number): Promise<number> {
-  let receipts: { 'COUNT(*)': number } = { 'COUNT(*)': 0 }
   try {
-    const sql = `SELECT COUNT(*) FROM receipts WHERE cycle BETWEEN ? and ?`
-    receipts = await db.get(sql, [start, end])
+    const sql = `SELECT ${countStar()} FROM receipts WHERE cycle BETWEEN ${ph(1)} and ${ph(2)}`
+    const result = await db.get(sql, [start, end])
+
+    // Handle the result safely for both database types
+    const count = result ? result['COUNT(*)'] || result['count(*)'] || 0 : 0
+
+    if (config.verbose) console.log('Receipt receipts count between cycles', count)
+    return count
   } catch (e) {
     console.log(e)
+    return 0
   }
-  if (config.verbose) console.log('Receipt receipts count between cycles', receipts)
-
-  return receipts['COUNT(*)'] || 0
 }
 
 function deserializeDbReceipt(receipt: DbReceipt): void {

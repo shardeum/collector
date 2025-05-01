@@ -13,6 +13,7 @@ import { getTransactionObj, isStakingEVMTx, getStakeTxBlobFromEVMTx } from '../u
 import { bytesToHex } from '@ethereumjs/util'
 import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
 import { isNumber } from '../utils/number'
+import { upsertSQL, bulkInsertSQL, ph, countStar, whereOrAnd, batchProcess } from './sqlHelpers'
 
 type DbOriginalTxData = OriginalTxData & {
   originalTxData: string
@@ -31,10 +32,9 @@ export async function insertOriginalTxData(
   tableName: OriginalTxDataType
 ): Promise<void> {
   try {
-    const fields = Object.keys(originalTxData).join(', ')
-    const placeholders = Object.keys(originalTxData).fill('?').join(', ')
+    const fields = Object.keys(originalTxData)
     const values = extractValues(originalTxData)
-    const sql = `INSERT OR REPLACE INTO ${tableName} (` + fields + ') VALUES (' + placeholders + ')'
+    const sql = upsertSQL(tableName, fields, ['txId', 'timestamp'])
     db.run(sql, values)
     if (config.verbose) console.log(`Successfully inserted ${tableName}`, originalTxData.txId)
   } catch (e) {
@@ -48,14 +48,26 @@ export async function bulkInsertOriginalTxsData(
   tableName: OriginalTxDataType
 ): Promise<void> {
   try {
-    const fields = Object.keys(originalTxsData[0]).join(', ')
-    const placeholders = Object.keys(originalTxsData[0]).fill('?').join(', ')
-    const values = extractValuesFromArray(originalTxsData)
-    let sql = `INSERT OR REPLACE INTO ${tableName} (` + fields + ') VALUES (' + placeholders + ')'
-    for (let i = 1; i < originalTxsData.length; i++) {
-      sql = sql + ', (' + placeholders + ')'
+    if (!originalTxsData || originalTxsData.length === 0) {
+      return
     }
-    db.run(sql, values)
+
+    const fields = Object.keys(originalTxsData[0])
+
+    // Use the batchProcess helper with type assertion
+    await batchProcess<OriginalTxData | OriginalTxData2>({
+      records: originalTxsData as (OriginalTxData | OriginalTxData2)[],
+      tableName,
+      fields,
+      uniqueFields: ['txId', 'timestamp'],
+      extractValues: (record) => extractValues(record),
+      extractBatchValues: (batch) => extractValuesFromArray(batch),
+      dbRunFunction: async (sql, values) => {
+        await db.run(sql, values)
+        return Promise.resolve()
+      },
+    })
+
     if (config.verbose) console.log(`Successfully bulk inserted ${tableName}`, originalTxsData.length)
   } catch (e) {
     console.log(e)
@@ -149,25 +161,26 @@ export async function queryOriginalTxDataCount(
 ): Promise<number> {
   let originalTxsData: { 'COUNT(*)': number } = { 'COUNT(*)': 0 }
   try {
-    let sql = `SELECT COUNT(*) FROM originalTxsData`
+    let sql = `SELECT ${countStar()} FROM originalTxsData`
     const values: unknown[] = []
     const startCycleAndEndCycleValid = isNumber(startCycle) && isNumber(endCycle)
 
     if (startCycleAndEndCycleValid) {
-      sql += ` WHERE cycle BETWEEN ? AND ?`
+      sql += ` WHERE cycle BETWEEN ${ph(1)} AND ${ph(2)}`
       values.push(startCycle, endCycle)
     }
     if (afterTimestamp) {
-      if (startCycleAndEndCycleValid) sql += ` AND timestamp>?`
-      else sql += ` WHERE timestamp>?`
+      if (startCycleAndEndCycleValid) sql += ` AND timestamp>${ph(values.length + 1)}`
+      else sql += ` WHERE timestamp>${ph(values.length + 1)}`
       values.push(afterTimestamp)
     }
     if (txType) {
       sql = sql.replace('originalTxsData', 'originalTxsData2')
-      if (startCycleAndEndCycleValid || afterTimestamp) sql += ` AND`
-      else sql += ` WHERE`
+      const hasConditions = !!(startCycleAndEndCycleValid || afterTimestamp)
+      sql += `${whereOrAnd(hasConditions)}`
+
       if (txType === TransactionSearchType.AllExceptInternalTx) {
-        sql += ` transactionType!=?`
+        sql += ` transactionType!=${ph(values.length + 1)}`
         values.push(TransactionType.InternalTxReceipt)
       } else if (
         txType === TransactionSearchType.Receipt ||
@@ -186,7 +199,7 @@ export async function queryOriginalTxDataCount(
             : txType === TransactionSearchType.UnstakeReceipt
             ? TransactionType.UnstakeReceipt
             : TransactionType.InternalTxReceipt
-        sql += ` transactionType=?`
+        sql += ` transactionType=${ph(values.length + 1)}`
         values.push(ty)
       }
     }
@@ -208,25 +221,29 @@ export async function queryOriginalTxsData(
 ): Promise<OriginalTxDataInterface[]> {
   let originalTxsData: DbOriginalTxData[] = []
   try {
-    let sql = `SELECT * FROM originalTxsData`
-    const sqlSuffix = ` ORDER BY cycle DESC, timestamp DESC LIMIT ${limit} OFFSET ${skip}`
     const values: unknown[] = []
+    let sql = `SELECT * FROM originalTxsData`
+    const sqlSuffix = ` ORDER BY cycle DESC, timestamp DESC LIMIT ${ph(values.length + 1)} OFFSET ${ph(
+      values.length + 2
+    )}`
+
     const startCycleAndEndCycleValid = isNumber(startCycle) && isNumber(endCycle)
     if (startCycleAndEndCycleValid) {
-      sql += ` WHERE cycle BETWEEN ? AND ?`
+      sql += ` WHERE cycle BETWEEN ${ph(values.length + 1)} AND ${ph(values.length + 2)}`
       values.push(startCycle, endCycle)
     }
     if (afterTimestamp) {
-      if (startCycleAndEndCycleValid) sql += ` AND timestamp>?`
-      else sql += ` WHERE timestamp>?`
+      if (startCycleAndEndCycleValid) sql += ` AND timestamp>${ph(values.length + 1)}`
+      else sql += ` WHERE timestamp>${ph(values.length + 1)}`
       values.push(afterTimestamp)
     }
     if (txType) {
       sql = sql.replace('originalTxsData', 'originalTxsData2')
-      if (startCycleAndEndCycleValid || afterTimestamp) sql += ` AND`
-      else sql += ` WHERE`
+      const hasConditions = !!(startCycleAndEndCycleValid || afterTimestamp)
+      sql += `${whereOrAnd(hasConditions)}`
+
       if (txType === TransactionSearchType.AllExceptInternalTx) {
-        sql += ` transactionType!=?`
+        sql += ` transactionType!=${ph(values.length + 1)}`
         values.push(TransactionType.InternalTxReceipt)
       } else if (
         txType === TransactionSearchType.Receipt ||
@@ -245,15 +262,16 @@ export async function queryOriginalTxsData(
             : txType === TransactionSearchType.UnstakeReceipt
             ? TransactionType.UnstakeReceipt
             : TransactionType.InternalTxReceipt
-        sql += ` transactionType=?`
+        sql += ` transactionType=${ph(values.length + 1)}`
         values.push(ty)
       }
     }
+    values.push(limit, skip)
     sql += sqlSuffix
     originalTxsData = await db.all(sql, values)
     for (const originalTxData of originalTxsData) {
       if (txType) {
-        const sql = `SELECT * FROM originalTxsData WHERE txId=?`
+        const sql = `SELECT * FROM originalTxsData WHERE txId=${ph(1)}`
         const originalTxDataById: DbOriginalTxData = await db.get(sql, [originalTxData.txId])
         originalTxData.originalTxData = originalTxDataById.originalTxData
         originalTxData.sign = originalTxDataById.sign
@@ -271,7 +289,7 @@ export async function queryOriginalTxsData(
 
 export async function queryOriginalTxDataByTxId(txId: string): Promise<OriginalTxDataInterface | null> {
   try {
-    const sql = `SELECT * FROM originalTxsData WHERE txId=?`
+    const sql = `SELECT * FROM originalTxsData WHERE txId=${ph(1)}`
     const originalTxData: DbOriginalTxData = await db.get(sql, [txId])
     if (originalTxData) {
       if (originalTxData.originalTxData)
@@ -291,7 +309,7 @@ export async function queryOriginalTxDataByTxIdAndTimestamp(
   timestamp: Number
 ): Promise<OriginalTxDataInterface | null> {
   try {
-    const sql = `SELECT * FROM originalTxsData WHERE txId=? and timestamp=?`
+    const sql = `SELECT * FROM originalTxsData WHERE txId=${ph(1)} AND timestamp=${ph(2)}`
     const originalTxData: DbOriginalTxData = await db.get(sql, [txId, timestamp])
     if (originalTxData) {
       if (originalTxData.originalTxData)
@@ -308,10 +326,10 @@ export async function queryOriginalTxDataByTxIdAndTimestamp(
 
 export async function queryOriginalTxDataByTxHash(txHash: string): Promise<OriginalTxDataInterface | null> {
   try {
-    const sql = `SELECT * FROM originalTxsData2 WHERE txHash=?`
+    const sql = `SELECT * FROM originalTxsData2 WHERE txHash=${ph(1)}`
     const originalTxData: DbOriginalTxData = await db.get(sql, [txHash])
     if (originalTxData) {
-      const sql = `SELECT * FROM originalTxsData WHERE txId=?`
+      const sql = `SELECT * FROM originalTxsData WHERE txId=${ph(1)}`
       const originalTxDataById: DbOriginalTxData = await db.get(sql, [originalTxData.txId])
       originalTxData.originalTxData = originalTxDataById.originalTxData
       originalTxData.sign = originalTxDataById.sign
@@ -333,7 +351,9 @@ export async function queryOriginalTxDataCountByCycles(
 ): Promise<{ originalTxsData: number; cycle: number }[]> {
   let originalTxsData: { cycle: number; 'COUNT(*)': number }[] = []
   try {
-    const sql = `SELECT cycle, COUNT(*) FROM originalTxsData GROUP BY cycle HAVING cycle BETWEEN ? AND ? ORDER BY cycle ASC`
+    const sql = `SELECT cycle, ${countStar()} FROM originalTxsData GROUP BY cycle HAVING cycle BETWEEN ${ph(
+      1
+    )} AND ${ph(2)} ORDER BY cycle ASC`
     originalTxsData = await db.all(sql, [start, end])
   } catch (e) {
     console.log(e)

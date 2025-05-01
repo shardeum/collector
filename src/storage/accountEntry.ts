@@ -2,6 +2,8 @@ import { config } from '../config/index'
 import { Account, AccountEntry } from '../types'
 import * as db from './sqlite3storage'
 import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
+import { upsertSQL, bulkInsertSQL, ph, countStar, batchProcess } from './sqlHelpers'
+import { DbName } from './sqlite3storage'
 
 export function insertAccountEntry(account: Account): void {
   try {
@@ -10,10 +12,9 @@ export function insertAccountEntry(account: Account): void {
       timestamp: account.timestamp,
       data: account.account,
     }
-    const fields = Object.keys(accountEntry).join(', ')
-    const placeholders = Object.keys(accountEntry).fill('?').join(', ')
+    const fields = Object.keys(accountEntry)
     const values = db.extractValues(accountEntry)
-    const sql = 'INSERT OR REPLACE INTO accountsEntry (' + fields + ') VALUES (' + placeholders + ')'
+    const sql = upsertSQL('accountsEntry', fields, ['accountId'])
     db.run(sql, values, 'shardeumIndexer')
     if (config.verbose)
       console.log('ShardeumIndexer: Successfully inserted AccountEntry', account.ethAddress || account.accountId)
@@ -28,6 +29,11 @@ export function insertAccountEntry(account: Account): void {
 
 export function bulkInsertAccountEntries(accounts: Account[]): void {
   try {
+    // Empty accounts check
+    if (!accounts || accounts.length === 0) {
+      return
+    }
+
     const accountEntries: AccountEntry[] = []
     for (const account of accounts) {
       const accountEntry: AccountEntry = {
@@ -37,14 +43,24 @@ export function bulkInsertAccountEntries(accounts: Account[]): void {
       }
       accountEntries.push(accountEntry)
     }
-    const fields = Object.keys(accountEntries[0]).join(', ')
-    const placeholders = Object.keys(accountEntries[0]).fill('?').join(', ')
-    const values = db.extractValuesFromArray(accountEntries)
-    let sql = 'INSERT OR REPLACE INTO accountsEntry (' + fields + ') VALUES (' + placeholders + ')'
-    for (let i = 1; i < accountEntries.length; i++) {
-      sql = sql + ', (' + placeholders + ')'
-    }
-    db.run(sql, values, 'shardeumIndexer')
+
+    const fields = Object.keys(accountEntries[0])
+
+    // Use the batchProcess helper
+    batchProcess({
+      records: accountEntries,
+      tableName: 'accountsEntry',
+      fields,
+      uniqueFields: ['accountId'],
+      extractValues: (entry) => db.extractValues(entry),
+      extractBatchValues: (batch) => db.extractValuesFromArray(batch),
+      dbRunFunction: (sql, values, context) => {
+        db.run(sql, values, context as DbName)
+        return Promise.resolve()
+      },
+      dbContext: 'shardeumIndexer',
+    })
+
     if (config.verbose) console.log('ShardeumIndexer: Successfully bulk inserted AccountEntries', accountEntries.length)
   } catch (e) {
     console.log(e)
@@ -54,14 +70,10 @@ export function bulkInsertAccountEntries(accounts: Account[]): void {
 
 export function updateAccountEntry(_accountId: string, account: Partial<Account>): void {
   try {
-    const sql = `UPDATE accountsEntry SET timestamp = @timestamp, data = @account WHERE accountId = @accountId `
+    const sql = `UPDATE accountsEntry SET timestamp = ${ph(1)}, data = ${ph(2)} WHERE accountId = ${ph(3)}`
     db.run(
       sql,
-      {
-        timestamp: account.timestamp,
-        account: account.account && StringUtils.safeStringify(account.account),
-        accountId: account.accountId,
-      },
+      [account.timestamp, account.account && StringUtils.safeStringify(account.account), account.accountId],
       'shardeumIndexer'
     )
     if (config.verbose)
@@ -75,7 +87,7 @@ export function updateAccountEntry(_accountId: string, account: Partial<Account>
 export function queryAccountEntryCount(): number {
   let accountEntries: { 'COUNT(*)': number } = { 'COUNT(*)': 0 }
   try {
-    const sql = `SELECT COUNT(*) FROM accountsEntry`
+    const sql = `SELECT ${countStar()} FROM accountsEntry`
     accountEntries = db.get(sql, [], 'shardeumIndexer')
   } catch (e) {
     console.log(e)

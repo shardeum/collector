@@ -3,6 +3,7 @@ import { extractValues, extractValuesFromArray } from './sqlite3storage'
 import { config } from '../config/index'
 import { Account, AccountType } from '../types'
 import * as ReceiptDB from './receipt'
+import { upsertSQL, bulkInsertSQL, ph, countStar, batchProcess } from './sqlHelpers'
 
 export interface AccountHistoryState {
   accountId: string
@@ -16,10 +17,9 @@ export interface AccountHistoryState {
 
 export async function insertAccountHistoryState(accountHistoryState: AccountHistoryState): Promise<void> {
   try {
-    const fields = Object.keys(accountHistoryState).join(', ')
-    const placeholders = Object.keys(accountHistoryState).fill('?').join(', ')
+    const fields = Object.keys(accountHistoryState)
     const values = extractValues(accountHistoryState)
-    const sql = 'INSERT OR REPLACE INTO accountHistoryState (' + fields + ') VALUES (' + placeholders + ')'
+    const sql = upsertSQL('accountHistoryState', fields, ['accountId', 'blockNumber'])
     db.run(sql, values)
     if (config.verbose)
       console.log(
@@ -39,14 +39,27 @@ export async function insertAccountHistoryState(accountHistoryState: AccountHist
 
 export async function bulkInsertAccountHistoryStates(accountHistoryStates: AccountHistoryState[]): Promise<void> {
   try {
-    const fields = Object.keys(accountHistoryStates[0]).join(', ')
-    const placeholders = Object.keys(accountHistoryStates[0]).fill('?').join(', ')
-    const values = extractValuesFromArray(accountHistoryStates)
-    let sql = 'INSERT OR REPLACE INTO accountHistoryState (' + fields + ') VALUES (' + placeholders + ')'
-    for (let i = 1; i < accountHistoryStates.length; i++) {
-      sql = sql + ', (' + placeholders + ')'
+    if (!accountHistoryStates || accountHistoryStates.length === 0) {
+      return
     }
-    db.run(sql, values)
+
+    const fields = Object.keys(accountHistoryStates[0])
+
+    // Use the batchProcess helper - processing one by one for PostgreSQL constraint compatibility
+    await batchProcess({
+      records: accountHistoryStates,
+      tableName: 'accountHistoryState',
+      fields,
+      uniqueFields: ['accountId', 'blockNumber'],
+      batchSize: 1, // Process one at a time due to PostgreSQL constraint handling
+      extractValues: (state) => extractValues(state),
+      extractBatchValues: (batch) => extractValuesFromArray(batch),
+      dbRunFunction: async (sql, values) => {
+        db.run(sql, values)
+        return Promise.resolve()
+      },
+    })
+
     if (config.verbose) console.log('Successfully bulk inserted AccountHistoryStates', accountHistoryStates.length)
   } catch (e) {
     console.log(e)
@@ -60,10 +73,10 @@ export function queryAccountHistoryState(
   blockHash = undefined
 ): Account | null {
   try {
-    let sql = `SELECT * FROM accountHistoryState WHERE accountId=? AND `
+    let sql = `SELECT * FROM accountHistoryState WHERE accountId=${ph(1)} AND `
     const values = [_accountId]
     if (blockNumber) {
-      sql += `blockNumber<? ORDER BY blockNumber DESC LIMIT 1`
+      sql += `blockNumber<${ph(2)} ORDER BY blockNumber DESC LIMIT 1`
       values.push(blockNumber)
     }
     // if (blockHash) {
@@ -114,7 +127,7 @@ export function queryAccountHistoryState(
 export function queryAccountHistoryStateCount(): number {
   let accountHistoryStates: { 'COUNT(*)': number } = { 'COUNT(*)': 0 }
   try {
-    const sql = `SELECT COUNT(*) FROM accountHistoryState`
+    const sql = `SELECT ${countStar()} FROM accountHistoryState`
     accountHistoryStates = db.get(sql, [])
   } catch (e) {
     console.log(e)

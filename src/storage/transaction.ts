@@ -19,6 +19,7 @@ import {
 import Web3 from 'web3'
 import * as AccountDB from './account'
 import { decodeTx, ZERO_ETH_ADDRESS } from '../class/TxDecoder'
+import { upsertSQL, bulkInsertSQL, ph, countStar, whereOrAnd, batchProcess } from './sqlHelpers'
 
 export { type Transaction } from '../types'
 
@@ -38,10 +39,9 @@ type DbTokenTx = TokenTx & {
 
 export function insertTransaction(transaction: Transaction): void {
   try {
-    const fields = Object.keys(transaction).join(', ')
-    const placeholders = Object.keys(transaction).fill('?').join(', ')
+    const fields = Object.keys(transaction)
     const values = extractValues(transaction)
-    const sql = 'INSERT OR REPLACE INTO transactions (' + fields + ') VALUES (' + placeholders + ')'
+    const sql = upsertSQL('transactions', fields, ['txId'])
     db.run(sql, values)
     if (config.verbose) console.log('Successfully inserted Transaction', transaction.txId, transaction.txHash)
   } catch (e) {
@@ -52,14 +52,23 @@ export function insertTransaction(transaction: Transaction): void {
 
 export function bulkInsertTransactions(transactions: Transaction[]): void {
   try {
-    const fields = Object.keys(transactions[0]).join(', ')
-    const placeholders = Object.keys(transactions[0]).fill('?').join(', ')
-    const values = extractValuesFromArray(transactions)
-    let sql = 'INSERT OR REPLACE INTO transactions (' + fields + ') VALUES (' + placeholders + ')'
-    for (let i = 1; i < transactions.length; i++) {
-      sql = sql + ', (' + placeholders + ')'
+    if (!transactions || transactions.length === 0) {
+      return
     }
-    db.run(sql, values)
+
+    batchProcess({
+      records: transactions,
+      tableName: 'transactions',
+      fields: Object.keys(transactions[0]),
+      uniqueFields: ['txId'],
+      extractValues: (transaction) => extractValues(transaction),
+      extractBatchValues: (batch) => extractValuesFromArray(batch),
+      dbRunFunction: (sql, values) => {
+        db.run(sql, values)
+        return Promise.resolve()
+      },
+    })
+
     if (config.verbose) console.log('Successfully bulk inserted transactions', transactions.length)
   } catch (e) {
     console.log(e)
@@ -69,13 +78,15 @@ export function bulkInsertTransactions(transactions: Transaction[]): void {
 
 export function updateTransaction(_txId: string, transaction: Partial<Transaction>): void {
   try {
-    const sql = `UPDATE transactions SET result = $result, cycle = $cycle, wrappedEVMAccount = $wrappedEVMAccount, txHash = $txHash WHERE txId = $txId `
-    db.run(sql, {
-      $cycle: transaction.cycle,
-      $wrappedEVMAccount: transaction.wrappedEVMAccount && StringUtils.safeStringify(transaction.wrappedEVMAccount),
-      $txHash: transaction.txHash,
-      $txId: transaction.txId,
-    })
+    const sql = `UPDATE transactions SET cycle = ${ph(1)}, wrappedEVMAccount = ${ph(2)}, txHash = ${ph(
+      3
+    )} WHERE txId = ${ph(4)}`
+    db.run(sql, [
+      transaction.cycle,
+      transaction.wrappedEVMAccount && StringUtils.safeStringify(transaction.wrappedEVMAccount),
+      transaction.txHash,
+      transaction.txId,
+    ])
     if (config.verbose) console.log('Successfully Updated Transaction', transaction.txId, transaction.txHash)
   } catch (e) {
     /* prettier-ignore */ if (config.verbose) console.log(e);
@@ -85,10 +96,9 @@ export function updateTransaction(_txId: string, transaction: Partial<Transactio
 
 export function insertTokenTransaction(tokenTx: TokenTx): void {
   try {
-    const fields = Object.keys(tokenTx).join(', ')
-    const placeholders = Object.keys(tokenTx).fill('?').join(', ')
+    const fields = Object.keys(tokenTx)
     const values = extractValues(tokenTx)
-    const sql = 'INSERT OR REPLACE INTO tokenTxs (' + fields + ') VALUES (' + placeholders + ')'
+    const sql = upsertSQL('tokenTxs', fields, ['txHash', 'tokenEvent'])
     db.run(sql, values)
     if (config.verbose) console.log('Successfully inserted Token Transaction', tokenTx.txHash)
   } catch (e) {
@@ -99,13 +109,9 @@ export function insertTokenTransaction(tokenTx: TokenTx): void {
 
 export function bulkInsertTokenTransactions(tokenTxs: TokenTx[]): void {
   try {
-    const fields = Object.keys(tokenTxs[0]).join(', ')
-    const placeholders = Object.keys(tokenTxs[0]).fill('?').join(', ')
+    const fields = Object.keys(tokenTxs[0])
+    const { sql, getParamIndex } = bulkInsertSQL('tokenTxs', fields, tokenTxs.length, ['txHash', 'tokenEvent'])
     const values = extractValuesFromArray(tokenTxs)
-    let sql = 'INSERT OR REPLACE INTO tokenTxs (' + fields + ') VALUES (' + placeholders + ')'
-    for (let i = 1; i < tokenTxs.length; i++) {
-      sql = sql + ', (' + placeholders + ')'
-    }
     db.run(sql, values)
     console.log('Successfully inserted token transactions', tokenTxs.length)
   } catch (e) {
@@ -1048,8 +1054,7 @@ export async function queryTransactionCountByTimestamp(
     values.push(afterTimestamp)
   }
   if (beforeTimestamp > 0) {
-    if (afterTimestamp > 0) sql += `AND timestamp<? `
-    else sql += `timestamp<? `
+    sql += `timestamp<? `
     values.push(beforeTimestamp)
   }
   try {
@@ -1186,8 +1191,9 @@ export async function queryTransactionsByTimestamp(
     values.push(afterTimestamp)
   }
   if (beforeTimestamp > 0) {
-    if (afterTimestamp > 0) sql += `AND timestamp<? `
-    else {
+    if (afterTimestamp > 0) {
+      sql += `AND timestamp<? `
+    } else {
       sql += `timestamp<? `
       sqlSuffix = ` ORDER BY timestamp DESC LIMIT ${limit} OFFSET ${skip}`
     }

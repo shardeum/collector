@@ -1,5 +1,6 @@
 import { config } from '../config'
 import * as db from './sqlite3storage'
+import { ph } from './sqlHelpers'
 
 /**
  * Replaces a checkpoint entry in the database with the given value.
@@ -12,7 +13,7 @@ import * as db from './sqlite3storage'
  */
 export async function insertCheckpoint(value: number, type: string = 'cycle'): Promise<void> {
   try {
-    const sql = 'REPLACE INTO `checkpoint` (type, value) VALUES (?, ?)'
+    const sql = `REPLACE INTO checkpoint (type, value) VALUES (${ph(1)}, ${ph(2)})`
     db.run(sql, [type, value])
     if (config.verbose) console.log(`Successfully replaced checkpoint ${type} with value ${value}`)
   } catch (e) {
@@ -32,7 +33,7 @@ export async function fetchCheckpoint(type: string = 'cycle'): Promise<number> {
     const sql = `
       SELECT value
       FROM checkpoint
-      WHERE type = ?
+      WHERE type = ${ph(1)}
       LIMIT 1
     `
     const result: { value: number } = await db.get(sql, [type])

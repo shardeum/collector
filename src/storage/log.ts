@@ -4,6 +4,7 @@ import { extractValues, extractValuesFromArray } from './sqlite3storage'
 import { config } from '../config/index'
 import { isArray } from 'lodash'
 import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
+import { upsertSQL, bulkInsertSQL, ph, countStar, batchProcess } from './sqlHelpers'
 
 export interface Log<L = object> {
   cycle: number
@@ -33,10 +34,9 @@ type DbLog = Log & {
 
 export async function insertLog(log: Log): Promise<void> {
   try {
-    const fields = Object.keys(log).join(', ')
-    const placeholders = Object.keys(log).fill('?').join(', ')
+    const fields = Object.keys(log)
     const values = extractValues(log)
-    const sql = 'INSERT OR REPLACE INTO logs (' + fields + ') VALUES (' + placeholders + ')'
+    const sql = upsertSQL('logs', fields, ['txHash', 'contractAddress', 'topic0'])
     db.run(sql, values)
     if (config.verbose) console.log('Successfully inserted Log', log.txHash, log.contractAddress)
   } catch (e) {
@@ -47,14 +47,27 @@ export async function insertLog(log: Log): Promise<void> {
 
 export async function bulkInsertLogs(logs: Log[]): Promise<void> {
   try {
-    const fields = Object.keys(logs[0]).join(', ')
-    const placeholders = Object.keys(logs[0]).fill('?').join(', ')
-    const values = extractValuesFromArray(logs)
-    let sql = 'INSERT OR REPLACE INTO logs (' + fields + ') VALUES (' + placeholders + ')'
-    for (let i = 1; i < logs.length; i++) {
-      sql = sql + ', (' + placeholders + ')'
+    // Empty logs check
+    if (!logs || logs.length === 0) {
+      return
     }
-    db.run(sql, values)
+
+    const fields = Object.keys(logs[0])
+
+    // Use the batchProcess helper
+    await batchProcess({
+      records: logs,
+      tableName: 'logs',
+      fields,
+      uniqueFields: ['txHash', 'contractAddress', 'topic0'],
+      extractValues: (log) => extractValues(log),
+      extractBatchValues: (batch) => extractValuesFromArray(batch),
+      dbRunFunction: async (sql, values) => {
+        db.run(sql, values)
+        return Promise.resolve()
+      },
+    })
+
     if (config.verbose) console.log('Successfully bulk inserted Logs', logs.length)
   } catch (e) {
     console.log(e)
@@ -71,22 +84,22 @@ function buildLogQueryString(
   const queryParams = []
   const values = []
   if (countOnly) {
-    sql = 'SELECT COUNT(txHash) FROM logs '
-    if (type === 'txs') sql = 'SELECT COUNT(DISTINCT(txHash)) FROM logs '
+    sql = `SELECT ${countStar()} FROM logs `
+    if (type === 'txs') sql = `SELECT COUNT(DISTINCT(txHash)) FROM logs `
   } else {
     sql = 'SELECT * FROM logs '
   }
   const fromBlock = request.fromBlock
   const toBlock = request.toBlock
   if (fromBlock && toBlock) {
-    queryParams.push(`blockNumber BETWEEN ? AND ?`)
+    queryParams.push(`blockNumber BETWEEN ${ph(values.length + 1)} AND ${ph(values.length + 2)}`)
     values.push(fromBlock, toBlock)
   } else if (request.blockHash) {
-    queryParams.push(`blockHash=?`)
+    queryParams.push(`blockHash=${ph(values.length + 1)}`)
     values.push(request.blockHash)
   }
   if (request.address) {
-    queryParams.push(`contractAddress=?`)
+    queryParams.push(`contractAddress=${ph(values.length + 1)}`)
     values.push(request.address)
   }
 
@@ -95,12 +108,13 @@ function buildLogQueryString(
     if (Array.isArray(topicValue)) {
       const validHexValues = topicValue.filter((value) => typeof value === 'string' && hexPattern.test(value))
       if (validHexValues.length > 0) {
-        const query = `topic${topicIndex} IN (${validHexValues.map(() => '?').join(',')})`
+        const paramPlaceholders = validHexValues.map((_, i) => ph(values.length + i + 1)).join(',')
+        const query = `topic${topicIndex} IN (${paramPlaceholders})`
         queryParams.push(query)
         values.push(...validHexValues)
       }
     } else if (typeof topicValue === 'string' && hexPattern.test(topicValue)) {
-      queryParams.push(`topic${topicIndex}=?`)
+      queryParams.push(`topic${topicIndex}=${ph(values.length + 1)}`)
       values.push(topicValue)
     }
   }
@@ -166,12 +180,15 @@ export async function queryLogs(
       false,
       type
     )
-    let sqlQueryExtension = ` ORDER BY cycle DESC, timestamp DESC LIMIT ${limit} OFFSET ${skip}`
+    let sqlQueryExtension = ` ORDER BY cycle DESC, timestamp DESC LIMIT ${ph(inputs.length + 1)} OFFSET ${ph(
+      inputs.length + 2
+    )}`
     if (type === 'txs') {
       sqlQueryExtension = ` GROUP BY txHash` + sqlQueryExtension
     }
     if (config.verbose) console.log(sql, inputs)
-    logs = await db.all(sql + sqlQueryExtension, inputs)
+    const allInputs = [...inputs, limit, skip]
+    logs = await db.all(sql + sqlQueryExtension, allInputs)
     if (logs.length > 0) {
       logs.forEach((log: DbLog) => {
         if (log.log) (log as Log).log = StringUtils.safeJsonParse(log.log)
@@ -187,7 +204,7 @@ export async function queryLogs(
 export async function queryLogCountBetweenCycles(startCycleNumber: number, endCycleNumber: number): Promise<number> {
   let logs: { 'COUNT(*)': number } = { 'COUNT(*)': 0 }
   try {
-    const sql = `SELECT COUNT(*) FROM logs WHERE cycle BETWEEN ? AND ?`
+    const sql = `SELECT ${countStar()} FROM logs WHERE cycle BETWEEN ${ph(1)} AND ${ph(2)}`
     logs = await db.get(sql, [startCycleNumber, endCycleNumber])
   } catch (e) {
     console.log(e)
@@ -207,8 +224,10 @@ export async function queryLogsBetweenCycles(
 ): Promise<Log[]> {
   let logs: DbLog[] = []
   try {
-    const sql = `SELECT * FROM logs WHERE cycle BETWEEN ? AND ? ORDER BY cycle DESC, timestamp DESC LIMIT ${limit} OFFSET ${skip}`
-    logs = await db.all(sql, [startCycleNumber, endCycleNumber])
+    const sql = `SELECT * FROM logs WHERE cycle BETWEEN ${ph(1)} AND ${ph(
+      2
+    )} ORDER BY cycle DESC, timestamp DESC LIMIT ${ph(3)} OFFSET ${ph(4)}`
+    logs = await db.all(sql, [startCycleNumber, endCycleNumber, limit, skip])
     if (logs.length > 0) {
       logs.forEach((log: DbLog) => {
         if (log.log) (log as Log).log = StringUtils.safeJsonParse(log.log)
@@ -238,18 +257,20 @@ export async function queryLogsByFilter(logFilter: LogFilter, limit = 5000): Pro
 
   function createSqlFromEvmLogFilter(filter: LogFilter): string {
     const { fromBlock, toBlock, address, topics, blockHash } = filter
+    let paramCount = 1
 
     let sql = `SELECT log FROM logs WHERE 1 = 1`
 
     if (isArray(address) && address.length > 0) {
-      sql += ` AND contractAddress IN (${address.map(() => `?`).join(',')})`
+      const placeholders = address.map(() => ph(paramCount++)).join(',')
+      sql += ` AND contractAddress IN (${placeholders})`
       for (const addr of address) {
         queryParams.push(addr.toLowerCase())
       }
     }
 
     if (blockHash) {
-      sql += ` AND blockHash = ?`
+      sql += ` AND blockHash = ${ph(paramCount++)}`
       queryParams.push(blockHash.toLowerCase())
     } else {
       if (fromBlock == 'latest') {
@@ -263,7 +284,7 @@ export async function queryLogsByFilter(logFilter: LogFilter, limit = 5000): Pro
         sql += ` AND blockNumber >= 0`
       }
       if (fromBlock && fromBlock !== 'latest' && fromBlock !== 'earliest') {
-        sql += ` AND blockNumber >= ?`
+        sql += ` AND blockNumber >= ${ph(paramCount++)}`
         queryParams.push(Number(fromBlock))
       }
 
@@ -278,28 +299,28 @@ export async function queryLogsByFilter(logFilter: LogFilter, limit = 5000): Pro
         sql += ` AND blockNumber <= 0`
       }
       if (toBlock && toBlock !== 'latest' && toBlock !== 'earliest') {
-        sql += ` AND blockNumber <= ?`
+        sql += ` AND blockNumber <= ${ph(paramCount++)}`
         queryParams.push(Number(toBlock))
       }
     }
 
     if (topics[0]) {
-      sql += ` AND topic0 = ?`
+      sql += ` AND topic0 = ${ph(paramCount++)}`
       queryParams.push(topics[0].toLowerCase())
     }
     if (topics[1]) {
-      sql += ` AND topic1 = ?`
+      sql += ` AND topic1 = ${ph(paramCount++)}`
       queryParams.push(topics[1].toLowerCase())
     }
     if (topics[2]) {
-      sql += ` AND topic2 = ?`
+      sql += ` AND topic2 = ${ph(paramCount++)}`
       queryParams.push(topics[2].toLowerCase())
     }
     if (topics[3]) {
-      sql += ` AND topic3 = ?`
+      sql += ` AND topic3 = ${ph(paramCount++)}`
       queryParams.push(topics[3].toLowerCase())
     }
-    sql += ` ORDER BY blockNumber ASC LIMIT ?;`
+    sql += ` ORDER BY blockNumber ASC LIMIT ${ph(paramCount++)};`
     queryParams.push(limit)
 
     if (config.verbose) console.log(`queryLogsByFilter: Query: `, sql, queryParams)
