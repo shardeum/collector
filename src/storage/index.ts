@@ -77,7 +77,7 @@ export async function initializeDB(): Promise<void> {
     if (isShardeumIndexerEnabled()) {
       console.log('ShardeumIndexer: Enabled, creating tables and indexes for ShardeumIndexer')
       await executeDbOperation(
-        'CREATE TABLE if not exists `accountsEntry` (`accountId` TEXT NOT NULL UNIQUE PRIMARY KEY, `timestamp` BIGINT NOT NULL, `data` TEXT NOT NULL)',
+        'CREATE TABLE if not exists "accountsEntry" ("accountId" TEXT NOT NULL UNIQUE PRIMARY KEY, "timestamp" BIGINT NOT NULL, "data" TEXT NOT NULL)',
         'Error creating shardeumIndexer tables',
         'shardeumIndexer'
       )
@@ -109,47 +109,6 @@ export async function initializeDB(): Promise<void> {
       'Error creating transactions table'
     )
 
-    // Check if 'internalTXType' column exists on transactions table
-    // Use database-agnostic approach to check for column existence
-    let columnExists = false
-
-    try {
-      if (config.postgresEnabled) {
-        // PostgreSQL syntax to check if column exists
-        const checkColumnSql = `
-          SELECT column_name 
-          FROM information_schema.columns 
-          WHERE table_name='transactions' AND column_name='internalTXType'
-        `
-
-        const result = db.get<{ column_name?: string }>(checkColumnSql)
-        columnExists = !!result && !!result.column_name
-      } else {
-        // SQLite syntax to check if column exists
-        const result = db.all<{ name: string }>('PRAGMA table_info(transactions)')
-        columnExists = result.some((row) => row && row.name === 'internalTXType')
-      }
-    } catch (err) {
-      console.error('Error checking for internalTXType column:', err)
-      columnExists = true // Assume it exists to avoid errors
-    }
-
-    if (!columnExists) {
-      console.log("Adding missing column 'internalTXType' to transactions table...")
-
-      try {
-        // Add the new column - ALTER TABLE syntax is compatible with both SQLite and PostgreSQL
-        db.run('ALTER TABLE transactions ADD COLUMN internalTXType INTEGER')
-        console.log("Column 'internalTXType' added successfully.")
-      } catch (err) {
-        console.error("Error adding 'internalTXType' column:", err)
-        console.log('Column likely already exists or cannot be added. Continuing...')
-      }
-    } else {
-      console.log("Column 'internalTXType' already exists.")
-    }
-
-    // Create remaining indexes and tables with error handling
     await executeDbOperation(
       'CREATE INDEX if not exists `transactions_hash_id` ON `transactions` (`txHash`, `txId`)',
       'Error creating transactions_hash_id index'
@@ -263,7 +222,7 @@ export async function initializeDB(): Promise<void> {
     )
 
     await executeDbOperation(
-      'CREATE TABLE if not exists `accountHistoryState` (`accountId` TEXT NOT NULL, `beforeStateHash` TEXT NOT NULL, `afterStateHash` TEXT NOT NULL, `blockNumber` NUMBER NOT NULL, `blockHash` TEXT NOT NULL, `timestamp` BIGINT NOT NULL, `receiptId` TEXT NOT NULL, PRIMARY KEY (`accountId`, `timestamp`), UNIQUE (`accountId`, `blockNumber`))',
+      'CREATE TABLE if not exists `accountHistoryState` (`accountId` TEXT NOT NULL, `beforeStateHash` TEXT NOT NULL, `afterStateHash` TEXT NOT NULL, `blockNumber` BIGINT NOT NULL, `blockHash` TEXT NOT NULL, `timestamp` BIGINT NOT NULL, `receiptId` TEXT NOT NULL, PRIMARY KEY (`accountId`, `timestamp`), UNIQUE (`accountId`, `blockNumber`))',
       'Error creating accountHistoryState table'
     )
 

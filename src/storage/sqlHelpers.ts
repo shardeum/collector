@@ -160,24 +160,25 @@ export function rowPlaceholders(fieldCount: number, startIndex = 1): string {
  */
 export function upsertSQL(tableName: string, fields: string[], uniqueFields: string[]): string {
   const fieldsStr = fields.join(', ')
+  const quotedTableName = quoteIdentifier(tableName)
 
   if (pgEnabled) {
     // For PostgreSQL
     const placeholders = fields.map((_, i) => `$${i + 1}`).join(', ')
-    const updateSet = fields.map((field) => `${field} = EXCLUDED.${field}`).join(', ')
+    const updateSet = fields.map((field) => `${quoteIdentifier(field)} = EXCLUDED.${quoteIdentifier(field)}`).join(', ')
 
     // Special handling for tables that might not have the constraint
     if (tableName === 'transactions') {
       // Use DO NOTHING for tables without unique constraints like transactions
       return `
-        INSERT INTO ${tableName} (${fieldsStr})
+        INSERT INTO ${quotedTableName} (${fieldsStr})
         VALUES (${placeholders})
         ON CONFLICT DO NOTHING
       `
     }
 
     return `
-      INSERT INTO ${tableName} (${fieldsStr})
+      INSERT INTO ${quotedTableName} (${fieldsStr})
       VALUES (${placeholders})
       ON CONFLICT(${uniqueFields.join(', ')})
       DO UPDATE SET ${updateSet}
@@ -185,7 +186,7 @@ export function upsertSQL(tableName: string, fields: string[], uniqueFields: str
   } else {
     // For SQLite
     const placeholders = Array(fields.length).fill('?').join(', ')
-    return `INSERT OR REPLACE INTO ${tableName} (${fieldsStr}) VALUES (${placeholders})`
+    return `INSERT OR REPLACE INTO ${quotedTableName} (${fieldsStr}) VALUES (${placeholders})`
   }
 }
 
@@ -225,9 +226,10 @@ export function bulkInsertSQL(
   uniqueFields: string[]
 ): { sql: string; getParamIndex: (recordIndex: number, fieldIndex: number) => number } {
   const fieldsStr = fields.join(', ')
+  const quotedTableName = quoteIdentifier(tableName)
 
   if (pgEnabled) {
-    let sql = `INSERT INTO ${tableName} (${fieldsStr}) VALUES `
+    let sql = `INSERT INTO ${quotedTableName} (${fieldsStr}) VALUES `
 
     const rowValues = []
     for (let i = 0; i < recordCount; i++) {
@@ -242,23 +244,27 @@ export function bulkInsertSQL(
       // Use DO NOTHING for tables without unique constraints like transactions
       sql += ` ON CONFLICT DO NOTHING`
     } else {
-      const updateSet = fields.map((field) => `${field} = EXCLUDED.${field}`).join(', ')
+      const updateSet = fields
+        .map((field) => `${quoteIdentifier(field)} = EXCLUDED.${quoteIdentifier(field)}`)
+        .join(', ')
       sql += ` ON CONFLICT(${uniqueFields.join(', ')}) DO UPDATE SET ${updateSet}`
     }
 
     const getParamIndex = (recordIndex: number, fieldIndex: number) => recordIndex * fields.length + fieldIndex + 1
-
     return { sql, getParamIndex }
   } else {
-    const placeholders = Array(fields.length).fill('?').join(', ')
-    let sql = `INSERT OR REPLACE INTO ${tableName} (${fieldsStr}) VALUES (${placeholders})`
-
-    for (let i = 1; i < recordCount; i++) {
-      sql += `, (${placeholders})`
+    // For SQLite
+    const valuesPlaceholders = []
+    for (let i = 0; i < recordCount; i++) {
+      const rowPlaceholders = []
+      for (let j = 0; j < fields.length; j++) {
+        rowPlaceholders.push('?')
+      }
+      valuesPlaceholders.push(`(${rowPlaceholders.join(', ')})`)
     }
 
+    const sql = `INSERT OR REPLACE INTO ${quotedTableName} (${fieldsStr}) VALUES ${valuesPlaceholders.join(', ')}`
     const getParamIndex = (recordIndex: number, fieldIndex: number) => recordIndex * fields.length + fieldIndex + 1
-
     return { sql, getParamIndex }
   }
 }
@@ -415,25 +421,19 @@ export function between(
 }
 
 /**
- * Creates proper quotes for identifiers (table/column names)
+ * Properly quotes identifiers (table/column names) for the current database
  *
- * @example
- * // Usage:
- * const tableName = 'user-data'; // Has a hyphen, needs quoting
- * const sql = `SELECT * FROM ${quoteIdentifier(tableName)}`;
- * // For SQLite: "SELECT * FROM [user-data]"
- * // For PostgreSQL: "SELECT * FROM "user-data""
- *
- * @example
- * // With column names that are reserved words:
- * const sql = `SELECT ${quoteIdentifier('order')}, ${quoteIdentifier('desc')} FROM products`;
- * // Ensures proper quoting for reserved words
- *
- * @param identifier - Table or column name to quote
+ * @param identifier - The identifier (table or column name) to quote
  * @returns Properly quoted identifier for the current database
  */
 export function quoteIdentifier(identifier: string): string {
-  return pgEnabled ? `"${identifier}"` : `[${identifier}]`
+  if (pgEnabled) {
+    // For PostgreSQL, use double quotes to preserve case sensitivity
+    return `"${identifier}"`
+  } else {
+    // For SQLite, use backticks
+    return `\`${identifier}\``
+  }
 }
 
 /**

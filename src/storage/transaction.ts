@@ -1054,7 +1054,8 @@ export async function queryTransactionCountByTimestamp(
     values.push(afterTimestamp)
   }
   if (beforeTimestamp > 0) {
-    sql += `timestamp<? `
+    if (afterTimestamp > 0) sql += `AND timestamp<? `
+    else sql += `timestamp<? `
     values.push(beforeTimestamp)
   }
   try {

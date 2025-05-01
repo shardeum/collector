@@ -104,26 +104,13 @@ export async function init(options: DbOptions): Promise<void> {
 
             await pgIndexerClient.connect()
             pgIndexerClient.on('error', (err) => {
-              console.error('PostgreSQL indexer DB encountered an error', err.stack)
+              console.error('PostgreSQL Shardeum indexer DB encountered an error', err.stack)
             })
 
-            console.log('PostgreSQL indexer database initialized.')
+            console.log('PostgreSQL Shardeum indexer database initialized.')
           } catch (indexerErr) {
-            console.error('Failed to initialize PostgreSQL indexer database:', indexerErr)
-            console.warn('Will use SQLite for shardeumIndexer operations')
-
-            // Initialize SQLite for the indexer only
-            try {
-              shardeumIndexerDb = new Database(options.shardeumIndexerSqlitePath)
-              run('PRAGMA journal_mode=WAL', [], 'shardeumIndexer')
-              run('PRAGMA busy_timeout = 5000', [], 'shardeumIndexer')
-              console.log('SQLite Shardeum indexer database initialized as fallback.')
-            } catch (sqliteErr) {
-              console.error('Failed to initialize SQLite fallback for indexer:', sqliteErr)
-              // Create in-memory SQLite as a last resort
-              shardeumIndexerDb = new Database(':memory:')
-              console.log('In-memory SQLite database created for indexer as a last resort.')
-            }
+            console.error('Failed to initialize Shardeum indexer database:', indexerErr)
+            throw new Error('Failed to initialize Shardeum indexer database')
           }
         }
 
@@ -163,10 +150,8 @@ function getDb(dbName: DbName): Database {
     // Ensure SQLite database is initialized for shardeumIndexer
     if (!shardeumIndexerDb) {
       if (config.postgresEnabled && config.enableShardeumIndexer) {
-        // Create a temporary in-memory SQLite database for shardeumIndexer if PG is enabled but SQLite isn't
-        console.warn('Creating in-memory SQLite database for shardeumIndexer on demand')
-        shardeumIndexerDb = new Database(':memory:')
-        // No need to run PRAGMA commands on in-memory database
+        // If PostgreSQL is enabled for shardeumIndexer but SQLite isn't available, throw an error
+        throw new Error('PostgreSQL is enabled for shardeumIndexer but PG client is not available')
       } else {
         throw new Error('Shardeum indexer database not initialized')
       }
@@ -204,7 +189,24 @@ function fixSQLCasing(sql: string): string {
       'accounthistorystate',
       'originaltxsdata',
       'originaltxsdata2',
+      'tokentxs',
     ]
+
+    // Additionally, ensure case consistency by explicitly mapping camelCase table names to lowercase
+    const camelCaseToLowerMap = {
+      accountHistoryState: 'accounthistorystate',
+      originalTxsData: 'originaltxsdata',
+      originalTxsData2: 'originaltxsdata2',
+      tokenTxs: 'tokentxs',
+    }
+
+    // Check for camelCase table names and replace them with lowercase versions
+    for (const [camelCase, lowercase] of Object.entries(camelCaseToLowerMap)) {
+      // Match the camelCase version (not already in quotes)
+      const camelRegex = new RegExp(`\\b(${camelCase})\\b(?!")`, 'g')
+      fixedSql = fixedSql.replace(camelRegex, `"${lowercase}"`)
+    }
+
     for (const table of tableNames) {
       // Only match unquoted table names (not already in double quotes)
       // Use word boundary to avoid partial matches
@@ -242,6 +244,25 @@ function preparePgSQL(sql: string): string {
     .replace(/NUMBER/g, 'BIGINT')
     // Replace if not exists syntax (PostgreSQL uses lowercase)
     .replace(/IF NOT EXISTS/gi, 'IF NOT EXISTS')
+
+  // Ensure 'accountsEntry' table name is properly quoted to preserve case
+  pgSQL = pgSQL.replace(/(\s)accountsEntry(\s|\(|$)/g, '$1"accountsEntry"$2')
+
+  // Handle bulk insert case for 'accountsEntry'
+  pgSQL = pgSQL.replace(/INSERT INTO accountsEntry/g, 'INSERT INTO "accountsEntry"')
+
+  // General pattern to quote camelCase tables when not already quoted
+  const camelCaseTables = ['accountsEntry', 'tokenTxs', 'accountHistoryState', 'originalTxsData', 'originalTxsData2']
+  camelCaseTables.forEach((tableName) => {
+    // For various SQL operations (INSERT, UPDATE, DELETE, SELECT)
+    pgSQL = pgSQL.replace(
+      new RegExp(`(INSERT INTO|UPDATE|DELETE FROM|SELECT .+ FROM)\\s+${tableName}(\\s|$|\\()`, 'g'),
+      `$1 "${tableName}"$2`
+    )
+
+    // For table references in FROM, JOIN, etc.
+    pgSQL = pgSQL.replace(new RegExp(`(FROM|JOIN)\\s+${tableName}(\\s|$|\\()`, 'g'), `$1 "${tableName}"$2`)
+  })
 
   // Generic handling for INSERT OR REPLACE
   if (pgSQL.includes('INSERT OR REPLACE INTO')) {
@@ -351,30 +372,8 @@ export async function runCreate(createStatement: string, dbName: DbName = 'defau
 
       // Special handling for shardeumIndexer database
       if (dbName === 'shardeumIndexer' && !pgIndexerClient) {
-        // Fall back to SQLite for this specific operation
-        console.log(`PostgreSQL client for ${dbName} not initialized, using SQLite for this operation`)
-
-        // Make sure we have a SQLite database for shardeumIndexer
-        if (!shardeumIndexerDb && config.enableShardeumIndexer) {
-          console.warn('Initializing SQLite for shardeumIndexer on demand in runCreate')
-          try {
-            shardeumIndexerDb = new Database(config.shardeumIndexerSqlitePath)
-            run('PRAGMA journal_mode=WAL', [], 'shardeumIndexer')
-            run('PRAGMA busy_timeout = 5000', [], 'shardeumIndexer')
-          } catch (err) {
-            console.error('Failed to initialize file-based SQLite for shardeumIndexer:', err)
-            shardeumIndexerDb = new Database(':memory:')
-            console.log('Created in-memory SQLite database for shardeumIndexer')
-          }
-        }
-
-        // Check again if shardeumIndexerDb is initialized
-        if (!shardeumIndexerDb) {
-          throw new Error('Failed to initialize any SQLite database for Shardeum indexer')
-        }
-
-        run(createStatement, [], dbName)
-        return
+        // If PostgreSQL is enabled for shardeumIndexer but client is not available, throw error
+        throw new Error('PostgreSQL is enabled for shardeumIndexer but the client is not available')
       }
 
       const client = getClient(dbName)
@@ -409,35 +408,10 @@ export function run(sql: string, params: unknown[] | object = [], dbName: DbName
       const pgSQL = preparePgSQL(fixSQLCasing(sql))
       // Special handling for shardeumIndexer database
       if (dbName === 'shardeumIndexer' && !pgIndexerClient) {
-        // Fall back to SQLite for this specific operation
-        console.log(`PostgreSQL client for ${dbName} not initialized, using SQLite for this operation`)
-
-        // Make sure we have a SQLite database for shardeumIndexer
-        if (!shardeumIndexerDb && config.enableShardeumIndexer) {
-          console.warn('Initializing SQLite for shardeumIndexer on demand in run operation')
-          try {
-            shardeumIndexerDb = new Database(config.shardeumIndexerSqlitePath)
-            try {
-              shardeumIndexerDb.prepare('PRAGMA journal_mode=WAL').run()
-              shardeumIndexerDb.prepare('PRAGMA busy_timeout = 5000').run()
-            } catch (pragmaErr) {
-              console.warn('Could not set PRAGMA settings on SQLite database:', pragmaErr)
-            }
-          } catch (err) {
-            console.error('Failed to initialize file-based SQLite for shardeumIndexer:', err)
-            shardeumIndexerDb = new Database(':memory:')
-            console.log('Created in-memory SQLite database for shardeumIndexer')
-          }
-        }
-
-        if (!shardeumIndexerDb) {
-          throw new Error('Failed to initialize any SQLite database for Shardeum indexer')
-        }
-
-        const dbInstance = getDb(dbName)
-        const info = dbInstance.prepare(sql).run(params)
-        return { id: info.lastInsertRowid as number }
+        // If PostgreSQL is enabled for shardeumIndexer but client is not available, throw error
+        throw new Error('PostgreSQL is enabled for shardeumIndexer but the client is not available')
       }
+
       const client = getClient(dbName)
       if (!client) {
         throw new Error(`PostgreSQL client for ${dbName} not initialized`)
@@ -471,31 +445,8 @@ export function get<T>(sql: string, params: unknown[] | object = [], dbName: DbN
     if (config.postgresEnabled) {
       // Special handling for shardeumIndexer database
       if (dbName === 'shardeumIndexer' && !pgIndexerClient) {
-        // Fall back to SQLite for this specific operation
-        console.log(`PostgreSQL client for ${dbName} not initialized, using SQLite for this operation`)
-
-        // Make sure we have a SQLite database for shardeumIndexer
-        if (!shardeumIndexerDb && config.enableShardeumIndexer) {
-          console.warn('Initializing SQLite for shardeumIndexer on demand in get operation')
-          try {
-            shardeumIndexerDb = new Database(config.shardeumIndexerSqlitePath)
-            run('PRAGMA journal_mode=WAL', [], 'shardeumIndexer')
-            run('PRAGMA busy_timeout = 5000', [], 'shardeumIndexer')
-          } catch (err) {
-            console.error('Failed to initialize file-based SQLite for shardeumIndexer:', err)
-            shardeumIndexerDb = new Database(':memory:')
-            console.log('Created in-memory SQLite database for shardeumIndexer')
-          }
-        }
-
-        // Check again if shardeumIndexerDb is initialized
-        if (!shardeumIndexerDb) {
-          throw new Error('Failed to initialize any SQLite database for Shardeum indexer')
-        }
-
-        const dbInstance = getDb(dbName)
-        const result = dbInstance.prepare(sql).get(params) as any
-        return deserializeDbRow<T>(result)
+        // If PostgreSQL is enabled for shardeumIndexer but client is not available, throw error
+        throw new Error('PostgreSQL is enabled for shardeumIndexer but the client is not available')
       }
 
       const pgSQL = preparePgSQL(fixSQLCasing(sql))
@@ -541,31 +492,8 @@ export function all<T>(sql: string, params: unknown[] | object = [], dbName: DbN
     if (config.postgresEnabled) {
       // Special handling for shardeumIndexer database
       if (dbName === 'shardeumIndexer' && !pgIndexerClient) {
-        // Fall back to SQLite for this specific operation
-        console.log(`PostgreSQL client for ${dbName} not initialized, using SQLite for this operation`)
-
-        // Make sure we have a SQLite database for shardeumIndexer
-        if (!shardeumIndexerDb && config.enableShardeumIndexer) {
-          console.warn('Initializing SQLite for shardeumIndexer on demand in all operation')
-          try {
-            shardeumIndexerDb = new Database(config.shardeumIndexerSqlitePath)
-            run('PRAGMA journal_mode=WAL', [], 'shardeumIndexer')
-            run('PRAGMA busy_timeout = 5000', [], 'shardeumIndexer')
-          } catch (err) {
-            console.error('Failed to initialize file-based SQLite for shardeumIndexer:', err)
-            shardeumIndexerDb = new Database(':memory:')
-            console.log('Created in-memory SQLite database for shardeumIndexer')
-          }
-        }
-
-        // Check again if shardeumIndexerDb is initialized
-        if (!shardeumIndexerDb) {
-          throw new Error('Failed to initialize any SQLite database for Shardeum indexer')
-        }
-
-        const dbInstance = getDb(dbName)
-        const results = dbInstance.prepare(sql).all(params) as any[]
-        return results.map((row) => deserializeDbRow<T>(row)) as T[]
+        // If PostgreSQL is enabled for shardeumIndexer but client is not available, throw error
+        throw new Error('PostgreSQL is enabled for shardeumIndexer but the client is not available')
       }
 
       const pgSQL = preparePgSQL(fixSQLCasing(sql))
