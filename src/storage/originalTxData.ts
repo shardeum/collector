@@ -273,12 +273,15 @@ export async function queryOriginalTxsData(
       if (txType) {
         const sql = `SELECT * FROM originalTxsData WHERE txId=${ph(1)}`
         const originalTxDataById: DbOriginalTxData = await db.get(sql, [originalTxData.txId])
-        originalTxData.originalTxData = originalTxDataById.originalTxData
-        originalTxData.sign = originalTxDataById.sign
+        if (originalTxDataById) {
+          originalTxData.originalTxData = originalTxDataById.originalTxData
+          originalTxData.sign = originalTxDataById.sign
+        }
       }
-      if (originalTxData.originalTxData)
+      if (originalTxData.originalTxData && typeof originalTxData.originalTxData === 'string')
         originalTxData.originalTxData = StringUtils.safeJsonParse(originalTxData.originalTxData)
-      if (originalTxData.sign) originalTxData.sign = StringUtils.safeJsonParse(originalTxData.sign)
+      if (originalTxData.sign && typeof originalTxData.sign === 'string')
+        originalTxData.sign = StringUtils.safeJsonParse(originalTxData.sign)
     }
   } catch (e) {
     console.log(e)
@@ -292,9 +295,10 @@ export async function queryOriginalTxDataByTxId(txId: string): Promise<OriginalT
     const sql = `SELECT * FROM originalTxsData WHERE txId=${ph(1)}`
     const originalTxData: DbOriginalTxData = await db.get(sql, [txId])
     if (originalTxData) {
-      if (originalTxData.originalTxData)
+      if (originalTxData.originalTxData && typeof originalTxData.originalTxData === 'string')
         originalTxData.originalTxData = StringUtils.safeJsonParse(originalTxData.originalTxData)
-      if (originalTxData.sign) originalTxData.sign = StringUtils.safeJsonParse(originalTxData.sign)
+      if (originalTxData.sign && typeof originalTxData.sign === 'string')
+        originalTxData.sign = StringUtils.safeJsonParse(originalTxData.sign)
     }
     if (config.verbose) console.log('OriginalTxData txId', originalTxData)
     return originalTxData as unknown as OriginalTxDataInterface
@@ -312,9 +316,10 @@ export async function queryOriginalTxDataByTxIdAndTimestamp(
     const sql = `SELECT * FROM originalTxsData WHERE txId=${ph(1)} AND timestamp=${ph(2)}`
     const originalTxData: DbOriginalTxData = await db.get(sql, [txId, timestamp])
     if (originalTxData) {
-      if (originalTxData.originalTxData)
+      if (originalTxData.originalTxData && typeof originalTxData.originalTxData === 'string')
         originalTxData.originalTxData = StringUtils.safeJsonParse(originalTxData.originalTxData)
-      if (originalTxData.sign) originalTxData.sign = StringUtils.safeJsonParse(originalTxData.sign)
+      if (originalTxData.sign && typeof originalTxData.sign === 'string')
+        originalTxData.sign = StringUtils.safeJsonParse(originalTxData.sign)
     }
     if (config.verbose) console.log('OriginalTxData txId', originalTxData)
     return originalTxData as unknown as OriginalTxDataInterface
@@ -331,11 +336,14 @@ export async function queryOriginalTxDataByTxHash(txHash: string): Promise<Origi
     if (originalTxData) {
       const sql = `SELECT * FROM originalTxsData WHERE txId=${ph(1)}`
       const originalTxDataById: DbOriginalTxData = await db.get(sql, [originalTxData.txId])
-      originalTxData.originalTxData = originalTxDataById.originalTxData
-      originalTxData.sign = originalTxDataById.sign
-      if (originalTxData.originalTxData)
+      if (originalTxDataById) {
+        originalTxData.originalTxData = originalTxDataById.originalTxData
+        originalTxData.sign = originalTxDataById.sign
+      }
+      if (originalTxData.originalTxData && typeof originalTxData.originalTxData === 'string')
         originalTxData.originalTxData = StringUtils.safeJsonParse(originalTxData.originalTxData)
-      if (originalTxData.sign) originalTxData.sign = StringUtils.safeJsonParse(originalTxData.sign)
+      if (originalTxData.sign && typeof originalTxData.sign === 'string')
+        originalTxData.sign = StringUtils.safeJsonParse(originalTxData.sign)
     }
     if (config.verbose) console.log('OriginalTxData txHash', originalTxData)
     return originalTxData as unknown as OriginalTxDataInterface

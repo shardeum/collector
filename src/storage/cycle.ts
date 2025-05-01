@@ -150,6 +150,13 @@ export async function queryCycleByMarker(marker: string): Promise<Cycle | null> 
     const sql = `SELECT * FROM cycles WHERE cycleMarker=${ph(1)} LIMIT 1`
     const cycleRecord: DbCycle = await db.get(sql, [marker])
 
+    // Ensure proper parsing of cycleRecord if it exists
+    if (cycleRecord && cycleRecord.cycleRecord) {
+      if (typeof cycleRecord.cycleRecord === 'string') {
+        cycleRecord.cycleRecord = StringUtils.safeJsonParse(cycleRecord.cycleRecord)
+      }
+    }
+
     if (config.verbose) console.log('cycle marker', StringUtils.safeStringify(cycleRecord))
     return cycleRecord as unknown as Cycle
   } catch (e) {
@@ -163,6 +170,13 @@ export async function queryCycleByCounter(counter: number): Promise<Cycle | null
   try {
     const sql = `SELECT * FROM cycles WHERE counter=${ph(1)} LIMIT 1`
     const cycleRecord: DbCycle = await db.get(sql, [counter])
+
+    // Ensure proper parsing of cycleRecord if it exists
+    if (cycleRecord && cycleRecord.cycleRecord) {
+      if (typeof cycleRecord.cycleRecord === 'string') {
+        cycleRecord.cycleRecord = StringUtils.safeJsonParse(cycleRecord.cycleRecord)
+      }
+    }
 
     if (config.verbose) console.log('cycle counter', cycleRecord)
     return cycleRecord as unknown as Cycle

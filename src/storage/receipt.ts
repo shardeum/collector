@@ -478,14 +478,30 @@ export async function queryReceiptCountBetweenCycles(start: number, end: number)
 }
 
 function deserializeDbReceipt(receipt: DbReceipt): void {
-  receipt.tx &&= StringUtils.safeJsonParse(receipt.tx)
-  receipt.beforeStates &&= StringUtils.safeJsonParse(receipt.beforeStates)
-  receipt.afterStates &&= StringUtils.safeJsonParse(receipt.afterStates)
-  receipt.appReceiptData &&= StringUtils.safeJsonParse(receipt.appReceiptData)
-  receipt.signedReceipt &&= StringUtils.safeJsonParse(receipt.signedReceipt)
+  if (receipt) {
+    if (receipt.tx && typeof receipt.tx === 'string') {
+      receipt.tx = StringUtils.safeJsonParse(receipt.tx)
+    }
 
-  // globalModification is stored as 0 or 1 in the database, convert it to boolean
-  receipt.globalModification = (receipt.globalModification as unknown as number) === 1
+    if (receipt.beforeStates && typeof receipt.beforeStates === 'string') {
+      receipt.beforeStates = StringUtils.safeJsonParse(receipt.beforeStates)
+    }
+
+    if (receipt.afterStates && typeof receipt.afterStates === 'string') {
+      receipt.afterStates = StringUtils.safeJsonParse(receipt.afterStates)
+    }
+
+    if (receipt.appReceiptData && typeof receipt.appReceiptData === 'string') {
+      receipt.appReceiptData = StringUtils.safeJsonParse(receipt.appReceiptData)
+    }
+
+    if (receipt.signedReceipt && typeof receipt.signedReceipt === 'string') {
+      receipt.signedReceipt = StringUtils.safeJsonParse(receipt.signedReceipt)
+    }
+
+    // globalModification is stored as 0 or 1 in the database, convert it to boolean
+    receipt.globalModification = (receipt.globalModification as unknown as number) === 1
+  }
 }
 
 export function cleanOldReceiptsMap(timestamp: number): void {

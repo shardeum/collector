@@ -58,8 +58,6 @@ export interface Config {
   }
   enableTxHashCache: boolean
   findTxHashInOriginalTx: boolean
-  enableShardeumIndexer: boolean
-  shardeumIndexerSqlitePath: string
   blockIndexing: {
     enabled: boolean
     blockProductionRate: number
@@ -76,6 +74,11 @@ export interface Config {
   storeReceiptBeforeStates: boolean
   checkpointWindow: number
   chainId: string
+  enableShardeumIndexer: boolean
+  shardeumIndexerSqlitePath: string
+  postgresEnabled: boolean
+  pgDefaultDBConnectionString: string
+  pgShardeumIndexerDBConnectionString: string
 }
 
 let config: Config = {
@@ -122,8 +125,6 @@ let config: Config = {
   },
   enableTxHashCache: false,
   findTxHashInOriginalTx: false,
-  enableShardeumIndexer: true,
-  shardeumIndexerSqlitePath: process.env.SERVICE_VALIDATOR_DB_PATH || 'db.sqlite3',
   blockIndexing: {
     enabled: true,
     blockProductionRate: 6,
@@ -140,6 +141,14 @@ let config: Config = {
   storeReceiptBeforeStates: true,
   checkpointWindow: 21,
   chainId: process.env.CHAIN_ID || '8082',
+  postgresEnabled: false,
+  pgDefaultDBConnectionString:
+    process.env.POSTGRES_CONNECTION_STRING || 'postgresql://localhost/shardeum_default?user=postgres&password=postgres',
+  pgShardeumIndexerDBConnectionString:
+    process.env.POSTGRES_INDEXER_CONNECTION_STRING ||
+    'postgresql://localhost/shardeum_indexer?user=postgres&password=postgres',
+  enableShardeumIndexer: true,
+  shardeumIndexerSqlitePath: process.env.SERVICE_VALIDATOR_DB_PATH || 'db.sqlite3',
 }
 
 let DISTRIBUTOR_URL = `http://${config.distributorInfo.ip}:${config.distributorInfo.port}`

@@ -191,7 +191,9 @@ export async function queryLogs(
     logs = await db.all(sql + sqlQueryExtension, allInputs)
     if (logs.length > 0) {
       logs.forEach((log: DbLog) => {
-        if (log.log) (log as Log).log = StringUtils.safeJsonParse(log.log)
+        if (log && log.log && typeof log.log === 'string') {
+          ;(log as Log).log = StringUtils.safeJsonParse(log.log)
+        }
       })
     }
   } catch (e) {
@@ -230,7 +232,9 @@ export async function queryLogsBetweenCycles(
     logs = await db.all(sql, [startCycleNumber, endCycleNumber, limit, skip])
     if (logs.length > 0) {
       logs.forEach((log: DbLog) => {
-        if (log.log) (log as Log).log = StringUtils.safeJsonParse(log.log)
+        if (log && log.log && typeof log.log === 'string') {
+          ;(log as Log).log = StringUtils.safeJsonParse(log.log)
+        }
       })
     }
   } catch (e) {
@@ -330,7 +334,9 @@ export async function queryLogsByFilter(logFilter: LogFilter, limit = 5000): Pro
   logs = await db.all(sql, queryParams)
   if (logs.length > 0) {
     logs.forEach((log: DbLog) => {
-      if (log.log) (log as Log).log = StringUtils.safeJsonParse(log.log)
+      if (log && log.log && typeof log.log === 'string') {
+        ;(log as Log).log = StringUtils.safeJsonParse(log.log)
+      }
     })
   }
 

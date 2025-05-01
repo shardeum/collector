@@ -170,8 +170,16 @@ export function queryAccounts(skip = 0, limit = 10, type?: AccountSearchType | C
       accounts = db.all(sql, [AccountType.Account, limit, skip])
     }
     accounts.forEach((account: DbAccount) => {
-      if (account.account) account.account = StringUtils.safeJsonParse(account.account)
-      if (account.contractInfo) account.contractInfo = StringUtils.safeJsonParse(account.contractInfo)
+      if (account && account.account) {
+        if (typeof account.account === 'string') {
+          account.account = StringUtils.safeJsonParse(account.account)
+        }
+      }
+      if (account && account.contractInfo) {
+        if (typeof account.contractInfo === 'string') {
+          account.contractInfo = StringUtils.safeJsonParse(account.contractInfo)
+        }
+      }
     })
   } catch (e) {
     console.log(e)
@@ -184,8 +192,16 @@ export function queryAccountByAccountId(accountId: string): Account | null {
   try {
     const sql = `SELECT * FROM accounts WHERE accountId=${ph(1)}`
     const account: DbAccount = db.get(sql, [accountId])
-    if (account) account.account = StringUtils.safeJsonParse(account.account)
-    if (account && account.contractInfo) account.contractInfo = StringUtils.safeJsonParse(account.contractInfo)
+    if (account && account.account) {
+      if (typeof account.account === 'string') {
+        account.account = StringUtils.safeJsonParse(account.account)
+      }
+    }
+    if (account && account.contractInfo) {
+      if (typeof account.contractInfo === 'string') {
+        account.contractInfo = StringUtils.safeJsonParse(account.contractInfo)
+      }
+    }
     if (config.verbose) console.log('Account accountId', account)
     return account as Account
   } catch (e) {
@@ -200,8 +216,16 @@ export function queryAccountByAddress(address: string, accountType = AccountType
       2
     )} ORDER BY accountType ASC LIMIT 1`
     const account: DbAccount = db.get(sql, [accountType, address])
-    if (account) account.account = StringUtils.safeJsonParse(account.account)
-    if (account && account.contractInfo) account.contractInfo = StringUtils.safeJsonParse(account.contractInfo)
+    if (account && account.account) {
+      if (typeof account.account === 'string') {
+        account.account = StringUtils.safeJsonParse(account.account)
+      }
+    }
+    if (account && account.contractInfo) {
+      if (typeof account.contractInfo === 'string') {
+        account.contractInfo = StringUtils.safeJsonParse(account.contractInfo)
+      }
+    }
     if (config.verbose) console.log('Account Address', account)
     return account as Account
   } catch (e) {
@@ -237,9 +261,16 @@ export function queryAccountsBetweenCycles(
     )} ORDER BY cycle DESC, timestamp DESC LIMIT ${ph(3)} OFFSET ${ph(4)}`
     accounts = db.all(sql, [startCycleNumber, endCycleNumber, limit, skip])
     accounts.forEach((account: DbAccount) => {
-      if (account.account)
-        (account as Account).account = StringUtils.safeJsonParse(account.account) as WrappedEVMAccount
-      if (account.contractInfo) (account as Account).contractInfo = StringUtils.safeJsonParse(account.contractInfo)
+      if (account && account.account) {
+        if (typeof account.account === 'string') {
+          ;(account as Account).account = StringUtils.safeJsonParse(account.account) as WrappedEVMAccount
+        }
+      }
+      if (account && account.contractInfo) {
+        if (typeof account.contractInfo === 'string') {
+          ;(account as Account).contractInfo = StringUtils.safeJsonParse(account.contractInfo)
+        }
+      }
     })
   } catch (e) {
     console.log(e)

@@ -1370,10 +1370,26 @@ export async function queryTokenTxByTxId(txId: string): Promise<DbTokenTx[] | []
 }
 
 function deserializeDbTransaction(transaction: DbTransaction): void {
-  transaction.wrappedEVMAccount = StringUtils.safeJsonParse(transaction.wrappedEVMAccount)
-  transaction.originalTxData = StringUtils.safeJsonParse(transaction.originalTxData)
+  if (transaction) {
+    if (transaction.wrappedEVMAccount) {
+      if (typeof transaction.wrappedEVMAccount === 'string') {
+        transaction.wrappedEVMAccount = StringUtils.safeJsonParse(transaction.wrappedEVMAccount)
+      }
+    }
+    if (transaction.originalTxData) {
+      if (typeof transaction.originalTxData === 'string') {
+        transaction.originalTxData = StringUtils.safeJsonParse(transaction.originalTxData)
+      }
+    }
+  }
 }
 
 function deserializeDbToken(transaction: DbTokenTx): void {
-  transaction.contractInfo = StringUtils.safeJsonParse(transaction.contractInfo)
+  if (transaction) {
+    if (transaction.contractInfo) {
+      if (typeof transaction.contractInfo === 'string') {
+        transaction.contractInfo = StringUtils.safeJsonParse(transaction.contractInfo)
+      }
+    }
+  }
 }
