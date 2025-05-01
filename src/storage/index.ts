@@ -2,6 +2,7 @@ import WebSocket from 'ws'
 import { config } from '../config'
 import * as db from './sqlite3storage'
 import { DbOptions } from './sqlite3storage'
+import { DbName } from './sqlite3storage'
 
 export const isShardeumIndexerEnabled = (): boolean => {
   return config.enableShardeumIndexer
@@ -9,6 +10,20 @@ export const isShardeumIndexerEnabled = (): boolean => {
 
 export const isBlockIndexingEnabled = (): boolean => {
   return config.blockIndexing.enabled
+}
+
+/**
+ * Helper function to execute database operations with consistent error handling
+ * @param operation - SQL operation to run
+ * @param errorMessage - Custom error message
+ * @param dbName - Optional database name for shardeum indexer
+ */
+async function executeDbOperation(operation: string, errorMessage: string, dbName?: DbName): Promise<void> {
+  try {
+    await db.runCreate(operation, dbName)
+  } catch (err) {
+    console.error(`${errorMessage}:`, err)
+  }
 }
 
 export async function initializeDB(): Promise<void> {
@@ -45,68 +60,54 @@ export async function initializeDB(): Promise<void> {
     console.log('[my-log] Initializing database...')
 
     // Create tables and indexes
-    try {
-      const createCyclesTable =
-        'CREATE TABLE if not exists `cycles` (`cycleMarker` TEXT NOT NULL UNIQUE PRIMARY KEY, `counter` NUMBER NOT NULL, `cycleRecord` JSON NOT NULL)'
-      await db.runCreate(createCyclesTable)
-    } catch (err) {
-      console.error('Error creating cycles table:', err)
-    }
+    const createCyclesTable =
+      'CREATE TABLE if not exists `cycles` (`cycleMarker` TEXT NOT NULL UNIQUE PRIMARY KEY, `counter` NUMBER NOT NULL, `cycleRecord` JSON NOT NULL)'
+    await executeDbOperation(createCyclesTable, 'Error creating cycles table')
 
-    try {
-      await db.runCreate('CREATE INDEX if not exists `cycles_idx` ON `cycles` (`counter` DESC)')
-    } catch (err) {
-      console.error('Error creating cycles index:', err)
-    }
+    await executeDbOperation(
+      'CREATE INDEX if not exists `cycles_idx` ON `cycles` (`counter` DESC)',
+      'Error creating cycles index'
+    )
 
-    try {
-      await db.runCreate(
-        'CREATE TABLE if not exists `accounts` (`accountId` TEXT NOT NULL UNIQUE PRIMARY KEY, `cycle` NUMBER NOT NULL, `timestamp` BIGINT NOT NULL, `ethAddress` TEXT NOT NULL, `account` JSON NOT NULL, `accountType` INTEGER NOT NULL, `hash` TEXT NOT NULL, `isGlobal` BOOLEAN NOT NULL, `contractInfo` JSON, `contractType` INTEGER)'
-      )
-    } catch (err) {
-      console.error('Error creating accounts table:', err)
-    }
+    await executeDbOperation(
+      'CREATE TABLE if not exists `accounts` (`accountId` TEXT NOT NULL UNIQUE PRIMARY KEY, `cycle` NUMBER NOT NULL, `timestamp` BIGINT NOT NULL, `ethAddress` TEXT NOT NULL, `account` JSON NOT NULL, `accountType` INTEGER NOT NULL, `hash` TEXT NOT NULL, `isGlobal` BOOLEAN NOT NULL, `contractInfo` JSON, `contractType` INTEGER)',
+      'Error creating accounts table'
+    )
 
     if (isShardeumIndexerEnabled()) {
       console.log('ShardeumIndexer: Enabled, creating tables and indexes for ShardeumIndexer')
-      try {
-        await db.runCreate(
-          'CREATE TABLE if not exists `accountsEntry` (`accountId` TEXT NOT NULL UNIQUE PRIMARY KEY, `timestamp` BIGINT NOT NULL, `data` TEXT NOT NULL)',
-          'shardeumIndexer'
-        )
-      } catch (err) {
-        console.error('Error creating shardeumIndexer tables:', err)
-      }
+      await executeDbOperation(
+        'CREATE TABLE if not exists `accountsEntry` (`accountId` TEXT NOT NULL UNIQUE PRIMARY KEY, `timestamp` BIGINT NOT NULL, `data` TEXT NOT NULL)',
+        'Error creating shardeumIndexer tables',
+        'shardeumIndexer'
+      )
     }
 
     if (isBlockIndexingEnabled()) {
       console.log('BlockIndexing: Enabled, creating tables and indexes for BlockIndexing')
-      try {
-        await db.runCreate(
-          'CREATE TABLE if not exists `blocks` (`number` NUMBER NOT NULL UNIQUE PRIMARY KEY, `numberHex` TEXT NOT NULL, `hash` TEXT NOT NULL, `timestamp` BIGINT NOT NULL, `cycle` NUMBER NOT NULL, `readableBlock` JSON NOT NULL)'
-        )
-        await db.runCreate(`CREATE INDEX IF NOT EXISTS idx_blocks_hash ON blocks (hash)`)
-        await db.runCreate(`CREATE INDEX IF NOT EXISTS idx_blocks_timestamp ON blocks (timestamp)`)
-      } catch (err) {
-        console.error('Error creating blocks table or indexes:', err)
-      }
+      await executeDbOperation(
+        'CREATE TABLE if not exists `blocks` (`number` NUMBER NOT NULL UNIQUE PRIMARY KEY, `numberHex` TEXT NOT NULL, `hash` TEXT NOT NULL, `timestamp` BIGINT NOT NULL, `cycle` NUMBER NOT NULL, `readableBlock` JSON NOT NULL)',
+        'Error creating blocks table'
+      )
+      await executeDbOperation(
+        `CREATE INDEX IF NOT EXISTS idx_blocks_hash ON blocks (hash)`,
+        'Error creating blocks hash index'
+      )
+      await executeDbOperation(
+        `CREATE INDEX IF NOT EXISTS idx_blocks_timestamp ON blocks (timestamp)`,
+        'Error creating blocks timestamp index'
+      )
     }
 
-    try {
-      await db.runCreate(
-        'CREATE INDEX if not exists `accounts_idx` ON `accounts` (`cycle` DESC, `timestamp` DESC, `accountType` ASC, `ethAddress`, `contractInfo`, `contractType` ASC)'
-      )
-    } catch (err) {
-      console.error('Error creating accounts index:', err)
-    }
+    await executeDbOperation(
+      'CREATE INDEX if not exists `accounts_idx` ON `accounts` (`cycle` DESC, `timestamp` DESC, `accountType` ASC, `ethAddress`, `contractInfo`, `contractType` ASC)',
+      'Error creating accounts index'
+    )
 
-    try {
-      await db.runCreate(
-        'CREATE TABLE if not exists `transactions` (`txId` TEXT NOT NULL, `cycle` NUMBER NOT NULL, `timestamp` BIGINT NOT NULL, `blockNumber` NUMBER NOT NULL, `blockHash` TEXT NOT NULL, `wrappedEVMAccount` JSON NOT NULL, `txFrom` TEXT NOT NULL, `txTo` TEXT NOT NULL, `nominee` TEXT, `txHash` TEXT NOT NULL, `transactionType` INTEGER NOT NULL, `originalTxData` JSON, `internalTXType` INTEGER, PRIMARY KEY (`txId`, `txHash`))'
-      )
-    } catch (err) {
-      console.error('Error creating transactions table:', err)
-    }
+    await executeDbOperation(
+      'CREATE TABLE if not exists `transactions` (`txId` TEXT NOT NULL, `cycle` NUMBER NOT NULL, `timestamp` BIGINT NOT NULL, `blockNumber` NUMBER NOT NULL, `blockHash` TEXT NOT NULL, `wrappedEVMAccount` JSON NOT NULL, `txFrom` TEXT NOT NULL, `txTo` TEXT NOT NULL, `nominee` TEXT, `txHash` TEXT NOT NULL, `transactionType` INTEGER NOT NULL, `originalTxData` JSON, `internalTXType` INTEGER, PRIMARY KEY (`txId`, `txHash`))',
+      'Error creating transactions table'
+    )
 
     // Check if 'internalTXType' column exists on transactions table
     // Use database-agnostic approach to check for column existence
@@ -149,197 +150,133 @@ export async function initializeDB(): Promise<void> {
     }
 
     // Create remaining indexes and tables with error handling
-    try {
-      await db.runCreate('CREATE INDEX if not exists `transactions_hash_id` ON `transactions` (`txHash`, `txId`)')
-    } catch (err) {
-      console.error('Error creating transactions_hash_id index:', err)
-    }
+    await executeDbOperation(
+      'CREATE INDEX if not exists `transactions_hash_id` ON `transactions` (`txHash`, `txId`)',
+      'Error creating transactions_hash_id index'
+    )
+    await executeDbOperation(
+      'CREATE INDEX if not exists `transactions_txType` ON `transactions` (`transactionType`)',
+      'Error creating transactions_txType index'
+    )
+    await executeDbOperation(
+      'CREATE INDEX if not exists `transactions_txFrom` ON `transactions` (`txFrom`)',
+      'Error creating transactions_txFrom index'
+    )
+    await executeDbOperation(
+      'CREATE INDEX if not exists `transactions_txTo` ON `transactions` (`txTo`)',
+      'Error creating transactions_txTo index'
+    )
+    await executeDbOperation(
+      'CREATE INDEX if not exists `transactions_nominee` ON `transactions` (`nominee`)',
+      'Error creating transactions_nominee index'
+    )
+    await executeDbOperation(
+      'CREATE INDEX if not exists `transactions_cycle_timestamp` ON `transactions` (`cycle` DESC, `timestamp` DESC)',
+      'Error creating transactions_cycle_timestamp index'
+    )
+    await executeDbOperation(
+      'CREATE INDEX if not exists `transactions_blockHash` ON `transactions` (`blockHash`)',
+      'Error creating transactions_blockHash index'
+    )
+    await executeDbOperation(
+      'CREATE INDEX if not exists `transactions_blockNumber` ON `transactions` (`blockNumber`)',
+      'Error creating transactions_blockNumber index'
+    )
 
-    try {
-      await db.runCreate('CREATE INDEX if not exists `transactions_txType` ON `transactions` (`transactionType`)')
-    } catch (err) {
-      console.error('Error creating transactions_txType index:', err)
-    }
+    await executeDbOperation(
+      'CREATE TABLE if not exists `tokenTxs` (`txId` TEXT NOT NULL, `txHash` TEXT NOT NULL, `cycle` NUMBER NOT NULL, `timestamp` BIGINT NOT NULL, `contractAddress` TEXT NOT NULL, `contractInfo` JSON, `tokenFrom` TEXT NOT NULL, `tokenTo` TEXT NOT NULL, `tokenValue` TEXT NOT NULL, `tokenType` INTEGER NOT NULL, `tokenEvent` TEXT NOT NULL, `tokenOperator` TEXT, `transactionFee` TEXT NOT NULL, FOREIGN KEY (`txId`, `txHash`) REFERENCES transactions(`txId`, `txHash`))',
+      'Error creating tokenTxs table'
+    )
 
-    try {
-      await db.runCreate('CREATE INDEX if not exists `transactions_txFrom` ON `transactions` (`txFrom`)')
-    } catch (err) {
-      console.error('Error creating transactions_txFrom index:', err)
-    }
+    await executeDbOperation(
+      'CREATE INDEX if not exists `tokenTxs_idx` ON `tokenTxs` (`cycle` DESC, `timestamp` DESC, `txId`, `txHash`, `contractAddress`, `tokenFrom`, `tokenTo`, `tokenType`, `tokenOperator`)',
+      'Error creating tokenTxs_idx index'
+    )
 
-    try {
-      await db.runCreate('CREATE INDEX if not exists `transactions_txTo` ON `transactions` (`txTo`)')
-    } catch (err) {
-      console.error('Error creating transactions_txTo index:', err)
-    }
+    await executeDbOperation(
+      'CREATE TABLE if not exists `tokens` (`ethAddress` TEXT NOT NULL, `contractAddress` TEXT NOT NULL, `tokenType` INTEGER NOT NULL, `tokenValue` TEXT NOT NULL, PRIMARY KEY (`ethAddress`, `contractAddress`))',
+      'Error creating tokens table'
+    )
 
-    try {
-      await db.runCreate('CREATE INDEX if not exists `transactions_nominee` ON `transactions` (`nominee`)')
-    } catch (err) {
-      console.error('Error creating transactions_nominee index:', err)
-    }
+    await executeDbOperation(
+      'CREATE INDEX if not exists `tokens_idx` ON `tokens` (`ethAddress`, `contractAddress`, `tokenType`, `tokenValue` DESC)',
+      'Error creating tokens_idx index'
+    )
 
-    try {
-      await db.runCreate(
-        'CREATE INDEX if not exists `transactions_cycle_timestamp` ON `transactions` (`cycle` DESC, `timestamp` DESC)'
-      )
-    } catch (err) {
-      console.error('Error creating transactions_cycle_timestamp index:', err)
-    }
+    await executeDbOperation(
+      'CREATE TABLE if not exists `logs` (`_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `txHash` TEXT NOT NULL, `cycle` NUMBER NOT NULL, `timestamp` BIGINT NOT NULL, `blockNumber` NUMBER NOT NULL, `blockHash` TEXT NOT NULL, `contractAddress` TEXT NOT NULL,' +
+        ' `log` JSON NOT NULL, `topic0` TEXT NOT NULL, `topic1` TEXT, `topic2` TEXT, `topic3` TEXT)',
+      'Error creating logs table'
+    )
 
-    try {
-      await db.runCreate('CREATE INDEX if not exists `transactions_blockHash` ON `transactions` (`blockHash`)')
-    } catch (err) {
-      console.error('Error creating transactions_blockHash index:', err)
-    }
+    await executeDbOperation(
+      'CREATE INDEX IF NOT EXISTS `logs_cycle_timestamp` ON `logs` (`cycle` DESC, `timestamp` DESC)',
+      'Error creating logs_cycle_timestamp index'
+    )
+    await executeDbOperation(
+      'CREATE INDEX IF NOT EXISTS `logs_contractAddress` ON `logs` (`contractAddress`)',
+      'Error creating logs_contractAddress index'
+    )
+    await executeDbOperation(
+      'CREATE INDEX IF NOT EXISTS `logs_blockHash` ON `logs` (`blockHash`)',
+      'Error creating logs_blockHash index'
+    )
+    await executeDbOperation(
+      'CREATE INDEX IF NOT EXISTS `logs_blockNumber` ON `logs` (`blockNumber` DESC)',
+      'Error creating logs_blockNumber index'
+    )
+    await executeDbOperation(
+      'CREATE INDEX IF NOT EXISTS `logs_topic` ON `logs` (`topic0`, `topic1`, `topic2`, `topic3`)',
+      'Error creating logs_topic index'
+    )
 
-    try {
-      await db.runCreate('CREATE INDEX if not exists `transactions_blockNumber` ON `transactions` (`blockNumber`)')
-    } catch (err) {
-      console.error('Error creating transactions_blockNumber index:', err)
-    }
+    await executeDbOperation(
+      'CREATE TABLE if not exists `receipts` (`receiptId` TEXT NOT NULL UNIQUE PRIMARY KEY, `tx` JSON NOT NULL, `cycle` NUMBER NOT NULL, `applyTimestamp` BIGINT NOT NULL, `timestamp` BIGINT NOT NULL, `signedReceipt` JSON NOT NULL, `afterStates` JSON, `beforeStates` JSON, `appReceiptData` JSON, `executionShardKey` TEXT NOT NULL, `globalModification` BOOLEAN NOT NULL)',
+      'Error creating receipts table'
+    )
 
-    try {
-      await db.runCreate(
-        'CREATE TABLE if not exists `tokenTxs` (`txId` TEXT NOT NULL, `txHash` TEXT NOT NULL, `cycle` NUMBER NOT NULL, `timestamp` BIGINT NOT NULL, `contractAddress` TEXT NOT NULL, `contractInfo` JSON, `tokenFrom` TEXT NOT NULL, `tokenTo` TEXT NOT NULL, `tokenValue` TEXT NOT NULL, `tokenType` INTEGER NOT NULL, `tokenEvent` TEXT NOT NULL, `tokenOperator` TEXT, `transactionFee` TEXT NOT NULL, FOREIGN KEY (`txId`, `txHash`) REFERENCES transactions(`txId`, `txHash`))'
-      )
-    } catch (err) {
-      console.error('Error creating tokenTxs table:', err)
-    }
-
-    try {
-      await db.runCreate(
-        'CREATE INDEX if not exists `tokenTxs_idx` ON `tokenTxs` (`cycle` DESC, `timestamp` DESC, `txId`, `txHash`, `contractAddress`, `tokenFrom`, `tokenTo`, `tokenType`, `tokenOperator`)'
-      )
-    } catch (err) {
-      console.error('Error creating tokenTxs_idx index:', err)
-    }
-
-    try {
-      await db.runCreate(
-        'CREATE TABLE if not exists `tokens` (`ethAddress` TEXT NOT NULL, `contractAddress` TEXT NOT NULL, `tokenType` INTEGER NOT NULL, `tokenValue` TEXT NOT NULL, PRIMARY KEY (`ethAddress`, `contractAddress`))'
-      )
-    } catch (err) {
-      console.error('Error creating tokens table:', err)
-    }
-
-    try {
-      await db.runCreate(
-        'CREATE INDEX if not exists `tokens_idx` ON `tokens` (`ethAddress`, `contractAddress`, `tokenType`, `tokenValue` DESC)'
-      )
-    } catch (err) {
-      console.error('Error creating tokens_idx index:', err)
-    }
-
-    try {
-      await db.runCreate(
-        'CREATE TABLE if not exists `logs` (`_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `txHash` TEXT NOT NULL, `cycle` NUMBER NOT NULL, `timestamp` BIGINT NOT NULL, `blockNumber` NUMBER NOT NULL, `blockHash` TEXT NOT NULL, `contractAddress` TEXT NOT NULL,' +
-          ' `log` JSON NOT NULL, `topic0` TEXT NOT NULL, `topic1` TEXT, `topic2` TEXT, `topic3` TEXT)'
-      )
-    } catch (err) {
-      console.error('Error creating logs table:', err)
-    }
-
-    try {
-      await db.runCreate('CREATE INDEX IF NOT EXISTS `logs_cycle_timestamp` ON `logs` (`cycle` DESC, `timestamp` DESC)')
-    } catch (err) {
-      console.error('Error creating logs_cycle_timestamp index:', err)
-    }
-
-    try {
-      await db.runCreate('CREATE INDEX IF NOT EXISTS `logs_contractAddress` ON `logs` (`contractAddress`)')
-    } catch (err) {
-      console.error('Error creating logs_contractAddress index:', err)
-    }
-
-    try {
-      await db.runCreate('CREATE INDEX IF NOT EXISTS `logs_blockHash` ON `logs` (`blockHash`)')
-    } catch (err) {
-      console.error('Error creating logs_blockHash index:', err)
-    }
-
-    try {
-      await db.runCreate('CREATE INDEX IF NOT EXISTS `logs_blockNumber` ON `logs` (`blockNumber` DESC)')
-    } catch (err) {
-      console.error('Error creating logs_blockNumber index:', err)
-    }
-
-    try {
-      await db.runCreate('CREATE INDEX IF NOT EXISTS `logs_topic` ON `logs` (`topic0`, `topic1`, `topic2`, `topic3`)')
-    } catch (err) {
-      console.error('Error creating logs_topic index:', err)
-    }
-
-    try {
-      await db.runCreate(
-        'CREATE TABLE if not exists `receipts` (`receiptId` TEXT NOT NULL UNIQUE PRIMARY KEY, `tx` JSON NOT NULL, `cycle` NUMBER NOT NULL, `applyTimestamp` BIGINT NOT NULL, `timestamp` BIGINT NOT NULL, `signedReceipt` JSON NOT NULL, `afterStates` JSON, `beforeStates` JSON, `appReceiptData` JSON, `executionShardKey` TEXT NOT NULL, `globalModification` BOOLEAN NOT NULL)'
-      )
-    } catch (err) {
-      console.error('Error creating receipts table:', err)
-    }
-
-    try {
-      await db.runCreate('CREATE INDEX if not exists `receipts_idx` ON `receipts` (`cycle` ASC, `timestamp` ASC)')
-    } catch (err) {
-      console.error('Error creating receipts_idx index:', err)
-    }
+    await executeDbOperation(
+      'CREATE INDEX if not exists `receipts_idx` ON `receipts` (`cycle` ASC, `timestamp` ASC)',
+      'Error creating receipts_idx index'
+    )
 
     // Main originalTxData
-    try {
-      await db.runCreate(
-        'CREATE TABLE if not exists `originalTxsData` (`txId` TEXT NOT NULL, `timestamp` BIGINT NOT NULL, `cycle` NUMBER NOT NULL, `originalTxData` JSON NOT NULL, PRIMARY KEY (`txId`, `timestamp`))'
-      )
-    } catch (err) {
-      console.error('Error creating originalTxsData table:', err)
-    }
+    await executeDbOperation(
+      'CREATE TABLE if not exists `originalTxsData` (`txId` TEXT NOT NULL, `timestamp` BIGINT NOT NULL, `cycle` NUMBER NOT NULL, `originalTxData` JSON NOT NULL, PRIMARY KEY (`txId`, `timestamp`))',
+      'Error creating originalTxsData table'
+    )
 
-    try {
-      await db.runCreate(
-        'CREATE INDEX if not exists `originalTxsData_idx` ON `originalTxsData` (`cycle` ASC, `timestamp` ASC, `txId`)'
-      )
-    } catch (err) {
-      console.error('Error creating originalTxsData_idx index:', err)
-    }
+    await executeDbOperation(
+      'CREATE INDEX if not exists `originalTxsData_idx` ON `originalTxsData` (`cycle` ASC, `timestamp` ASC, `txId`)',
+      'Error creating originalTxsData_idx index'
+    )
 
     // Mapped OriginalTxData with txHash and transactionType
-    try {
-      await db.runCreate(
-        'CREATE TABLE if not exists `originalTxsData2` (`txId` TEXT NOT NULL, `txHash` TEXT NOT NULL, `timestamp` BIGINT NOT NULL, `cycle` NUMBER NOT NULL,  `transactionType` INTEGER NOT NULL, PRIMARY KEY (`txId`, `timestamp`))'
-      )
-    } catch (err) {
-      console.error('Error creating originalTxsData2 table:', err)
-    }
+    await executeDbOperation(
+      'CREATE TABLE if not exists `originalTxsData2` (`txId` TEXT NOT NULL, `txHash` TEXT NOT NULL, `timestamp` BIGINT NOT NULL, `cycle` NUMBER NOT NULL,  `transactionType` INTEGER NOT NULL, PRIMARY KEY (`txId`, `timestamp`))',
+      'Error creating originalTxsData2 table'
+    )
 
-    try {
-      await db.runCreate(
-        'CREATE INDEX if not exists `originalTxsData2_idx` ON `originalTxsData2` (`txHash`, `txId`, `cycle` DESC, `timestamp` DESC, `transactionType`)'
-      )
-    } catch (err) {
-      console.error('Error creating originalTxsData2_idx index:', err)
-    }
+    await executeDbOperation(
+      'CREATE INDEX if not exists `originalTxsData2_idx` ON `originalTxsData2` (`txHash`, `txId`, `cycle` DESC, `timestamp` DESC, `transactionType`)',
+      'Error creating originalTxsData2_idx index'
+    )
 
-    try {
-      await db.runCreate(
-        'CREATE TABLE if not exists `accountHistoryState` (`accountId` TEXT NOT NULL, `beforeStateHash` TEXT NOT NULL, `afterStateHash` TEXT NOT NULL, `blockNumber` NUMBER NOT NULL, `blockHash` TEXT NOT NULL, `timestamp` BIGINT NOT NULL, `receiptId` TEXT NOT NULL, PRIMARY KEY (`accountId`, `timestamp`), UNIQUE (`accountId`, `blockNumber`))'
-      )
-    } catch (err) {
-      console.error('Error creating accountHistoryState table:', err)
-    }
+    await executeDbOperation(
+      'CREATE TABLE if not exists `accountHistoryState` (`accountId` TEXT NOT NULL, `beforeStateHash` TEXT NOT NULL, `afterStateHash` TEXT NOT NULL, `blockNumber` NUMBER NOT NULL, `blockHash` TEXT NOT NULL, `timestamp` BIGINT NOT NULL, `receiptId` TEXT NOT NULL, PRIMARY KEY (`accountId`, `timestamp`), UNIQUE (`accountId`, `blockNumber`))',
+      'Error creating accountHistoryState table'
+    )
 
-    try {
-      await db.runCreate(
-        'CREATE INDEX if not exists `accountHistoryState_idx` ON `accountHistoryState` (`accountId`, `blockHash`, `blockNumber` DESC, `timestamp` DESC)'
-      )
-    } catch (err) {
-      console.error('Error creating accountHistoryState_idx index:', err)
-    }
+    await executeDbOperation(
+      'CREATE INDEX if not exists `accountHistoryState_idx` ON `accountHistoryState` (`accountId`, `blockHash`, `blockNumber` DESC, `timestamp` DESC)',
+      'Error creating accountHistoryState_idx index'
+    )
 
     // Table for checkpoints
-    try {
-      await db.runCreate('CREATE TABLE IF NOT EXISTS `checkpoint` (type TEXT UNIQUE NOT NULL, value INTEGER NOT NULL)')
-    } catch (err) {
-      console.error('Error creating checkpoint table:', err)
-    }
+    await executeDbOperation(
+      'CREATE TABLE IF NOT EXISTS `checkpoint` (type TEXT UNIQUE NOT NULL, value INTEGER NOT NULL)',
+      'Error creating checkpoint table'
+    )
   } catch (err) {
     console.error('Failed to initialize database:', err)
     process.exit(1) // Exit process on database initialization failure
