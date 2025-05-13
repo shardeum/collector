@@ -17,7 +17,7 @@ interface MissingData {
 
 const scriptConfig = {
   files: {
-    inputFile: 'test.json',
+    inputFile: 'missing-archive-data.json',
     outputFile: 'missing-collector-data.json',
   },
 }
