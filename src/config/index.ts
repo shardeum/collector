@@ -74,6 +74,7 @@ export interface Config {
   saveAccountHistoryState: boolean
   collectorMode: string
   storeReceiptBeforeStates: boolean
+  saveReceiptsWithSignaturePacks: boolean
   checkpointWindow: number
   chainId: string
 }
@@ -138,6 +139,7 @@ let config: Config = {
   saveAccountHistoryState: true,
   collectorMode: process.env.COLLECTOR_MODE || collectorMode.WS.toString(),
   storeReceiptBeforeStates: true,
+  saveReceiptsWithSignaturePacks: Boolean(process.env.SAVE_RECEIPTS_WITH_SIGNATURE_PACKS) || true,
   checkpointWindow: 21,
   chainId: process.env.CHAIN_ID || '8082',
 }
