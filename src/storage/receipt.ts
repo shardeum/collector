@@ -84,6 +84,12 @@ export async function processReceiptData(receipts: Receipt[], saveOnlyNewData = 
       ...receiptObj,
       beforeStates: config.storeReceiptBeforeStates ? receiptObj.beforeStates : [],
     }
+    
+    if (!config.saveReceiptsWithSignaturePacks && modifiedReceiptObj.signedReceipt) {
+      const signedReceiptCopy = { ...modifiedReceiptObj.signedReceipt }
+      signedReceiptCopy.signaturePack = []
+      modifiedReceiptObj.signedReceipt = signedReceiptCopy
+    }
     if (saveOnlyNewData) {
       const receiptExist = await queryReceiptByReceiptId(tx.txId)
       if (!receiptExist) combineReceipts.push(modifiedReceiptObj as unknown as Receipt)
