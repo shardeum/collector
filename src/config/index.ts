@@ -139,10 +139,7 @@ let config: Config = {
   saveAccountHistoryState: true,
   collectorMode: process.env.COLLECTOR_MODE || collectorMode.WS.toString(),
   storeReceiptBeforeStates: true,
-  saveReceiptsWithSignaturePacks:
-    process.env.SAVE_RECEIPTS_WITH_SIGNATURE_PACKS !== undefined
-      ? process.env.SAVE_RECEIPTS_WITH_SIGNATURE_PACKS === 'true'
-      : true,
+  saveReceiptsWithSignaturePacks: true,
   checkpointWindow: 21,
   chainId: process.env.CHAIN_ID || '8082',
 }
