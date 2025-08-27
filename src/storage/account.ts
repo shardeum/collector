@@ -17,25 +17,14 @@ export const EOA_CodeHash = '0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7
 
 export function insertAccount(account: Account): void {
   try {
-    console.log('DEBUG: Inserting account with contractInfo:', {
-      accountId: account.accountId,
-      ethAddress: account.ethAddress,
-      contractInfo: account.contractInfo,
-      contractInfoType: typeof account.contractInfo,
-      contractType: account.contractType
-    })
     const fields = Object.keys(account).join(', ')
     const placeholders = Object.keys(account).fill('?').join(', ')
     const values = extractValues(account)
-    console.log('DEBUG: Extracted values:', values)
-    console.log('DEBUG: SQL fields:', fields)
     const sql = 'INSERT OR REPLACE INTO accounts (' + fields + ') VALUES (' + placeholders + ')'
     db.run(sql, values)
     if (config.verbose) console.log('Successfully inserted Account', account.ethAddress || account.accountId)
     if (isShardeumIndexerEnabled()) insertAccountEntry(account)
   } catch (e) {
-    console.log('DEBUG: Insert failed with error:', e)
-    console.log('DEBUG: Account object:', account)
     console.log(e)
     console.log('Unable to insert Account or it is already stored in to database', account.accountId)
   }

@@ -124,22 +124,16 @@ export function extractValues(object: object): (string | number)[] {
   try {
     const inputs: (string | number)[] = []
     for (const [key, value] of Object.entries(object)) {
-      console.log(`DEBUG: Processing field ${key}, type: ${typeof value}, value:`, value)
       if (typeof value === 'object' && value !== null) {
-        const stringified = StringUtils.safeStringify(value)
-        console.log(`DEBUG: Stringified object for ${key}:`, stringified)
-        inputs.push(stringified)
+        inputs.push(StringUtils.safeStringify(value))
       } else if (typeof value === 'boolean') {
-        const numericValue = value ? 1 : 0
-        console.log(`DEBUG: Converting boolean ${value} to ${numericValue} for ${key}`)
-        inputs.push(numericValue)
+        inputs.push(value ? 1 : 0)
       } else {
         inputs.push(value)
       }
     }
     return inputs
   } catch (e) {
-    console.log('DEBUG: extractValues error:', e)
     console.log(e)
   }
 
