@@ -478,18 +478,34 @@ export const getContractInfo = async (
   const contractInfo = {} as ContractInfo
   let foundCorrectContract = false
   try {
+    console.log(`DEBUG: Trying ERC-20 calls for ${contractAddress}`)
     const web3 = (await getWeb3()) as Web3
+    console.log(`DEBUG: Got Web3 instance:`, !!web3)
     const Token = new web3.eth.Contract(ERC20_ABI.abi as ContractAbi, contractAddress)
+    console.log(`DEBUG: Created contract instance for ${contractAddress}`)
+    
+    console.log(`DEBUG: Calling name() for ${contractAddress}`)
     contractInfo.name = await Token.methods.name().call()
-    if (config.verbose) console.log('Token Name', contractInfo.name)
+    console.log(`DEBUG: Got name: "${contractInfo.name}" for ${contractAddress}`)
+    
+    console.log(`DEBUG: Calling symbol() for ${contractAddress}`)
     contractInfo.symbol = await Token.methods.symbol().call()
+    console.log(`DEBUG: Got symbol: "${contractInfo.symbol}" for ${contractAddress}`)
+    
+    console.log(`DEBUG: Calling totalSupply() for ${contractAddress}`)
     contractInfo.totalSupply = await Token.methods.totalSupply().call()
+    console.log(`DEBUG: Got totalSupply: ${contractInfo.totalSupply} for ${contractAddress}`)
+    
+    console.log(`DEBUG: Calling decimals() for ${contractAddress}`)
     contractInfo.decimals = await Token.methods.decimals().call()
+    console.log(`DEBUG: Got decimals: ${contractInfo.decimals} for ${contractAddress}`)
+    
     foundCorrectContract = true
     contractType = ContractType.ERC_20
+    console.log(`DEBUG: Successfully identified ERC-20: ${contractAddress}`)
     // await sleep(200); // Awaiting a bit to refresh the service points of the validator
   } catch (e) {
-    // console.log(e);
+    console.log(`DEBUG: ERC-20 failed for ${contractAddress}, error:`, e.message || e)
     console.log('Non ERC 20 Contract', contractAddress) // It could be not ERC 20 Contract
     // await sleep(100); // Awaiting a bit to refresh the service points of the validator
   }
