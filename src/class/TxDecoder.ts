@@ -486,7 +486,7 @@ export const getContractInfo = async (
     contractInfo.totalSupply = await Token.methods.totalSupply().call()
     const decimalsRaw = await Token.methods.decimals().call()
     console.log(`DEBUG DECIMALS: Contract ${contractAddress} - Raw decimals call result:`, decimalsRaw, typeof decimalsRaw)
-    contractInfo.decimals = decimalsRaw
+    contractInfo.decimals = String(decimalsRaw)
     console.log(`DEBUG DECIMALS: contractInfo.decimals set to:`, contractInfo.decimals, typeof contractInfo.decimals)
     foundCorrectContract = true
     contractType = ContractType.ERC_20
