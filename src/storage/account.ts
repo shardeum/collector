@@ -250,12 +250,14 @@ export function queryAccountsBetweenCycles(
 }
 
 export async function queryTokensByAddress(address: string, detail = false): Promise<object[]> {
+  console.log(`🔍 DEBUGGING: queryTokensByAddress START - address: ${address}, detail: ${detail}`)
   try {
     const sql = `SELECT * FROM tokens WHERE ethAddress=?`
     const tokens = db.all(sql, [address]) as Token[]
     const filterTokens: object[] = []
-    console.log(`DEBUG: queryTokensByAddress called for ${address} with detail=${detail}, found ${tokens.length} tokens`)
+    console.log(`🔍 DEBUG: Found ${tokens.length} tokens for address ${address}`)
     if (detail) {
+      console.log(`🔍 DEBUG: Processing tokens with detail=true`)
       for (const { contractAddress, tokenValue } of tokens) {
         const accountExist = queryAccountByAccountId(
           contractAddress.slice(2).toLowerCase() + '0'.repeat(24) //Search by Shardus address
