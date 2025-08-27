@@ -484,7 +484,10 @@ export const getContractInfo = async (
     if (config.verbose) console.log('Token Name', contractInfo.name)
     contractInfo.symbol = await Token.methods.symbol().call()
     contractInfo.totalSupply = await Token.methods.totalSupply().call()
-    contractInfo.decimals = await Token.methods.decimals().call()
+    const decimalsRaw = await Token.methods.decimals().call()
+    console.log(`DEBUG DECIMALS: Contract ${contractAddress} - Raw decimals call result:`, decimalsRaw, typeof decimalsRaw)
+    contractInfo.decimals = decimalsRaw
+    console.log(`DEBUG DECIMALS: contractInfo.decimals set to:`, contractInfo.decimals, typeof contractInfo.decimals)
     foundCorrectContract = true
     contractType = ContractType.ERC_20
     // await sleep(200); // Awaiting a bit to refresh the service points of the validator

@@ -17,9 +17,13 @@ export const EOA_CodeHash = '0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7
 
 export function insertAccount(account: Account): void {
   try {
+    if (account.contractInfo) {
+      console.log(`DEBUG DECIMALS INSERT: About to insert account with contractInfo:`, JSON.stringify(account.contractInfo, null, 2))
+    }
     const fields = Object.keys(account).join(', ')
     const placeholders = Object.keys(account).fill('?').join(', ')
     const values = extractValues(account)
+    console.log(`DEBUG DECIMALS INSERT: extractValues result for contractInfo:`, values.find((v, i) => Object.keys(account)[i] === 'contractInfo'))
     const sql = 'INSERT OR REPLACE INTO accounts (' + fields + ') VALUES (' + placeholders + ')'
     db.run(sql, values)
     if (config.verbose) console.log('Successfully inserted Account', account.ethAddress || account.accountId)
@@ -270,10 +274,14 @@ export async function queryTokensByAddress(address: string, detail = false): Pro
             contractInfo = fetchedInfo.contractInfo
             contractType = fetchedInfo.contractType
             
+            console.log(`DEBUG DECIMALS STORAGE: About to store contractInfo:`, JSON.stringify(contractInfo, null, 2))
+            console.log(`DEBUG DECIMALS STORAGE: contractInfo.decimals type:`, typeof contractInfo.decimals, 'value:', contractInfo.decimals)
+            
             // Update the account record with the newly fetched info if account exists
             if (accountExist) {
               accountExist.contractInfo = contractInfo
               accountExist.contractType = contractType
+              console.log(`DEBUG DECIMALS STORAGE: Account before insertAccount:`, JSON.stringify(accountExist.contractInfo, null, 2))
               insertAccount(accountExist)
             }
           } catch (e) {
