@@ -129,6 +129,10 @@ export function extractValues(object: object): string[] {
         const stringified = StringUtils.safeStringify(value)
         console.log(`DEBUG: Stringified object for ${key}:`, stringified)
         inputs.push(stringified)
+      } else if (typeof value === 'boolean') {
+        const numericValue = value ? 1 : 0
+        console.log(`DEBUG: Converting boolean ${value} to ${numericValue} for ${key}`)
+        inputs.push(numericValue)
       } else {
         inputs.push(value)
       }
@@ -148,7 +152,7 @@ export function extractValuesFromArray(arr: object[]): string[] {
     for (const object of arr) {
       for (let value of Object.values(object)) {
         if (typeof value === 'object') value = StringUtils.safeStringify(value)
-        else if (typeof value === 'boolean') value = value ? '1' : '0'
+        else if (typeof value === 'boolean') value = value ? 1 : 0
         inputs.push(value)
       }
     }
