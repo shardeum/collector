@@ -123,12 +123,19 @@ export function close(): void {
 export function extractValues(object: object): string[] {
   try {
     const inputs: string[] = []
-    for (let value of Object.values(object)) {
-      if (typeof value === 'object') value = StringUtils.safeStringify(value)
-      inputs.push(value)
+    for (const [key, value] of Object.entries(object)) {
+      console.log(`DEBUG: Processing field ${key}, type: ${typeof value}, value:`, value)
+      if (typeof value === 'object' && value !== null) {
+        const stringified = StringUtils.safeStringify(value)
+        console.log(`DEBUG: Stringified object for ${key}:`, stringified)
+        inputs.push(stringified)
+      } else {
+        inputs.push(value)
+      }
     }
     return inputs
   } catch (e) {
+    console.log('DEBUG: extractValues error:', e)
     console.log(e)
   }
 
