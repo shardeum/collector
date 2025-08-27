@@ -120,9 +120,9 @@ export function close(): void {
   }
 }
 
-export function extractValues(object: object): string[] {
+export function extractValues(object: object): (string | number)[] {
   try {
-    const inputs: string[] = []
+    const inputs: (string | number)[] = []
     for (const [key, value] of Object.entries(object)) {
       console.log(`DEBUG: Processing field ${key}, type: ${typeof value}, value:`, value)
       if (typeof value === 'object' && value !== null) {
@@ -146,9 +146,9 @@ export function extractValues(object: object): string[] {
   return []
 }
 
-export function extractValuesFromArray(arr: object[]): string[] {
+export function extractValuesFromArray(arr: object[]): (string | number)[] {
   try {
-    const inputs: string[] = []
+    const inputs: (string | number)[] = []
     for (const object of arr) {
       for (let value of Object.values(object)) {
         if (typeof value === 'object') value = StringUtils.safeStringify(value)
