@@ -254,6 +254,7 @@ export async function queryTokensByAddress(address: string, detail = false): Pro
     const sql = `SELECT * FROM tokens WHERE ethAddress=?`
     const tokens = db.all(sql, [address]) as Token[]
     const filterTokens: object[] = []
+    console.log(`DEBUG: queryTokensByAddress called for ${address} with detail=${detail}, found ${tokens.length} tokens`)
     if (detail) {
       for (const { contractAddress, tokenValue } of tokens) {
         const accountExist = queryAccountByAccountId(
@@ -263,10 +264,14 @@ export async function queryTokensByAddress(address: string, detail = false): Pro
         let contractInfo: ContractInfo | null = accountExist?.contractInfo || null
         let contractType: ContractType | null = accountExist?.contractType || null
         
+        console.log(`DEBUG: Token ${contractAddress} - accountExist:`, !!accountExist, 'contractInfo:', contractInfo, 'contractType:', contractType)
+        
         // If contract info is missing, try to fetch it
-        if (!contractInfo) {
+        if (!contractInfo || Object.keys(contractInfo).length === 0) {
+          console.log(`DEBUG: Fetching contract info for ${contractAddress}`)
           try {
             const fetchedInfo = await getContractInfo(contractAddress)
+            console.log(`DEBUG: Fetched info for ${contractAddress}:`, fetchedInfo)
             contractInfo = fetchedInfo.contractInfo
             contractType = fetchedInfo.contractType
             
@@ -275,8 +280,10 @@ export async function queryTokensByAddress(address: string, detail = false): Pro
               accountExist.contractInfo = contractInfo
               accountExist.contractType = contractType
               insertAccount(accountExist)
+              console.log(`DEBUG: Updated account record for ${contractAddress}`)
             }
           } catch (e) {
+            console.log(`DEBUG: Failed to fetch contract info for ${contractAddress}:`, e)
             if (config.verbose) console.log(`Failed to fetch contract info for ${contractAddress}:`, e)
           }
         }
