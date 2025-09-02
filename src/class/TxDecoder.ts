@@ -274,10 +274,10 @@ export const decodeTx = async (
               tokenEvent: 'Internal Transfer',
             } as TokenTx
         } else {
-          // Handle custom/unknown events - still index them as custom type
+          // Handle custom/unknown events - still index them as EVM_Internal with custom event description
           const eventSignature = log.topics && log.topics.length > 0 ? log.topics[0] : 'Unknown'
           tokenTx = {
-            tokenType: TokenType.Custom,
+            tokenType: TokenType.EVM_Internal,
             tokenFrom: tx.txFrom,
             tokenTo: tx.txTo || log.address,
             tokenValue: log.data || '0',
@@ -305,16 +305,13 @@ export const decodeTx = async (
           tokenTx.tokenEvent !== 'Approval For All' &&
           (tokenTx.tokenType === TokenType.EVM_Internal ||
             tokenTx.tokenType === TokenType.ERC_20 ||
-            tokenTx.tokenType === TokenType.ERC_721 ||
-            tokenTx.tokenType === TokenType.Custom)
+            tokenTx.tokenType === TokenType.ERC_721)
         ) {
           const storageKey =
             tokenTx.tokenType === TokenType.ERC_20
               ? ERC_20_BALANCE_SLOT
               : tokenTx.tokenType === TokenType.ERC_721
               ? ERC_721_BALANCE_SLOT
-              : tokenTx.tokenType === TokenType.Custom
-              ? ERC_20_BALANCE_SLOT // Default to ERC20 storage slot for custom events
               : ERC_1155_BALANCE_SLOT
           if (tokenTx.tokenFrom !== ZERO_ETH_ADDRESS) {
             let tokenValue = '0'

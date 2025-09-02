@@ -59,7 +59,6 @@ export enum TokenType {
   ERC_20 = 1,
   ERC_721 = 2,
   ERC_1155 = 3,
-  Custom = 4,
 }
 
 export enum InternalTXType {
@@ -130,7 +129,6 @@ export enum TransactionSearchType {
   ApplyNetworkParam = 23, //    |
   Penalty = 24, // ----
   TransferFromSecureAccount = 25, // ----
-  Custom = 26, // Custom/Unknown events
 }
 
 export interface Log {
