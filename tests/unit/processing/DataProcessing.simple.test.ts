@@ -101,6 +101,7 @@ describe('Data Processing - Simple Tests', () => {
       expect(TokenType.ERC_20).toBe(1)
       expect(TokenType.ERC_721).toBe(2)
       expect(TokenType.ERC_1155).toBe(3)
+      expect(TokenType.Custom).toBe(4)
     })
   })
 

@@ -273,6 +273,18 @@ export const decodeTx = async (
               tokenValue: log.data,
               tokenEvent: 'Internal Transfer',
             } as TokenTx
+        } else {
+          // Handle custom/unknown events - still index them as custom type
+          const eventSignature = log.topics && log.topics.length > 0 ? log.topics[0] : 'Unknown'
+          tokenTx = {
+            tokenType: TokenType.Custom,
+            tokenFrom: tx.txFrom,
+            tokenTo: tx.txTo || log.address,
+            tokenValue: log.data || '0',
+            tokenEvent: `Custom Event (${eventSignature.substring(0, 10)}...)`,
+            tokenOperator: null,
+          } as TokenTx
+          if (config.verbose) console.log('Custom/Unknown event detected:', eventSignature, log.address)
         }
       }
       if (tokenTx) {
