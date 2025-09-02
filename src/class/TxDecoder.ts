@@ -98,6 +98,8 @@ export const decodeTx = async (
   }
   if (logs && logs.length > 0) {
     let TransferTX = false
+    let hasCustomEvent = false
+    const customEventSignatures: string[] = []
     for (const log of logs) {
       const logToSave: Log = {
         cycle: tx.cycle,
@@ -274,15 +276,14 @@ export const decodeTx = async (
               tokenEvent: 'Internal Transfer',
             } as TokenTx
         } else {
-          // Handle custom/unknown events - still index them as EVM_Internal with custom event description
+          // Handle custom/unknown events - collect signatures but don't create TokenTx yet
           const eventSignature = log.topics && log.topics.length > 0 ? log.topics[0] : 'Unknown'
-          tokenTx = {
-            tokenType: TokenType.EVM_Internal,
-            tokenFrom: tx.txFrom,
-            tokenTo: tx.txTo || log.address,
-            tokenValue: log.data || '0',
-            tokenEvent: `Custom Event (${eventSignature.substring(0, 10)}...)`,
-          } as TokenTx
+          if (!hasCustomEvent) {
+            hasCustomEvent = true
+            customEventSignatures.push(eventSignature)
+          } else if (!customEventSignatures.includes(eventSignature)) {
+            customEventSignatures.push(eventSignature)
+          }
           if (config.verbose) console.log('Custom/Unknown event detected:', eventSignature, log.address)
         }
       }
@@ -442,6 +443,28 @@ export const decodeTx = async (
           }
         }
       }
+    }
+    
+    // Create a single TokenTx for all custom events in this transaction
+    if (hasCustomEvent && customEventSignatures.length > 0) {
+      const eventDescription = customEventSignatures.length === 1 
+        ? `Custom Event (${customEventSignatures[0].substring(0, 10)}...)`
+        : `Custom Events (${customEventSignatures.length} events)`
+      
+      const customTokenTx = {
+        tokenType: TokenType.EVM_Internal,
+        tokenFrom: tx.txFrom,
+        tokenTo: tx.txTo || logs[0].address,
+        tokenValue: logs.find(log => log.data && log.data !== '0x')?.data || '0',
+        tokenEvent: eventDescription,
+      } as TokenTx
+      
+      txs.push({
+        ...customTokenTx,
+        contractAddress: logs[0].address,
+      })
+      
+      if (config.verbose) console.log('Added single custom TokenTx for', customEventSignatures.length, 'events')
     }
   }
   if (!config.processData.decodeTokenTransfer) return { txs, accs, tokens }
