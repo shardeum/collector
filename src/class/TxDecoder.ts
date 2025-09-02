@@ -282,7 +282,6 @@ export const decodeTx = async (
             tokenTo: tx.txTo || log.address,
             tokenValue: log.data || '0',
             tokenEvent: `Custom Event (${eventSignature.substring(0, 10)}...)`,
-            tokenOperator: null,
           } as TokenTx
           if (config.verbose) console.log('Custom/Unknown event detected:', eventSignature, log.address)
         }
