@@ -247,7 +247,7 @@ export async function processReceiptData(receipts: Receipt[], saveOnlyNewData = 
           }
           newTx = false
         }
-        const { txs, accs, tokens } = await decodeTx(txObj, storageKeyValueMap, newTx)
+        const { txs, accs, tokens } = await decodeTx(txObj, storageKeyValueMap, newTx, receiptObj)
         for (const acc of accs) {
           if (acc === ZERO_ETH_ADDRESS) continue
           if (!combineAccounts1.some((a) => a.ethAddress === acc)) {

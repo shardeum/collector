@@ -120,12 +120,17 @@ export function close(): void {
   }
 }
 
-export function extractValues(object: object): string[] {
+export function extractValues(object: object): (string | number)[] {
   try {
-    const inputs: string[] = []
-    for (let value of Object.values(object)) {
-      if (typeof value === 'object') value = StringUtils.safeStringify(value)
-      inputs.push(value)
+    const inputs: (string | number)[] = []
+    for (const [key, value] of Object.entries(object)) {
+      if (typeof value === 'object' && value !== null) {
+        inputs.push(StringUtils.safeStringify(value))
+      } else if (typeof value === 'boolean') {
+        inputs.push(value ? 1 : 0)
+      } else {
+        inputs.push(value)
+      }
     }
     return inputs
   } catch (e) {
@@ -135,13 +140,13 @@ export function extractValues(object: object): string[] {
   return []
 }
 
-export function extractValuesFromArray(arr: object[]): string[] {
+export function extractValuesFromArray(arr: object[]): (string | number)[] {
   try {
-    const inputs: string[] = []
+    const inputs: (string | number)[] = []
     for (const object of arr) {
       for (let value of Object.values(object)) {
         if (typeof value === 'object') value = StringUtils.safeStringify(value)
-        else if (typeof value === 'boolean') value = value ? '1' : '0'
+        else if (typeof value === 'boolean') value = value ? 1 : 0
         inputs.push(value)
       }
     }

@@ -73,7 +73,8 @@ const ERC_1155_BALANCE_SLOT = '0x3' // This is not correct; have to research and
 export const decodeTx = async (
   tx: Transaction,
   storageKeyValueMap: object = {},
-  newTx = true
+  newTx = true,
+  receiptData: any = null
 ): Promise<DecodeTxResult> => {
   const txs: TokenTx[] = []
   const accs: string[] = []
@@ -433,6 +434,66 @@ export const decodeTx = async (
       }
     }
   }
+
+  // fallback to checking before and after states to see if there was a balance change in an evm event we dont define above
+  if (receiptData && 'beforeStates' in receiptData && 'afterStates' in receiptData &&
+      Array.isArray(receiptData.beforeStates) && Array.isArray(receiptData.afterStates)) {
+    const beforeStates = receiptData.beforeStates as any[]
+    const afterStates = receiptData.afterStates as any[]
+    
+    // Get the transaction value to help validate transfer amounts
+    const txValue = BigInt('readableReceipt' in tx.wrappedEVMAccount ? tx.wrappedEVMAccount.readableReceipt?.value || '0' : '0')
+
+    for (const afterState of afterStates) {
+      const beforeState = beforeStates.find(
+        (state) => state.accountId === afterState.accountId
+      )
+      
+      // Check if this state has account balance data
+      if (afterState.data?.account?.balance) {
+        const afterBalance = BigInt(afterState.data.account.balance.value || afterState.data.account.balance)
+        let balanceChange = BigInt(0)
+        
+        if (beforeState && beforeState.data?.account?.balance) {
+          const beforeBalance = BigInt(beforeState.data.account.balance.value || beforeState.data.account.balance)
+          balanceChange = afterBalance - beforeBalance
+        } else {
+          // For new accounts, only count reasonable transfer amounts
+          // If the balance is much larger than the tx value, it's likely pre-existing balance
+          if (txValue > 0 && afterBalance <= txValue * BigInt(2)) {
+            balanceChange = afterBalance
+          }
+        }
+        
+        // Detect ETH gains (excluding the direct tx sender and recipient)  
+        if (balanceChange > 0) {
+          // Extract ETH address from accountId (first 40 chars)
+          const ethAddress = '0x' + afterState.accountId.slice(0, 40)
+          
+          // Skip if this is the transaction sender or recipient
+          if (ethAddress !== tx.txFrom && ethAddress !== tx.txTo) {
+            const tokenTx = {
+              tokenType: TokenType.EVM_Internal,
+              tokenFrom: tx.txTo, // Smart contract that sent the ETH
+              tokenTo: ethAddress,
+              tokenValue: balanceChange.toString(),
+              tokenEvent: 'Custom Transfer',
+            } as TokenTx
+
+            txs.push({
+              ...tokenTx,
+              contractAddress: tx.txTo,
+            })
+
+            if (!accs.includes(ethAddress)) {
+              accs.push(ethAddress.toLowerCase())
+            }
+          }
+        }
+      }
+    }
+  }
+
   if (!config.processData.decodeTokenTransfer) return { txs, accs, tokens }
 
   const data = 'readableReceipt' in tx.wrappedEVMAccount ? tx.wrappedEVMAccount.readableReceipt?.data : ''
@@ -483,8 +544,9 @@ export const getContractInfo = async (
     contractInfo.name = await Token.methods.name().call()
     if (config.verbose) console.log('Token Name', contractInfo.name)
     contractInfo.symbol = await Token.methods.symbol().call()
-    contractInfo.totalSupply = await Token.methods.totalSupply().call()
-    contractInfo.decimals = await Token.methods.decimals().call()
+    const totalSupplyRaw = await Token.methods.totalSupply().call()
+    contractInfo.totalSupply = Number(totalSupplyRaw)
+    contractInfo.decimals = String(await Token.methods.decimals().call())
     foundCorrectContract = true
     contractType = ContractType.ERC_20
     // await sleep(200); // Awaiting a bit to refresh the service points of the validator
