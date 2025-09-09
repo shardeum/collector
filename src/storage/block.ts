@@ -10,6 +10,8 @@ import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
 import { forwardBlockData } from '../log_subscription/CollectorSocketconnection'
 
 const evmCommon = new Common({ chain: 'mainnet', hardfork: Hardfork.Istanbul, eips: [3855] })
+const DAO_HARDFORK_START_BLOCK = 1920000
+const DAO_HARDFORK_END_BLOCK = 1920009
 
 // Override chainId to always return our custom chain ID
 // @ts-ignore
@@ -153,10 +155,15 @@ export async function upsertBlocksForCycles(cycles: Cycle[]): Promise<void> {
 export async function createNewBlock(blockNumber: number, timestamp: number): Promise<EthBlock> {
   const timestampInSecond = timestamp ? Math.round(timestamp / 1000) : Math.round(Date.now() / 1000)
 
-  const blockData = {
+  const blockData: any = {
     header: { number: blockNumber, timestamp: timestampInSecond },
     transactions: [],
     uncleHeaders: [],
+  }
+  
+  // Handle DAO hard fork blocks (1920000-1920009) - require specific extraData for mainnet compatibility
+  if (blockNumber >= DAO_HARDFORK_START_BLOCK && blockNumber <= DAO_HARDFORK_END_BLOCK) {
+    blockData.header.extraData = '0x' + Buffer.from('dao-hard-fork', 'utf8').toString('hex')
   }
 
   const block = EthBlock.fromBlockData(blockData, { common: evmCommon })
