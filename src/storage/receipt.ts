@@ -84,7 +84,7 @@ export async function processReceiptData(receipts: Receipt[], saveOnlyNewData = 
       ...receiptObj,
       beforeStates: config.storeReceiptBeforeStates ? receiptObj.beforeStates : [],
     }
-    
+
     if (!config.saveReceiptsWithSignaturePacks && modifiedReceiptObj.signedReceipt) {
       const signedReceiptCopy = { ...modifiedReceiptObj.signedReceipt }
       signedReceiptCopy.signaturePack = []

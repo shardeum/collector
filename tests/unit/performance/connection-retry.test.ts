@@ -28,13 +28,13 @@ describe('Connection Failures and Retry Tests', () => {
 
         async connect(url: string): Promise<void> {
           connectAttempts++
-          
+
           if (connectAttempts <= 2) {
             // Fail first 2 attempts
             this.emit('error', new Error('Connection failed'))
             throw new Error('Connection failed')
           }
-          
+
           // Succeed on 3rd attempt
           this.connected = true
           this.emit('open')
@@ -51,7 +51,7 @@ describe('Connection Failures and Retry Tests', () => {
                 throw new Error(`Failed after ${maxRetries} retries`)
               }
               // Use fake timer friendly delay
-              await new Promise(resolve => {
+              await new Promise((resolve) => {
                 setTimeout(resolve, retryDelay)
                 jest.advanceTimersByTime(retryDelay)
               })
@@ -62,14 +62,14 @@ describe('Connection Failures and Retry Tests', () => {
 
       const client = new MockWebSocketClient()
       await client.connectWithRetry('ws://localhost:8080')
-      
+
       expect(connectAttempts).toBe(3)
       expect(client.connected).toBe(true)
     })
 
     test('should handle exponential backoff', async () => {
       const delays: number[] = []
-      
+
       function calculateBackoff(attempt: number): number {
         const baseDelay = 1000
         const maxDelay = 30000
@@ -84,12 +84,12 @@ describe('Connection Failures and Retry Tests', () => {
       }
 
       expect(delays).toEqual([
-        1000,   // 1s
-        2000,   // 2s
-        4000,   // 4s
-        8000,   // 8s
-        16000,  // 16s
-        30000   // 30s (capped)
+        1000, // 1s
+        2000, // 2s
+        4000, // 4s
+        8000, // 8s
+        16000, // 16s
+        30000, // 30s (capped)
       ])
     })
 
@@ -100,10 +100,10 @@ describe('Connection Failures and Retry Tests', () => {
       async function connectWithRetry(): Promise<boolean> {
         for (let i = 0; i < maxRetries; i++) {
           connectAttempts++
-          
+
           // Always fail
           if (i < maxRetries - 1) {
-            await new Promise(resolve => {
+            await new Promise((resolve) => {
               setTimeout(resolve, 100)
               jest.advanceTimersByTime(100)
             })
@@ -113,7 +113,7 @@ describe('Connection Failures and Retry Tests', () => {
       }
 
       const result = await connectWithRetry()
-      
+
       expect(connectAttempts).toBe(3)
       expect(result).toBe(false)
     })
@@ -146,10 +146,10 @@ describe('Connection Failures and Retry Tests', () => {
       }
 
       const ws = new ReconnectingWebSocket()
-      
+
       let connectedEvents = 0
       let disconnectedEvents = 0
-      
+
       ws.on('connected', () => connectedEvents++)
       ws.on('disconnected', () => disconnectedEvents++)
 
@@ -173,22 +173,19 @@ describe('Connection Failures and Retry Tests', () => {
   describe('HTTP Request Retry Logic', () => {
     test('should retry failed HTTP requests', async () => {
       let requestCount = 0
-      
-      async function makeRequestWithRetry(
-        url: string,
-        maxRetries: number = 3
-      ): Promise<{ status: number; data: any }> {
+
+      async function makeRequestWithRetry(url: string, maxRetries: number = 3): Promise<{ status: number; data: any }> {
         let lastError: Error | undefined
-        
+
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
           try {
             requestCount++
-            
+
             // Simulate failures for first 2 attempts
             if (attempt < 2) {
               throw new Error('Network error')
             }
-            
+
             // Success on 3rd attempt
             return { status: 200, data: { success: true } }
           } catch (error) {
@@ -199,12 +196,12 @@ describe('Connection Failures and Retry Tests', () => {
             // Continue to next attempt
           }
         }
-        
+
         throw lastError || new Error('Max retries exceeded')
       }
 
       const result = await makeRequestWithRetry('/api/test')
-      
+
       expect(requestCount).toBe(3)
       expect(result.status).toBe(200)
       expect(result.data.success).toBe(true)
@@ -219,12 +216,12 @@ describe('Connection Failures and Retry Tests', () => {
       }
 
       // Test retryable errors
-      retryableErrors.forEach(code => {
+      retryableErrors.forEach((code) => {
         expect(shouldRetry(code)).toBe(true)
       })
 
       // Test non-retryable errors
-      nonRetryableErrors.forEach(code => {
+      nonRetryableErrors.forEach((code) => {
         expect(shouldRetry(code)).toBe(false)
       })
     })
@@ -259,7 +256,7 @@ describe('Connection Failures and Retry Tests', () => {
 
         onSuccess() {
           this.failureCount = 0
-          
+
           if (this.state === 'HALF_OPEN') {
             this.successCount++
             if (this.successCount >= this.successThreshold) {
@@ -272,7 +269,7 @@ describe('Connection Failures and Retry Tests', () => {
         onFailure() {
           this.failureCount++
           this.successCount = 0
-          
+
           if (this.failureCount >= this.failureThreshold) {
             this.state = 'OPEN'
             this.nextAttempt = Date.now() + this.timeout
@@ -281,7 +278,7 @@ describe('Connection Failures and Retry Tests', () => {
       }
 
       const breaker = new CircuitBreaker()
-      
+
       // Simulate failures
       for (let i = 0; i < 5; i++) {
         try {
@@ -292,14 +289,12 @@ describe('Connection Failures and Retry Tests', () => {
           // Expected
         }
       }
-      
+
       expect(breaker.state).toBe('OPEN')
       expect(breaker.failureCount).toBe(5)
 
       // Try to execute while open
-      await expect(
-        breaker.execute(async () => ({ data: 'test' }))
-      ).rejects.toThrow('Circuit breaker is OPEN')
+      await expect(breaker.execute(async () => ({ data: 'test' }))).rejects.toThrow('Circuit breaker is OPEN')
     })
   })
 
@@ -311,7 +306,7 @@ describe('Connection Failures and Retry Tests', () => {
 
         getConnection(): { id: number } | null {
           // Try to find an available connection
-          const available = this.connections.find(c => !c.inUse)
+          const available = this.connections.find((c) => !c.inUse)
           if (available) {
             available.inUse = true
             return available
@@ -328,14 +323,14 @@ describe('Connection Failures and Retry Tests', () => {
         }
 
         releaseConnection(id: number) {
-          const conn = this.connections.find(c => c.id === id)
+          const conn = this.connections.find((c) => c.id === id)
           if (conn) {
             conn.inUse = false
           }
         }
 
         getActiveCount(): number {
-          return this.connections.filter(c => c.inUse).length
+          return this.connections.filter((c) => c.inUse).length
         }
       }
 
@@ -368,16 +363,12 @@ describe('Connection Failures and Retry Tests', () => {
       class TimeoutManager {
         timeouts = new Map<string, NodeJS.Timeout>()
 
-        setRequestTimeout(
-          requestId: string,
-          timeoutMs: number,
-          onTimeout: () => void
-        ) {
+        setRequestTimeout(requestId: string, timeoutMs: number, onTimeout: () => void) {
           const timeout = setTimeout(() => {
             this.timeouts.delete(requestId)
             onTimeout()
           }, timeoutMs)
-          
+
           this.timeouts.set(requestId, timeout)
         }
 
@@ -406,12 +397,12 @@ describe('Connection Failures and Retry Tests', () => {
       manager.setRequestTimeout('req2', 1000, () => {
         timedOut = true
       })
-      
+
       // Clear before timeout
       jest.advanceTimersByTime(500)
       manager.clearRequestTimeout('req2')
       jest.advanceTimersByTime(600)
-      
+
       expect(timedOut).toBe(false)
     })
   })
@@ -432,9 +423,9 @@ describe('Connection Failures and Retry Tests', () => {
 
       // Should have multiple different values due to jitter
       expect(delays.size).toBeGreaterThan(1)
-      
+
       // All values should be in expected range (2000-2600)
-      delays.forEach(delay => {
+      delays.forEach((delay) => {
         expect(delay).toBeGreaterThanOrEqual(2000)
         expect(delay).toBeLessThanOrEqual(2600)
       })

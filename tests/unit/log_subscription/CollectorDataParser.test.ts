@@ -1,4 +1,8 @@
-import { extractLogsFromReceipts, IndexedLogs, LogFilterOptions } from '../../../src/log_subscription/CollectorDataParser'
+import {
+  extractLogsFromReceipts,
+  IndexedLogs,
+  LogFilterOptions,
+} from '../../../src/log_subscription/CollectorDataParser'
 import { Receipt, Log } from '../../../src/types'
 
 describe('CollectorDataParser', () => {
@@ -186,9 +190,7 @@ describe('CollectorDataParser', () => {
             {
               data: {
                 readableReceipt: {
-                  logs: [
-                    { address: '0x3', topics: ['0xc'], data: '0xd3' },
-                  ],
+                  logs: [{ address: '0x3', topics: ['0xc'], data: '0xd3' }],
                 },
               },
             },
@@ -199,7 +201,7 @@ describe('CollectorDataParser', () => {
       const logs = extractLogsFromReceipts(receipts)
 
       expect(logs).toHaveLength(3)
-      expect(logs.map(l => l.address)).toEqual(['0x1', '0x2', '0x3'])
+      expect(logs.map((l) => l.address)).toEqual(['0x1', '0x2', '0x3'])
     })
   })
 
@@ -238,11 +240,7 @@ describe('CollectorDataParser', () => {
       })
 
       it('should handle logs with fewer than 4 topics', () => {
-        const logs: Log[] = [
-          createLog('0x123', ['0xT0']),
-          createLog('0x456', ['0xT0', '0xT1']),
-          createLog('0x789', []),
-        ]
+        const logs: Log[] = [createLog('0x123', ['0xT0']), createLog('0x456', ['0xT0', '0xT1']), createLog('0x789', [])]
 
         const indexedLogs = new IndexedLogs(logs)
 
@@ -266,10 +264,10 @@ describe('CollectorDataParser', () => {
       beforeEach(() => {
         const logs: Log[] = [
           createLog('0xAAA', ['0xT0', '0xT1', '0xT2', '0xT3']), // id: 0
-          createLog('0xBBB', ['0xT0', '0xT1']),                // id: 1
-          createLog('0xAAA', ['0xT4', '0xT5']),                // id: 2
-          createLog('0xCCC', ['0xT0', '0xT6']),                // id: 3
-          createLog('0xAAA', ['0xT0', '0xT1', '0xT7']),        // id: 4
+          createLog('0xBBB', ['0xT0', '0xT1']), // id: 1
+          createLog('0xAAA', ['0xT4', '0xT5']), // id: 2
+          createLog('0xCCC', ['0xT0', '0xT6']), // id: 3
+          createLog('0xAAA', ['0xT0', '0xT1', '0xT7']), // id: 4
         ]
         indexedLogs = new IndexedLogs(logs)
       })
@@ -283,7 +281,7 @@ describe('CollectorDataParser', () => {
         const filtered = indexedLogs.filter(options)
 
         expect(filtered).toHaveLength(3)
-        expect(filtered.map(l => l.address)).toEqual(['0xAAA', '0xAAA', '0xAAA'])
+        expect(filtered.map((l) => l.address)).toEqual(['0xAAA', '0xAAA', '0xAAA'])
       })
 
       it('should filter by multiple addresses', () => {
@@ -295,7 +293,7 @@ describe('CollectorDataParser', () => {
         const filtered = indexedLogs.filter(options)
 
         expect(filtered).toHaveLength(4)
-        expect(filtered.map(l => l.address)).toEqual(['0xAAA', '0xBBB', '0xAAA', '0xAAA'])
+        expect(filtered.map((l) => l.address)).toEqual(['0xAAA', '0xBBB', '0xAAA', '0xAAA'])
       })
 
       it('should filter by single topic', () => {
@@ -307,7 +305,7 @@ describe('CollectorDataParser', () => {
         const filtered = indexedLogs.filter(options)
 
         expect(filtered).toHaveLength(4)
-        expect(filtered.map(l => l.topics[0])).toEqual(['0xT0', '0xT0', '0xT0', '0xT0'])
+        expect(filtered.map((l) => l.topics[0])).toEqual(['0xT0', '0xT0', '0xT0', '0xT0'])
       })
 
       it('should filter by two topics', () => {
@@ -319,7 +317,7 @@ describe('CollectorDataParser', () => {
         const filtered = indexedLogs.filter(options)
 
         expect(filtered).toHaveLength(3)
-        expect(filtered.map(l => l.topics[1])).toEqual(['0xT1', '0xT1', '0xT1'])
+        expect(filtered.map((l) => l.topics[1])).toEqual(['0xT1', '0xT1', '0xT1'])
       })
 
       it('should filter by three topics', () => {
@@ -356,8 +354,8 @@ describe('CollectorDataParser', () => {
         const filtered = indexedLogs.filter(options)
 
         expect(filtered).toHaveLength(2)
-        expect(filtered.map(l => l.address)).toEqual(['0xAAA', '0xAAA'])
-        expect(filtered.map(l => l.topics[0])).toEqual(['0xT0', '0xT0'])
+        expect(filtered.map((l) => l.address)).toEqual(['0xAAA', '0xAAA'])
+        expect(filtered.map((l) => l.topics[0])).toEqual(['0xT0', '0xT0'])
       })
 
       it('should return empty array when no matches', () => {

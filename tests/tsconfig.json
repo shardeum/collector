@@ -15,12 +15,6 @@
     "types": ["node", "jest"],
     "lib": ["es2020"]
   },
-  "include": [
-    "**/*",
-    "../src/**/*"
-  ],
-  "exclude": [
-    "../node_modules",
-    "../dist"
-  ]
+  "include": ["**/*", "../src/**/*"],
+  "exclude": ["../node_modules", "../dist"]
 }

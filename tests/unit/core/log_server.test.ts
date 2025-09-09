@@ -27,7 +27,7 @@ const mockStringUtils = StringUtils as jest.Mocked<typeof StringUtils>
 describe('Log Server Logic', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    
+
     // Set default mock implementations
     mockStringUtils.safeStringify.mockImplementation((obj) => JSON.stringify(obj))
     mockStringUtils.safeJsonParse.mockImplementation((str) => JSON.parse(str))
@@ -52,7 +52,7 @@ describe('Log Server Logic', () => {
 
     it('should handle JSON parsing errors', () => {
       const invalidJson = '{"invalid": json}'
-      
+
       mockStringUtils.safeJsonParse.mockImplementation(() => {
         throw new Error('Invalid JSON')
       })
@@ -173,10 +173,10 @@ describe('Log Server Logic', () => {
   describe('Socket Management', () => {
     it('should generate unique socket IDs', () => {
       const crypto = require('crypto')
-      
+
       const socketId1 = crypto.randomBytes(32).toString('hex')
       const hashedId1 = crypto.createHash('sha256').update(socketId1).digest().toString('hex')
-      
+
       const socketId2 = crypto.randomBytes(32).toString('hex')
       const hashedId2 = crypto.createHash('sha256').update(socketId2).digest().toString('hex')
 

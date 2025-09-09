@@ -35,10 +35,7 @@ describe('Utils - crypto.ts', () => {
       expect(mockInit).toHaveBeenCalledWith(mockHashKey)
       expect(mockInit).toHaveBeenCalledTimes(1)
 
-      expect(mockSetCustomStringifier).toHaveBeenCalledWith(
-        StringUtils.safeStringify,
-        'shardus_safeStringify'
-      )
+      expect(mockSetCustomStringifier).toHaveBeenCalledWith(StringUtils.safeStringify, 'shardus_safeStringify')
       expect(mockSetCustomStringifier).toHaveBeenCalledTimes(1)
     })
 
@@ -66,10 +63,10 @@ describe('Utils - crypto.ts', () => {
     it('should export hashObj from core library', () => {
       // hashObj is directly exported from core, so we just verify it exists
       const { hashObj: importedHashObj } = require('../../../src/utils/crypto')
-      
+
       // Verify it's a function
       expect(typeof importedHashObj).toBe('function')
-      
+
       // Verify it's the same as core.hashObj
       expect(importedHashObj).toBe(core.hashObj)
     })
@@ -93,11 +90,7 @@ describe('Utils - crypto.ts', () => {
       expect(mockSafeJsonParse).toHaveBeenCalledWith('{"test":"value"}')
 
       // Verify signObj was called with correct parameters
-      expect(mockSignObj).toHaveBeenCalledWith(
-        { test: 'value' },
-        'mock-secret-key',
-        'mock-public-key'
-      )
+      expect(mockSignObj).toHaveBeenCalledWith({ test: 'value' }, 'mock-secret-key', 'mock-public-key')
 
       expect(result).toEqual({ test: 'value' })
     })
@@ -132,7 +125,7 @@ describe('Utils - crypto.ts', () => {
     it('should create a deep copy of the object', () => {
       const mockSignObj = jest.fn()
       const originalObj = { data: { value: 'original' } }
-      
+
       // Mock to return a new object
       const mockSafeStringify = jest.fn().mockReturnValue('{"data":{"value":"original"}}')
       const mockSafeJsonParse = jest.fn().mockReturnValue({ data: { value: 'original' } })
@@ -161,20 +154,16 @@ describe('Utils - crypto.ts', () => {
 
       const result = sign(testArray)
 
-      expect(mockSignObj).toHaveBeenCalledWith(
-        [1, 2, 3, { nested: true }],
-        'mock-secret-key',
-        'mock-public-key'
-      )
+      expect(mockSignObj).toHaveBeenCalledWith([1, 2, 3, { nested: true }], 'mock-secret-key', 'mock-public-key')
       expect(result).toEqual(testArray)
     })
 
     it('should handle null and undefined values in objects', () => {
       const mockSignObj = jest.fn()
-      const testObj = { 
-        nullValue: null, 
+      const testObj = {
+        nullValue: null,
         undefinedValue: undefined,
-        validValue: 'test' 
+        validValue: 'test',
       }
 
       const mockSafeStringify = jest.fn().mockReturnValue('{"nullValue":null,"validValue":"test"}')
@@ -254,7 +243,7 @@ describe('Utils - crypto.ts', () => {
         'not an object',
       ]
 
-      malformedObjs.forEach(obj => {
+      malformedObjs.forEach((obj) => {
         const result = verify(obj as any)
         expect(result).toBe(false)
       })
@@ -298,8 +287,8 @@ describe('Utils - crypto.ts', () => {
         return obj
       })
       const mockVerifyObj = jest.fn().mockReturnValue(true)
-      const mockSafeStringify = jest.fn(obj => JSON.stringify(obj))
-      const mockSafeJsonParse = jest.fn(str => JSON.parse(str))
+      const mockSafeStringify = jest.fn((obj) => JSON.stringify(obj))
+      const mockSafeJsonParse = jest.fn((str) => JSON.parse(str))
 
       ;(core as jest.Mocked<typeof core>).signObj = mockSignObj
       ;(core as jest.Mocked<typeof core>).verifyObj = mockVerifyObj

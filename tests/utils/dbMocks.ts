@@ -4,10 +4,10 @@ import { join } from 'path'
 // Create an in-memory SQLite database for testing
 export const createTestDatabase = (): Database.Database => {
   const db = new Database(':memory:')
-  
+
   // Enable foreign keys
   db.exec('PRAGMA foreign_keys = ON')
-  
+
   return db
 }
 
@@ -152,7 +152,7 @@ export const createMockDbOperations = () => {
     all: mockAll,
     finalize: jest.fn(),
   })
-  
+
   return {
     run: mockRun,
     get: mockGet,

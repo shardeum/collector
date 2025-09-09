@@ -4,7 +4,7 @@ import { EventEmitter } from 'events'
 export class MockWebSocket extends EventEmitter {
   readyState: number = 1 // OPEN
   url: string
-  
+
   constructor(url: string) {
     super()
     this.url = url
@@ -55,7 +55,7 @@ export class MockWebSocket extends EventEmitter {
 export class MockSocketIO extends EventEmitter {
   connected = true
   id = 'mock-socket-id'
-  
+
   connect(): void {
     this.connected = true
     this.emit('connect')
@@ -88,7 +88,7 @@ export class MockRabbitMQChannel extends EventEmitter {
   nack = jest.fn()
   prefetch = jest.fn()
   close = jest.fn().mockResolvedValue({})
-  
+
   simulateMessage(data: any, deliveryTag = 1): void {
     const message = {
       content: Buffer.from(JSON.stringify(data)),
@@ -103,7 +103,7 @@ export class MockRabbitMQChannel extends EventEmitter {
         headers: {},
       },
     }
-    
+
     // Call the consumer callback if it was registered
     if (this.consume.mock.calls.length > 0) {
       const consumerCallback = this.consume.mock.calls[0][1]
@@ -116,11 +116,11 @@ export class MockRabbitMQChannel extends EventEmitter {
 export class MockRabbitMQConnection extends EventEmitter {
   createChannel = jest.fn().mockResolvedValue(new MockRabbitMQChannel())
   close = jest.fn().mockResolvedValue({})
-  
+
   simulateError(error: Error): void {
     this.emit('error', error)
   }
-  
+
   simulateClose(): void {
     this.emit('close')
   }
@@ -167,15 +167,15 @@ export const createMockFastifyReply = () => {
 // Mock WebSocket server for testing
 export class MockWebSocketServer extends EventEmitter {
   clients = new Set<MockWebSocket>()
-  
+
   handleUpgrade(request: any, socket: any, head: any, callback: (ws: MockWebSocket) => void): void {
     const ws = new MockWebSocket('ws://test')
     this.clients.add(ws)
     callback(ws)
   }
-  
+
   close(): void {
-    this.clients.forEach(client => client.close())
+    this.clients.forEach((client) => client.close())
     this.clients.clear()
     this.emit('close')
   }
@@ -183,14 +183,14 @@ export class MockWebSocketServer extends EventEmitter {
 
 // Network delay simulator
 export const simulateNetworkDelay = (ms = 100): Promise<void> => {
-  return new Promise(resolve => setTimeout(resolve, ms))
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 // Connection retry simulator
 export const createMockRetryableConnection = () => {
   let attempts = 0
   const maxAttempts = 3
-  
+
   return {
     connect: jest.fn().mockImplementation(async () => {
       attempts++
@@ -200,6 +200,8 @@ export const createMockRetryableConnection = () => {
       return new MockRabbitMQConnection()
     }),
     getAttempts: () => attempts,
-    reset: () => { attempts = 0 },
+    reset: () => {
+      attempts = 0
+    },
   }
 }

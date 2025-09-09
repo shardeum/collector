@@ -18,7 +18,7 @@ describe('Utils - block.ts', () => {
     // Reset config values to defaults
     config.blockIndexing.latestBehindBySeconds = 60
     config.verbose = false
-    
+
     // Spy on console.log
     consoleLogSpy = jest.spyOn(console, 'log').mockImplementation()
   })

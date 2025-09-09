@@ -102,14 +102,8 @@ describe('Utils - decodeEVMRawTx.ts', () => {
         })
 
       expect(() => getTransactionObj(mockTx)).toThrow('tx obj fail')
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        'Unable to get legacy transaction obj',
-        expect.any(Error)
-      )
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        'Unable to get transaction obj',
-        expect.any(Error)
-      )
+      expect(consoleLogSpy).toHaveBeenCalledWith('Unable to get legacy transaction obj', expect.any(Error))
+      expect(consoleLogSpy).toHaveBeenCalledWith('Unable to get transaction obj', expect.any(Error))
     })
   })
 
@@ -196,10 +190,7 @@ describe('Utils - decodeEVMRawTx.ts', () => {
       const result = getStakeTxBlobFromEVMTx(mockTransaction)
 
       expect(result).toBeUndefined()
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        'Unable to get stakeTxBlobFromEVMTx',
-        expect.any(Error)
-      )
+      expect(consoleLogSpy).toHaveBeenCalledWith('Unable to get stakeTxBlobFromEVMTx', expect.any(Error))
     })
 
     it('should handle invalid JSON data', () => {
@@ -216,10 +207,7 @@ describe('Utils - decodeEVMRawTx.ts', () => {
       const result = getStakeTxBlobFromEVMTx(mockTransaction)
 
       expect(result).toBeUndefined()
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        'Unable to get stakeTxBlobFromEVMTx',
-        expect.any(Error)
-      )
+      expect(consoleLogSpy).toHaveBeenCalledWith('Unable to get stakeTxBlobFromEVMTx', expect.any(Error))
     })
   })
 
@@ -228,8 +216,8 @@ describe('Utils - decodeEVMRawTx.ts', () => {
       const mockTxObj = {
         getSenderAddress: () => ({ toString: () => '0xSenderAddress' }),
         to: { toString: () => '0xRecipientAddress' },
-        nonce: { toString: (base: number) => base === 16 ? 'a5' : '165' },
-        value: { toString: (base: number) => base === 16 ? '1f4' : '500' },
+        nonce: { toString: (base: number) => (base === 16 ? 'a5' : '165') },
+        value: { toString: (base: number) => (base === 16 ? '1f4' : '500') },
         data: Buffer.from('testdata'),
       }
 
@@ -258,8 +246,8 @@ describe('Utils - decodeEVMRawTx.ts', () => {
       const mockTxObj = {
         getSenderAddress: () => ({ toString: () => '0xSender' }),
         to: null,
-        nonce: { toString: (base: number) => base === 16 ? '1' : '1' },
-        value: { toString: (base: number) => base === 16 ? '0' : '0' },
+        nonce: { toString: (base: number) => (base === 16 ? '1' : '1') },
+        value: { toString: (base: number) => (base === 16 ? '0' : '0') },
         data: Buffer.from('contractcode'),
       }
 

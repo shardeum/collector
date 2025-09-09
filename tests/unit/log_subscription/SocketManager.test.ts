@@ -11,14 +11,15 @@ import {
 
 describe('SocketManager', () => {
   // Mock SocketStream
-  const createMockSocket = (id: string): SocketStream => ({
-    socket: {
-      send: jest.fn(),
-      close: jest.fn(),
-      on: jest.fn(),
-      off: jest.fn(),
-    },
-  } as any)
+  const createMockSocket = (id: string): SocketStream =>
+    ({
+      socket: {
+        send: jest.fn(),
+        close: jest.fn(),
+        on: jest.fn(),
+        off: jest.fn(),
+      },
+    } as any)
 
   beforeEach(() => {
     // Clear all internal maps
@@ -26,7 +27,7 @@ describe('SocketManager', () => {
     logSubscriptionMap.clear()
     // Clear socket client map by removing all entries
     const socketIds = ['socket1', 'socket2', 'socket3']
-    socketIds.forEach(id => removeLogSocketClient(id))
+    socketIds.forEach((id) => removeLogSocketClient(id))
   })
 
   describe('Socket Client Management', () => {
@@ -171,7 +172,7 @@ describe('SocketManager', () => {
       const mockSocket = createMockSocket(socketId)
 
       addLogSocketClient(socketId, mockSocket)
-      
+
       // Should not throw
       expect(() => removeLogSubscriptionBySocketId(socketId)).not.toThrow()
       expect(getLogSocketClient(socketId)).toBeUndefined()
@@ -242,7 +243,7 @@ describe('SocketManager', () => {
 
     it('should maintain subscription integrity during concurrent operations', () => {
       const socketId = 'socket1'
-      
+
       // Simulate concurrent adds and removes
       for (let i = 0; i < 10; i++) {
         addLogSubscriptions(`sub${i}`, socketId, { address: [], topics: [] })

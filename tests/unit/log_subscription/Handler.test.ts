@@ -12,7 +12,7 @@ describe('Handler - EVM Log Subscription', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    
+
     // Setup mock connection
     mockSend = jest.fn()
     mockConnection = {
@@ -42,9 +42,7 @@ describe('Handler - EVM Log Subscription', () => {
       for (const { message, error } of testCases) {
         await evmLogSubscriptionHandler.onMessage(mockConnection, message, socketId)
 
-        expect(mockSend).toHaveBeenCalledWith(
-          JSON.stringify({ success: false, error })
-        )
+        expect(mockSend).toHaveBeenCalledWith(JSON.stringify({ success: false, error }))
         mockSend.mockClear()
       }
     })
@@ -54,9 +52,7 @@ describe('Handler - EVM Log Subscription', () => {
 
       await evmLogSubscriptionHandler.onMessage(mockConnection, message, socketId)
 
-      expect(mockSend).toHaveBeenCalledWith(
-        JSON.stringify({ success: false, error: 'method must be a string.' })
-      )
+      expect(mockSend).toHaveBeenCalledWith(JSON.stringify({ success: false, error: 'method must be a string.' }))
     })
 
     it('should reject messages with non-string method', async () => {
@@ -65,9 +61,7 @@ describe('Handler - EVM Log Subscription', () => {
       for (const method of invalidMethods) {
         await evmLogSubscriptionHandler.onMessage(mockConnection, { method }, socketId)
 
-        expect(mockSend).toHaveBeenCalledWith(
-          JSON.stringify({ success: false, error: 'method must be a string.' })
-        )
+        expect(mockSend).toHaveBeenCalledWith(JSON.stringify({ success: false, error: 'method must be a string.' }))
         mockSend.mockClear()
       }
     })
@@ -77,9 +71,7 @@ describe('Handler - EVM Log Subscription', () => {
 
       await evmLogSubscriptionHandler.onMessage(mockConnection, message, socketId)
 
-      expect(mockSend).toHaveBeenCalledWith(
-        JSON.stringify({ success: false, error: 'invalid method' })
-      )
+      expect(mockSend).toHaveBeenCalledWith(JSON.stringify({ success: false, error: 'invalid method' }))
     })
   })
 
@@ -95,14 +87,10 @@ describe('Handler - EVM Log Subscription', () => {
 
       await evmLogSubscriptionHandler.onMessage(mockConnection, message, socketId)
 
-      expect(SocketManager.addLogSubscriptions).toHaveBeenCalledWith(
-        'sub123',
-        socketId,
-        {
-          address: ['0x1234567890abcdef', '0xfedcba0987654321'], // lowercase
-          topics: [],
-        }
-      )
+      expect(SocketManager.addLogSubscriptions).toHaveBeenCalledWith('sub123', socketId, {
+        address: ['0x1234567890abcdef', '0xfedcba0987654321'], // lowercase
+        topics: [],
+      })
       expect(SocketManager.addLogSocketClient).toHaveBeenCalledWith(socketId, mockConnection)
       expect(mockSend).toHaveBeenCalledWith(
         JSON.stringify({
@@ -124,14 +112,10 @@ describe('Handler - EVM Log Subscription', () => {
 
       await evmLogSubscriptionHandler.onMessage(mockConnection, message, socketId)
 
-      expect(SocketManager.addLogSubscriptions).toHaveBeenCalledWith(
-        'sub456',
-        socketId,
-        {
-          address: [],
-          topics: ['0xtopic1', '0xtopic2', '0xtopic3'], // lowercase
-        }
-      )
+      expect(SocketManager.addLogSubscriptions).toHaveBeenCalledWith('sub456', socketId, {
+        address: [],
+        topics: ['0xtopic1', '0xtopic2', '0xtopic3'], // lowercase
+      })
     })
 
     it('should handle subscribe request with both address and topics', async () => {
@@ -146,14 +130,10 @@ describe('Handler - EVM Log Subscription', () => {
 
       await evmLogSubscriptionHandler.onMessage(mockConnection, message, socketId)
 
-      expect(SocketManager.addLogSubscriptions).toHaveBeenCalledWith(
-        'sub789',
-        socketId,
-        {
-          address: ['0xaddress1'],
-          topics: ['0xtopic1'],
-        }
-      )
+      expect(SocketManager.addLogSubscriptions).toHaveBeenCalledWith('sub789', socketId, {
+        address: ['0xaddress1'],
+        topics: ['0xtopic1'],
+      })
     })
 
     it('should reject subscribe without params', async () => {
@@ -276,14 +256,10 @@ describe('Handler - EVM Log Subscription', () => {
 
       await evmLogSubscriptionHandler.onMessage(mockConnection, message, socketId)
 
-      expect(SocketManager.addLogSubscriptions).toHaveBeenCalledWith(
-        'sub123',
-        socketId,
-        {
-          address: [],
-          topics: [],
-        }
-      )
+      expect(SocketManager.addLogSubscriptions).toHaveBeenCalledWith('sub123', socketId, {
+        address: [],
+        topics: [],
+      })
       expect(mockSend).toHaveBeenCalledWith(
         JSON.stringify({
           method: 'subscribe',
@@ -391,14 +367,10 @@ describe('Handler - EVM Log Subscription', () => {
 
       await evmLogSubscriptionHandler.onMessage(mockConnection, message, socketId)
 
-      expect(SocketManager.addLogSubscriptions).toHaveBeenCalledWith(
-        longId,
-        socketId,
-        {
-          address: ['0x123'],
-          topics: [],
-        }
-      )
+      expect(SocketManager.addLogSubscriptions).toHaveBeenCalledWith(longId, socketId, {
+        address: ['0x123'],
+        topics: [],
+      })
     })
 
     it('should handle special characters in subscription ID', async () => {
@@ -413,14 +385,10 @@ describe('Handler - EVM Log Subscription', () => {
 
       await evmLogSubscriptionHandler.onMessage(mockConnection, message, socketId)
 
-      expect(SocketManager.addLogSubscriptions).toHaveBeenCalledWith(
-        specialId,
-        socketId,
-        {
-          address: [],
-          topics: ['0xtopic'],
-        }
-      )
+      expect(SocketManager.addLogSubscriptions).toHaveBeenCalledWith(specialId, socketId, {
+        address: [],
+        topics: ['0xtopic'],
+      })
     })
 
     it('should handle socket send errors', async () => {
@@ -431,9 +399,9 @@ describe('Handler - EVM Log Subscription', () => {
       const message = { method: 'invalid' }
 
       // Should throw since the handler doesn't catch the error
-      await expect(
-        evmLogSubscriptionHandler.onMessage(mockConnection, message, socketId)
-      ).rejects.toThrow('Socket closed')
+      await expect(evmLogSubscriptionHandler.onMessage(mockConnection, message, socketId)).rejects.toThrow(
+        'Socket closed'
+      )
     })
 
     it('should handle multiple rapid subscribe/unsubscribe cycles', async () => {

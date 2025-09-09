@@ -43,10 +43,10 @@ describe('Account Storage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     testDb = new TestDatabase()
-    
+
     // Set default mock implementations
     mockDb.extractValues.mockImplementation((obj) => Object.values(obj))
-    mockDb.extractValuesFromArray.mockImplementation((arr) => arr.flatMap(obj => Object.values(obj)))
+    mockDb.extractValuesFromArray.mockImplementation((arr) => arr.flatMap((obj) => Object.values(obj)))
   })
 
   afterEach(() => {
@@ -249,10 +249,7 @@ describe('Account Storage', () => {
       const count = accountStorage.queryAccountCount(AccountSearchType.All)
 
       expect(count).toBe(200)
-      expect(mockDb.get).toHaveBeenCalledWith(
-        expect.stringContaining('SELECT COUNT(*) FROM accounts'),
-        []
-      )
+      expect(mockDb.get).toHaveBeenCalledWith(expect.stringContaining('SELECT COUNT(*) FROM accounts'), [])
     })
 
     it('should return count for contract accounts', () => {
@@ -328,7 +325,9 @@ describe('Account Storage', () => {
 
       expect(result).toHaveLength(2)
       expect(mockDb.all).toHaveBeenCalledWith(
-        expect.stringContaining('SELECT * FROM accounts WHERE accountType=? ORDER BY cycle DESC, timestamp DESC LIMIT 10 OFFSET 0'),
+        expect.stringContaining(
+          'SELECT * FROM accounts WHERE accountType=? ORDER BY cycle DESC, timestamp DESC LIMIT 10 OFFSET 0'
+        ),
         [AccountType.Account]
       )
     })
@@ -338,10 +337,7 @@ describe('Account Storage', () => {
 
       accountStorage.queryAccounts(20, 5)
 
-      expect(mockDb.all).toHaveBeenCalledWith(
-        expect.stringContaining('LIMIT 5 OFFSET 20'),
-        [AccountType.Account]
-      )
+      expect(mockDb.all).toHaveBeenCalledWith(expect.stringContaining('LIMIT 5 OFFSET 20'), [AccountType.Account])
     })
 
     it('should query all accounts when type is All', () => {
@@ -414,10 +410,7 @@ describe('Account Storage', () => {
       expect(result).toBeDefined()
       expect(result!.accountId).toBe(mockAccount.accountId)
       expect(result!.account).toEqual({ balance: '1000' })
-      expect(mockDb.get).toHaveBeenCalledWith(
-        'SELECT * FROM accounts WHERE accountId=?',
-        [mockAccount.accountId]
-      )
+      expect(mockDb.get).toHaveBeenCalledWith('SELECT * FROM accounts WHERE accountId=?', [mockAccount.accountId])
     })
 
     it('should return null when account not found', () => {
@@ -540,7 +533,7 @@ describe('Account Storage', () => {
 
       // The function will try to access undefined['COUNT(*)'] which throws
       expect(() => accountStorage.queryAccountCount()).toThrow()
-      
+
       const accountsResult = accountStorage.queryAccounts(0, 10)
       const accountResult = accountStorage.queryAccountByAccountId('test-id')
 
@@ -562,16 +555,13 @@ describe('Account Storage', () => {
 
     it('should handle SQL injection attempts safely', () => {
       const maliciousId = "'; DROP TABLE accounts; --"
-      
+
       mockDb.get.mockReturnValue(null)
-      
+
       accountStorage.queryAccountByAccountId(maliciousId)
-      
+
       // Should use parameterized query, not string concatenation
-      expect(mockDb.get).toHaveBeenCalledWith(
-        'SELECT * FROM accounts WHERE accountId=?',
-        [maliciousId]
-      )
+      expect(mockDb.get).toHaveBeenCalledWith('SELECT * FROM accounts WHERE accountId=?', [maliciousId])
     })
   })
 })

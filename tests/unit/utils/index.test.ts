@@ -23,7 +23,7 @@ describe('Utils - index.ts', () => {
       const emojiString = '🚀🌟💫✨🎉🎊🌈🦄'
       const result = short(emojiString)
       expect(result.length).toBeLessThanOrEqual(8)
-      
+
       expect(short('special!@#$%^&*()')).toBe('special!')
     })
   })
@@ -48,7 +48,7 @@ describe('Utils - index.ts', () => {
     describe('required field validation', () => {
       it('should validate required string fields', () => {
         const def = { name: 's', email: 's' }
-        
+
         expect(validateTypes({ name: 'John', email: 'john@example.com' }, def)).toBe('')
         expect(validateTypes({ name: 'John' }, def)).toBe('email is required')
         expect(validateTypes({ email: 'john@example.com' }, def)).toBe('name is required')
@@ -57,7 +57,7 @@ describe('Utils - index.ts', () => {
 
       it('should validate required number fields', () => {
         const def = { age: 'n', score: 'n' }
-        
+
         expect(validateTypes({ age: 25, score: 100 }, def)).toBe('')
         expect(validateTypes({ age: 25 }, def)).toBe('score is required')
         expect(validateTypes({ age: '25', score: 100 }, def)).toBe('age must be, number')
@@ -65,7 +65,7 @@ describe('Utils - index.ts', () => {
 
       it('should validate required boolean fields', () => {
         const def = { active: 'b', verified: 'b' }
-        
+
         expect(validateTypes({ active: true, verified: false }, def)).toBe('')
         expect(validateTypes({ active: true }, def)).toBe('verified is required')
         expect(validateTypes({ active: 'true', verified: false }, def)).toBe('active must be, boolean')
@@ -73,7 +73,7 @@ describe('Utils - index.ts', () => {
 
       it('should validate required bigint fields', () => {
         const def = { value: 'B' }
-        
+
         expect(validateTypes({ value: BigInt(123) }, def)).toBe('')
         expect(validateTypes({ value: 123 }, def)).toBe('value must be, bigint')
         expect(validateTypes({}, def)).toBe('value is required')
@@ -81,7 +81,7 @@ describe('Utils - index.ts', () => {
 
       it('should validate required array fields', () => {
         const def = { items: 'a', tags: 'a' }
-        
+
         expect(validateTypes({ items: [1, 2, 3], tags: ['a', 'b'] }, def)).toBe('')
         expect(validateTypes({ items: [], tags: [] }, def)).toBe('')
         expect(validateTypes({ items: 'not array', tags: [] }, def)).toBe('items must be, array')
@@ -90,7 +90,7 @@ describe('Utils - index.ts', () => {
 
       it('should validate required object fields', () => {
         const def = { config: 'o', metadata: 'o' }
-        
+
         expect(validateTypes({ config: {}, metadata: { key: 'value' } }, def)).toBe('')
         expect(validateTypes({ config: [], metadata: {} }, def)).toBe('config must be, object')
         expect(validateTypes({ config: {} }, def)).toBe('metadata is required')
@@ -100,7 +100,7 @@ describe('Utils - index.ts', () => {
     describe('optional field validation', () => {
       it('should allow optional fields to be missing', () => {
         const def = { name: 's', age: 'n?', email: 's?' }
-        
+
         expect(validateTypes({ name: 'John' }, def)).toBe('')
         expect(validateTypes({ name: 'John', age: 25 }, def)).toBe('')
         expect(validateTypes({ name: 'John', email: 'john@example.com' }, def)).toBe('')
@@ -109,20 +109,20 @@ describe('Utils - index.ts', () => {
 
       it('should validate optional fields when present', () => {
         const def = { name: 's', age: 'n?' }
-        
+
         expect(validateTypes({ name: 'John', age: 'not a number' }, def)).toBe('age must be, number')
       })
 
       it('should handle null values for optional fields', () => {
         const def = { name: 's', age: 'n?' }
-        
+
         // null is not a valid number, even for optional fields
         expect(validateTypes({ name: 'John', age: null }, def)).toBe('age must be, number')
       })
 
       it('should not allow null for required fields', () => {
         const def = { name: 's', age: 'n' }
-        
+
         expect(validateTypes({ name: null, age: 25 }, def)).toBe('name cannot be null')
         expect(validateTypes({ name: 'John', age: null }, def)).toBe('age cannot be null')
       })
@@ -131,7 +131,7 @@ describe('Utils - index.ts', () => {
     describe('multi-type field validation', () => {
       it('should allow fields with multiple valid types', () => {
         const def = { value: 'sn' } // string or number
-        
+
         expect(validateTypes({ value: 'text' }, def)).toBe('')
         expect(validateTypes({ value: 123 }, def)).toBe('')
         expect(validateTypes({ value: true }, def)).toBe('value must be, string, number')
@@ -139,7 +139,7 @@ describe('Utils - index.ts', () => {
 
       it('should handle optional multi-type fields', () => {
         const def = { value: 'sn?' } // optional string or number
-        
+
         expect(validateTypes({}, def)).toBe('')
         expect(validateTypes({ value: 'text' }, def)).toBe('')
         expect(validateTypes({ value: 123 }, def)).toBe('')
@@ -149,7 +149,7 @@ describe('Utils - index.ts', () => {
 
       it('should validate complex multi-type combinations', () => {
         const def = { data: 'sao' } // string, array, or object
-        
+
         expect(validateTypes({ data: 'text' }, def)).toBe('')
         expect(validateTypes({ data: [1, 2, 3] }, def)).toBe('')
         expect(validateTypes({ data: { key: 'value' } }, def)).toBe('')
@@ -164,23 +164,22 @@ describe('Utils - index.ts', () => {
 
       it('should only check fields defined in def', () => {
         const def = { name: 's' }
-        
+
         expect(validateTypes({ name: 'John', extra: 'field', another: 123 }, def)).toBe('')
       })
 
       it('should handle arrays correctly (not as objects)', () => {
         const def = { items: 'a', config: 'o' }
-        
+
         expect(validateTypes({ items: [], config: [] }, def)).toBe('config must be, object')
         expect(validateTypes({ items: {}, config: {} }, def)).toBe('items must be, array')
       })
 
       it('should validate fields in order and return first error', () => {
         const def = { first: 's', second: 'n', third: 'b' }
-        
+
         expect(validateTypes({ second: 'wrong', third: 'wrong' }, def)).toBe('first is required')
-        expect(validateTypes({ first: 'ok', second: 'wrong', third: 'wrong' }, def))
-          .toBe('second must be, number')
+        expect(validateTypes({ first: 'ok', second: 'wrong', third: 'wrong' }, def)).toBe('second must be, number')
       })
     })
   })
@@ -196,17 +195,17 @@ describe('Utils - index.ts', () => {
 
     it('should resolve after specified time', async () => {
       const sleepPromise = sleep(1000)
-      
+
       // Should not resolve immediately
       expect(jest.getTimerCount()).toBe(1)
-      
+
       // Fast-forward time
       jest.advanceTimersByTime(999)
       expect(jest.getTimerCount()).toBe(1)
-      
+
       // Complete the timeout
       jest.advanceTimersByTime(1)
-      
+
       const result = await sleepPromise
       expect(result).toBe(true)
     })
@@ -232,17 +231,17 @@ describe('Utils - index.ts', () => {
 
       jest.advanceTimersByTime(100)
       expect(await sleep1).toBe(true)
-      
+
       jest.advanceTimersByTime(100)
       expect(await sleep2).toBe(true)
-      
+
       jest.advanceTimersByTime(100)
       expect(await sleep3).toBe(true)
     })
 
     it('should always resolve to true', async () => {
       const times = [0, 1, 10, 100, 1000]
-      
+
       for (const time of times) {
         const result = sleep(time)
         jest.advanceTimersByTime(time)

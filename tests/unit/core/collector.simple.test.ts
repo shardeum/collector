@@ -124,7 +124,7 @@ describe('Collector Core', () => {
   describe('Error Handling', () => {
     it('should handle invalid JSON gracefully', () => {
       const invalidJson = '{"invalid": json}'
-      
+
       expect(() => {
         try {
           JSON.parse(invalidJson)
@@ -167,7 +167,7 @@ describe('Collector Core', () => {
   describe('Data Consistency', () => {
     it('should maintain transaction-receipt relationship', () => {
       const txHash = '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
-      
+
       const transaction = {
         txHash,
         blockNumber: 100,

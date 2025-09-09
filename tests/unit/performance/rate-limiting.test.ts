@@ -37,7 +37,7 @@ describe('Rate Limiting Tests', () => {
           // New window
           requestCounts.set(ip, {
             count: 1,
-            resetTime: now + windowMs
+            resetTime: now + windowMs,
           })
           return true
         }
@@ -73,7 +73,7 @@ describe('Rate Limiting Tests', () => {
         if (!record || currentTime > record.resetTime) {
           requestCounts.set(ip, {
             count: 1,
-            resetTime: currentTime + windowMs
+            resetTime: currentTime + windowMs,
           })
           return true
         }
@@ -117,7 +117,7 @@ describe('Rate Limiting Tests', () => {
         if (!record || now > record.resetTime) {
           requestCounts.set(ip, {
             count: 1,
-            resetTime: now + 60000
+            resetTime: now + 60000,
           })
           return true
         }
@@ -154,7 +154,7 @@ describe('Rate Limiting Tests', () => {
       async function simulateConcurrentRequest(ip: string): Promise<boolean> {
         const id = ++requestId
         // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, Math.random() * 10))
+        await new Promise((resolve) => setTimeout(resolve, Math.random() * 10))
 
         const now = Date.now()
         let record = requestCounts.get(ip)
@@ -174,13 +174,15 @@ describe('Rate Limiting Tests', () => {
       }
 
       const ip = '192.168.1.100'
-      
+
       // Send 10 concurrent requests
-      const promises = Array(10).fill(0).map(() => simulateConcurrentRequest(ip))
+      const promises = Array(10)
+        .fill(0)
+        .map(() => simulateConcurrentRequest(ip))
       const results = await Promise.all(promises)
 
       // Exactly 5 should succeed
-      const successCount = results.filter(r => r === true).length
+      const successCount = results.filter((r) => r === true).length
       expect(successCount).toBe(5)
     })
 
@@ -208,16 +210,16 @@ describe('Rate Limiting Tests', () => {
 
       // Test multiple IPs concurrently
       const ips = ['10.0.0.1', '10.0.0.2', '10.0.0.3']
-      
+
       // Each IP makes 3 requests (the limit)
-      ips.forEach(ip => {
+      ips.forEach((ip) => {
         for (let i = 0; i < 3; i++) {
           expect(checkRateLimit(ip)).toBe(true)
         }
       })
 
       // All IPs should be at their limit
-      ips.forEach(ip => {
+      ips.forEach((ip) => {
         expect(checkRateLimit(ip)).toBe(false)
       })
 
@@ -238,7 +240,7 @@ describe('Rate Limiting Tests', () => {
         return {
           'x-ratelimit-limit': maxRequests.toString(),
           'x-ratelimit-remaining': remainingRequests.toString(),
-          'x-ratelimit-reset': new Date(resetTime).toISOString()
+          'x-ratelimit-reset': new Date(resetTime).toISOString(),
         }
       }
 
@@ -288,7 +290,7 @@ describe('Rate Limiting Tests', () => {
       expect(checkRateLimit(null)).toBe(true)
       expect(checkRateLimit(undefined)).toBe(true)
       expect(checkRateLimit('')).toBe(true)
-      
+
       // All should be counted under 'unknown'
       expect(checkRateLimit(null)).toBe(true)
       expect(checkRateLimit(undefined)).toBe(true)
@@ -298,17 +300,17 @@ describe('Rate Limiting Tests', () => {
 
     test('should handle race conditions in cleanup', () => {
       const requestCounts = new Map<string, { count: number; resetTime: number }>()
-      
+
       function cleanupExpiredEntries(currentTime: number) {
         const entriesToDelete: string[] = []
-        
+
         requestCounts.forEach((record, ip) => {
           if (currentTime > record.resetTime) {
             entriesToDelete.push(ip)
           }
         })
 
-        entriesToDelete.forEach(ip => requestCounts.delete(ip))
+        entriesToDelete.forEach((ip) => requestCounts.delete(ip))
         return entriesToDelete.length
       }
 

@@ -28,7 +28,7 @@ describe('CollectorListener', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     socketEventHandlers = new Map()
-    
+
     // Create mock socket
     mockSocket = {
       on: jest.fn((event: string, handler: Function) => {
@@ -50,13 +50,10 @@ describe('CollectorListener', () => {
     it('should connect to collector with correct URL and options', async () => {
       await setupCollectorListener()
 
-      expect(socketClient.connect).toHaveBeenCalledWith(
-        `http://${config.host}:${config.port.collector}`,
-        {
-          reconnection: true,
-          reconnectionAttempts: 10,
-        }
-      )
+      expect(socketClient.connect).toHaveBeenCalledWith(`http://${config.host}:${config.port.collector}`, {
+        reconnection: true,
+        reconnectionAttempts: 10,
+      })
     })
 
     it('should register all required event handlers', async () => {
@@ -95,33 +92,33 @@ describe('CollectorListener', () => {
   describe('Cycle Data Handler', () => {
     it('should handle valid cycle data', async () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
-      
+
       await setupCollectorListener()
 
-      const cycleData = [{
-        cycleRecord: {
-          counter: 1,
-          cycleMarker: '0x123',
+      const cycleData = [
+        {
+          cycleRecord: {
+            counter: 1,
+            cycleMarker: '0x123',
+          },
         },
-      }]
+      ]
 
       const handler = socketEventHandlers.get('/data/cycle')!
       await handler(cycleData)
 
       expect(consoleSpy).toHaveBeenCalledWith(
         'Received archived cycle data, valid? ',
-        1  // The check evaluates to 1 (truthy) not true
+        1 // The check evaluates to 1 (truthy) not true
       )
-      expect(consoleSpy).toHaveBeenCalledWith(
-        `Cycle data: ${JSON.stringify(cycleData, null, 2)}`
-      )
+      expect(consoleSpy).toHaveBeenCalledWith(`Cycle data: ${JSON.stringify(cycleData, null, 2)}`)
 
       consoleSpy.mockRestore()
     })
 
     it('should handle invalid cycle data', async () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
-      
+
       await setupCollectorListener()
 
       const testCases = [
@@ -136,10 +133,7 @@ describe('CollectorListener', () => {
         const handler = socketEventHandlers.get('/data/cycle')!
         await handler(data)
 
-        expect(consoleSpy).toHaveBeenCalledWith(
-          'Received archived cycle data, valid? ',
-          expected
-        )
+        expect(consoleSpy).toHaveBeenCalledWith('Received archived cycle data, valid? ', expected)
         consoleSpy.mockClear()
       }
 
@@ -174,7 +168,7 @@ describe('CollectorListener', () => {
 
     it('should process receipts with logs and send to subscribers', async () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
-      
+
       await setupCollectorListener()
 
       // Setup test data
@@ -236,9 +230,7 @@ describe('CollectorListener', () => {
 
       // Verify filtering
       expect(mockIndexedLogs.filter).toHaveBeenCalledWith(subscription.filterOptions)
-      expect(consoleSpy).toHaveBeenCalledWith(
-        `Number of logs found for subscription sub1: ${filteredLogs.length}`
-      )
+      expect(consoleSpy).toHaveBeenCalledWith(`Number of logs found for subscription sub1: ${filteredLogs.length}`)
 
       // Verify sending to socket
       expect(mockedSocketManager.getLogSocketClient).toHaveBeenCalledWith('socket1')
@@ -255,7 +247,7 @@ describe('CollectorListener', () => {
 
     it('should skip processing when no logs found', async () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
-      
+
       await setupCollectorListener()
 
       const receipts = [{ id: 'receipt1' }]
@@ -314,9 +306,7 @@ describe('CollectorListener', () => {
       })
 
       // Mock different filter results
-      mockIndexedLogs.filter
-        .mockReturnValueOnce([logs[0]])
-        .mockReturnValueOnce([logs[1]])
+      mockIndexedLogs.filter.mockReturnValueOnce([logs[0]]).mockReturnValueOnce([logs[1]])
 
       // Mock socket clients
       const mockSocket1 = { socket: { send: jest.fn() } }
@@ -337,7 +327,7 @@ describe('CollectorListener', () => {
 
     it('should handle missing socket client gracefully', async () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
-      
+
       await setupCollectorListener()
 
       const receipts = [{ id: 'receipt1' }]
@@ -373,9 +363,7 @@ describe('CollectorListener', () => {
       await handler(receipts)
 
       // Should not throw and should log filter result
-      expect(consoleSpy).toHaveBeenCalledWith(
-        `Number of logs found for subscription sub1: ${logs.length}`
-      )
+      expect(consoleSpy).toHaveBeenCalledWith(`Number of logs found for subscription sub1: ${logs.length}`)
 
       consoleSpy.mockRestore()
     })
@@ -384,7 +372,7 @@ describe('CollectorListener', () => {
   describe('Block Data Handler', () => {
     it('should send block data to all newHeads subscribers', async () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
-      
+
       await setupCollectorListener()
 
       // Setup subscribers
@@ -392,7 +380,7 @@ describe('CollectorListener', () => {
       const mockSend2 = jest.fn()
       const subscriber1 = { socket: { send: mockSend1 } }
       const subscriber2 = { socket: { send: mockSend2 } }
-      
+
       newHeadsSubscribers.add(subscriber1 as any)
       newHeadsSubscribers.add(subscriber2 as any)
 
@@ -411,15 +399,9 @@ describe('CollectorListener', () => {
       expect(consoleSpy).toHaveBeenCalledWith('Received new block data')
 
       // Verify both subscribers received data - JSON key order may vary
-      expect(mockSend1).toHaveBeenCalledWith(
-        expect.stringContaining('"method":"newBlock_produced"')
-      )
-      expect(mockSend1).toHaveBeenCalledWith(
-        expect.stringContaining('"number":123')
-      )
-      expect(mockSend1).toHaveBeenCalledWith(
-        expect.stringContaining('"hash":"0xabc"')
-      )
+      expect(mockSend1).toHaveBeenCalledWith(expect.stringContaining('"method":"newBlock_produced"'))
+      expect(mockSend1).toHaveBeenCalledWith(expect.stringContaining('"number":123'))
+      expect(mockSend1).toHaveBeenCalledWith(expect.stringContaining('"hash":"0xabc"'))
       expect(mockSend2).toHaveBeenCalledTimes(1)
 
       consoleSpy.mockRestore()
@@ -427,7 +409,7 @@ describe('CollectorListener', () => {
 
     it('should handle send errors gracefully', async () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation()
-      
+
       await setupCollectorListener()
 
       // Setup subscriber that throws
@@ -442,22 +424,20 @@ describe('CollectorListener', () => {
       const handler = socketEventHandlers.get('/data/block')!
       await handler(blockData)
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Error sending block data to subscriber: Error: Socket closed'
-      )
+      expect(consoleSpy).toHaveBeenCalledWith('Error sending block data to subscriber: Error: Socket closed')
 
       consoleSpy.mockRestore()
     })
 
     it('should handle empty subscriber list', async () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
-      
+
       await setupCollectorListener()
 
       const blockData = { number: 123 }
 
       const handler = socketEventHandlers.get('/data/block')!
-      
+
       // Should not throw
       await expect(handler(blockData)).resolves.not.toThrow()
 
@@ -488,16 +468,10 @@ describe('CollectorListener', () => {
       const handler = socketEventHandlers.get('/data/block')!
       await handler(complexBlockData)
 
-      expect(mockSend).toHaveBeenCalledWith(
-        expect.stringContaining('"method":"newBlock_produced"')
-      )
+      expect(mockSend).toHaveBeenCalledWith(expect.stringContaining('"method":"newBlock_produced"'))
       // Check for key pieces of the complex data
-      expect(mockSend).toHaveBeenCalledWith(
-        expect.stringContaining('"number":123')
-      )
-      expect(mockSend).toHaveBeenCalledWith(
-        expect.stringContaining('"transactions":["0xtx1","0xtx2"]')
-      )
+      expect(mockSend).toHaveBeenCalledWith(expect.stringContaining('"number":123'))
+      expect(mockSend).toHaveBeenCalledWith(expect.stringContaining('"transactions":["0xtx1","0xtx2"]'))
     })
   })
 
@@ -521,7 +495,7 @@ describe('CollectorListener', () => {
 
       for (const handlerName of handlers) {
         const handler = socketEventHandlers.get(handlerName)!
-        
+
         for (const data of malformedData) {
           // Should not throw
           await expect(handler(data)).resolves.not.toThrow()

@@ -20,7 +20,7 @@ describe('Utils - string.ts', () => {
     it('should handle very large bigints beyond Number.MAX_SAFE_INTEGER', () => {
       const veryLarge = BigInt('123456789012345678901234567890')
       expect(bigIntToHex(veryLarge)).toBe('0x18ee90ff6c373e0ee4e3f0ad2')
-      
+
       const maxUint256 = BigInt('115792089237316195423570985008687907853269984665640564039457584007913129639935')
       expect(bigIntToHex(maxUint256)).toBe('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')
     })
@@ -36,7 +36,7 @@ describe('Utils - string.ts', () => {
     it('should handle edge cases', () => {
       // Zero
       expect(bigIntToHex(BigInt(0))).toBe('0x0')
-      
+
       // Powers of 2
       expect(bigIntToHex(BigInt(2) ** BigInt(8))).toBe('0x100')
       expect(bigIntToHex(BigInt(2) ** BigInt(16))).toBe('0x10000')
@@ -73,7 +73,7 @@ describe('Utils - string.ts', () => {
         BigInt('12345678901234567890'),
       ]
 
-      testValues.forEach(value => {
+      testValues.forEach((value) => {
         const hex = bigIntToHex(value)
         const converted = BigInt(hex)
         expect(converted).toEqual(value)

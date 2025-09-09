@@ -3,12 +3,12 @@ import { jest } from '@jest/globals'
 // Environment setup helpers
 export const setupTestEnvironment = (overrides = {}) => {
   const originalEnv = process.env
-  
+
   beforeEach(() => {
     jest.resetModules()
     process.env = { ...originalEnv, ...overrides }
   })
-  
+
   afterEach(() => {
     process.env = originalEnv
   })
@@ -19,12 +19,12 @@ export const useTestTimers = () => {
   beforeEach(() => {
     jest.useFakeTimers()
   })
-  
+
   afterEach(() => {
     jest.runOnlyPendingTimers()
     jest.useRealTimers()
   })
-  
+
   return {
     advanceTime: (ms: number) => jest.advanceTimersByTime(ms),
     runAllTimers: () => jest.runAllTimers(),
@@ -39,21 +39,21 @@ export const waitFor = async (
   interval = 100
 ): Promise<void> => {
   const startTime = Date.now()
-  
+
   while (Date.now() - startTime < timeout) {
     if (await condition()) {
       return
     }
-    await new Promise(resolve => setTimeout(resolve, interval))
+    await new Promise((resolve) => setTimeout(resolve, interval))
   }
-  
+
   throw new Error(`Condition not met within ${timeout}ms`)
 }
 
 // Mock console helpers
 export const mockConsole = () => {
   const originalConsole = { ...console }
-  
+
   beforeEach(() => {
     console.log = jest.fn()
     console.error = jest.fn()
@@ -61,7 +61,7 @@ export const mockConsole = () => {
     console.info = jest.fn()
     console.debug = jest.fn()
   })
-  
+
   afterEach(() => {
     console.log = originalConsole.log
     console.error = originalConsole.error
@@ -69,7 +69,7 @@ export const mockConsole = () => {
     console.info = originalConsole.info
     console.debug = originalConsole.debug
   })
-  
+
   return {
     getLogCalls: () => (console.log as jest.Mock).mock.calls,
     getErrorCalls: () => (console.error as jest.Mock).mock.calls,
@@ -78,18 +78,15 @@ export const mockConsole = () => {
 }
 
 // Error testing helpers
-export const expectAsyncError = async (
-  asyncFn: () => Promise<any>,
-  errorMessage?: string | RegExp
-): Promise<void> => {
+export const expectAsyncError = async (asyncFn: () => Promise<any>, errorMessage?: string | RegExp): Promise<void> => {
   let error: Error | null = null
-  
+
   try {
     await asyncFn()
   } catch (e) {
     error = e as Error
   }
-  
+
   expect(error).not.toBeNull()
   if (errorMessage) {
     if (typeof errorMessage === 'string') {
@@ -114,11 +111,11 @@ export const spyOnModule = <T>(module: T, method: keyof T) => {
 // Test data cleanup helpers
 export class TestDataManager {
   private cleanupFns: Array<() => void | Promise<void>> = []
-  
+
   addCleanup(fn: () => void | Promise<void>): void {
     this.cleanupFns.push(fn)
   }
-  
+
   async cleanup(): Promise<void> {
     for (const fn of this.cleanupFns.reverse()) {
       await fn()
@@ -135,9 +132,9 @@ export const measurePerformance = async <T>(
   const start = performance.now()
   const result = await fn()
   const duration = performance.now() - start
-  
+
   console.log(`${label}: ${duration.toFixed(2)}ms`)
-  
+
   return { result, duration }
 }
 
@@ -154,7 +151,7 @@ export const isolateTest = (testFn: () => void | Promise<void>) => {
   return async () => {
     // Save current state
     const originalTimeout = jasmine.DEFAULT_TIMEOUT_INTERVAL
-    
+
     try {
       await testFn()
     } finally {

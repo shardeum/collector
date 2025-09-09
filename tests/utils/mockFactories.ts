@@ -1,4 +1,10 @@
-import { generateAddress, generateTxHash, generateBlockHash, generateTimestamp, generateMockSignature } from './testUtils'
+import {
+  generateAddress,
+  generateTxHash,
+  generateBlockHash,
+  generateTimestamp,
+  generateMockSignature,
+} from './testUtils'
 
 // Account mock factory
 export const createMockAccount = (overrides = {}) => {

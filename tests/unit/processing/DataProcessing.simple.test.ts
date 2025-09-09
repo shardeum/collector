@@ -44,7 +44,7 @@ describe('Data Processing - Simple Tests', () => {
       const initialValue = DataSync.needSyncing
       DataSync.toggleNeedSyncing()
       expect(DataSync.needSyncing).toBe(!initialValue)
-      
+
       // Toggle back to original state
       DataSync.toggleNeedSyncing()
       expect(DataSync.needSyncing).toBe(initialValue)

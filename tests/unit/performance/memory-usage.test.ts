@@ -18,11 +18,11 @@ describe('Memory Usage Under Load Tests', () => {
 
         processItem(item: any) {
           this.processedCount++
-          
+
           // Simulate caching with eviction
           const key = `item_${item.id}`
           this.cache.set(key, item)
-          
+
           // Evict old entries if cache is too large
           if (this.cache.size > this.maxCacheSize) {
             const firstKey = this.cache.keys().next().value
@@ -33,7 +33,7 @@ describe('Memory Usage Under Load Tests', () => {
         getStats() {
           return {
             processed: this.processedCount,
-            cacheSize: this.cache.size
+            cacheSize: this.cache.size,
           }
         }
 
@@ -43,7 +43,7 @@ describe('Memory Usage Under Load Tests', () => {
       }
 
       const processor = new DataProcessor()
-      
+
       // Process many items
       for (let i = 0; i < 10000; i++) {
         processor.processItem({ id: i, data: `data_${i}` })
@@ -52,7 +52,7 @@ describe('Memory Usage Under Load Tests', () => {
       const stats = processor.getStats()
       expect(stats.processed).toBe(10000)
       expect(stats.cacheSize).toBeLessThanOrEqual(1000)
-      
+
       // Clean up
       processor.clear()
     })
@@ -105,18 +105,18 @@ describe('Memory Usage Under Load Tests', () => {
       }
 
       const list = new CircularList()
-      
+
       // Create circular references
       const node1 = list.addNode(1, 'first')
       const node2 = list.addNode(2, 'second')
       list.linkNodes(node1, node2)
-      
+
       expect(list.getNodeCount()).toBe(2)
-      
+
       // Verify circular reference
       expect(node1.next).toBe(node2)
       expect(node2.prev).toBe(node1)
-      
+
       // Clear references properly
       list.clear()
       expect(list.getNodeCount()).toBe(0)
@@ -135,11 +135,7 @@ describe('Memory Usage Under Load Tests', () => {
         private created = 0
         private borrowed = 0
 
-        constructor(
-          createFn: () => T,
-          resetFn: (obj: T) => void,
-          maxSize: number = 100
-        ) {
+        constructor(createFn: () => T, resetFn: (obj: T) => void, maxSize: number = 100) {
           this.createFn = createFn
           this.resetFn = resetFn
           this.maxSize = maxSize
@@ -167,7 +163,7 @@ describe('Memory Usage Under Load Tests', () => {
             poolSize: this.pool.length,
             created: this.created,
             borrowed: this.borrowed,
-            reused: this.borrowed - this.created
+            reused: this.borrowed - this.created,
           }
         }
       }
@@ -181,7 +177,8 @@ describe('Memory Usage Under Load Tests', () => {
 
       const requestPool = new ObjectPool<Request>(
         () => ({}), // Create empty object
-        (obj) => {  // Reset object
+        (obj) => {
+          // Reset object
           delete obj.id
           delete obj.data
           delete obj.timestamp
@@ -194,9 +191,9 @@ describe('Memory Usage Under Load Tests', () => {
         req.id = i
         req.data = { value: i * 2 }
         req.timestamp = Date.now()
-        
+
         // Process request...
-        
+
         requestPool.release(req)
       }
 
@@ -227,7 +224,7 @@ describe('Memory Usage Under Load Tests', () => {
             uniqueStrings: this.strings.size,
             lookups: this.lookups,
             hits: this.hits,
-            hitRate: this.hits / this.lookups
+            hitRate: this.hits / this.lookups,
           }
         }
       }
@@ -241,7 +238,7 @@ describe('Memory Usage Under Load Tests', () => {
         const status = commonStrings[i % commonStrings.length]
         data.push({
           id: i,
-          status: interner.intern(status)
+          status: interner.intern(status),
         })
       }
 
@@ -268,11 +265,11 @@ describe('Memory Usage Under Load Tests', () => {
           while (this.position < this.totalSize) {
             const chunk = []
             const end = Math.min(this.position + this.chunkSize, this.totalSize)
-            
+
             for (let i = this.position; i < end; i++) {
               chunk.push({ id: i, data: `item_${i}` })
             }
-            
+
             this.position = end
             yield chunk
           }
@@ -282,7 +279,7 @@ describe('Memory Usage Under Load Tests', () => {
           return {
             processed: this.position,
             total: this.totalSize,
-            percentage: (this.position / this.totalSize) * 100
+            percentage: (this.position / this.totalSize) * 100,
           }
         }
       }
@@ -294,7 +291,7 @@ describe('Memory Usage Under Load Tests', () => {
       for await (const chunk of stream.read()) {
         totalProcessed += chunk.length
         maxChunkSize = Math.max(maxChunkSize, chunk.length)
-        
+
         // Process chunk...
         // Chunk is garbage collected after processing
       }
@@ -317,13 +314,13 @@ describe('Memory Usage Under Load Tests', () => {
 
         add(data: T, timestamp: number = Date.now()) {
           this.buffer.push({ timestamp, data })
-          
+
           // Remove old entries outside window
           const cutoff = timestamp - this.windowSize
           while (this.buffer.length > 0 && this.buffer[0].timestamp < cutoff) {
             this.buffer.shift()
           }
-          
+
           // Limit total items
           while (this.buffer.length > this.maxItems) {
             this.buffer.shift()
@@ -331,17 +328,15 @@ describe('Memory Usage Under Load Tests', () => {
         }
 
         getItems(since?: number): T[] {
-          const cutoff = since || (Date.now() - this.windowSize)
-          return this.buffer
-            .filter(item => item.timestamp >= cutoff)
-            .map(item => item.data)
+          const cutoff = since || Date.now() - this.windowSize
+          return this.buffer.filter((item) => item.timestamp >= cutoff).map((item) => item.data)
         }
 
         getStats() {
           return {
             count: this.buffer.length,
             oldest: this.buffer[0]?.timestamp,
-            newest: this.buffer[this.buffer.length - 1]?.timestamp
+            newest: this.buffer[this.buffer.length - 1]?.timestamp,
           }
         }
       }
@@ -356,7 +351,7 @@ describe('Memory Usage Under Load Tests', () => {
 
       const stats = window.getStats()
       expect(stats.count).toBeLessThanOrEqual(100) // Max items limit
-      
+
       // Get recent items
       const recent = window.getItems(baseTime + 15000) // Last 5 seconds from 15s mark
       expect(recent.length).toBeGreaterThan(0)
@@ -373,10 +368,10 @@ describe('Memory Usage Under Load Tests', () => {
         recordSample() {
           // In real implementation, would use process.memoryUsage()
           const mockHeapUsed = Math.random() * 100 * 1024 * 1024 // 0-100MB
-          
+
           this.samples.push({
             timestamp: Date.now(),
-            heapUsed: mockHeapUsed
+            heapUsed: mockHeapUsed,
           })
 
           if (this.samples.length > this.maxSamples) {
@@ -389,7 +384,7 @@ describe('Memory Usage Under Load Tests', () => {
             return null
           }
 
-          const heapValues = this.samples.map(s => s.heapUsed)
+          const heapValues = this.samples.map((s) => s.heapUsed)
           const avg = heapValues.reduce((a, b) => a + b, 0) / heapValues.length
           const max = Math.max(...heapValues)
           const min = Math.min(...heapValues)
@@ -399,7 +394,7 @@ describe('Memory Usage Under Load Tests', () => {
             avgHeapMB: avg / (1024 * 1024),
             maxHeapMB: max / (1024 * 1024),
             minHeapMB: min / (1024 * 1024),
-            trend: this.calculateTrend()
+            trend: this.calculateTrend(),
           }
         }
 
@@ -436,9 +431,9 @@ describe('Memory Usage Under Load Tests', () => {
     test('should implement memory pressure handling', () => {
       class MemoryPressureManager {
         private thresholds = {
-          low: 0.5,    // 50% heap usage
-          medium: 0.7,  // 70% heap usage
-          high: 0.85   // 85% heap usage
+          low: 0.5, // 50% heap usage
+          medium: 0.7, // 70% heap usage
+          high: 0.85, // 85% heap usage
         }
         private handlers = new Map<string, () => void>()
 

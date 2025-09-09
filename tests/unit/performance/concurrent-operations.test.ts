@@ -15,7 +15,7 @@ describe('Concurrent Operations Tests', () => {
         async read(key: string): Promise<any> {
           this.readCount++
           // Simulate async read operation
-          await new Promise(resolve => setImmediate(resolve))
+          await new Promise((resolve) => setImmediate(resolve))
           return this.data.get(key)
         }
 
@@ -36,18 +36,14 @@ describe('Concurrent Operations Tests', () => {
       // Perform concurrent reads
       const readPromises = []
       for (let i = 0; i < 10; i++) {
-        readPromises.push(
-          store.read('key1'),
-          store.read('key2'),
-          store.read('key3')
-        )
+        readPromises.push(store.read('key1'), store.read('key2'), store.read('key3'))
       }
 
       const results = await Promise.all(readPromises)
-      
-      expect(results.filter(r => r === 'value1')).toHaveLength(10)
-      expect(results.filter(r => r === 'value2')).toHaveLength(10)
-      expect(results.filter(r => r === 'value3')).toHaveLength(10)
+
+      expect(results.filter((r) => r === 'value1')).toHaveLength(10)
+      expect(results.filter((r) => r === 'value2')).toHaveLength(10)
+      expect(results.filter((r) => r === 'value3')).toHaveLength(10)
       expect(store.getReadCount()).toBe(30)
     })
 
@@ -59,7 +55,7 @@ describe('Concurrent Operations Tests', () => {
 
         async acquireLock(key: string): Promise<() => void> {
           while (this.locks.has(key)) {
-            await new Promise<void>(resolve => {
+            await new Promise<void>((resolve) => {
               if (!this.lockQueue.has(key)) {
                 this.lockQueue.set(key, [])
               }
@@ -68,7 +64,7 @@ describe('Concurrent Operations Tests', () => {
           }
 
           let releaseLock: () => void
-          const lockPromise = new Promise<void>(resolve => {
+          const lockPromise = new Promise<void>((resolve) => {
             releaseLock = () => {
               this.locks.delete(key)
               const queue = this.lockQueue.get(key)
@@ -88,7 +84,7 @@ describe('Concurrent Operations Tests', () => {
           const release = await this.acquireLock(key)
           try {
             // Simulate write delay
-            await new Promise(resolve => setTimeout(resolve, 10))
+            await new Promise((resolve) => setTimeout(resolve, 10))
             this.data.set(key, value)
           } finally {
             release()
@@ -118,7 +114,7 @@ describe('Concurrent Operations Tests', () => {
 
       // All writes should complete
       expect(writeResults).toHaveLength(5)
-      
+
       // Final value should be from one of the writes
       const finalValue = await store.read('key1')
       expect(finalValue).toMatch(/^value[0-4]$/)
@@ -139,7 +135,7 @@ describe('Concurrent Operations Tests', () => {
 
         write(key: string, value: any, expectedVersion?: number): boolean {
           const current = this.data.get(key)
-          
+
           if (expectedVersion !== undefined) {
             // Check version for update
             if (!current || current.version !== expectedVersion) {
@@ -154,22 +150,22 @@ describe('Concurrent Operations Tests', () => {
       }
 
       const store = new OptimisticStore()
-      
+
       // Initial write
       expect(store.write('key1', 'initial')).toBe(true)
-      
+
       // Read current version
       const v1 = store.read('key1')
       expect(v1?.version).toBe(1)
-      
+
       // Concurrent updates
       const update1 = store.write('key1', 'update1', 1)
       const update2 = store.write('key1', 'update2', 1)
-      
+
       // Only one should succeed
       expect(update1).toBe(true)
       expect(update2).toBe(false)
-      
+
       // Verify final state
       const final = store.read('key1')
       expect(final?.value).toBe('update1')
@@ -181,7 +177,11 @@ describe('Concurrent Operations Tests', () => {
     test('should manage worker pool for concurrent tasks', async () => {
       class WorkerPool {
         private workers: Worker[] = []
-        private taskQueue: Array<{ task: () => Promise<any>; resolve: (value: any) => void; reject: (error: any) => void }> = []
+        private taskQueue: Array<{
+          task: () => Promise<any>
+          resolve: (value: any) => void
+          reject: (error: any) => void
+        }> = []
         private busyWorkers = new Set<Worker>()
 
         constructor(private poolSize: number) {
@@ -198,7 +198,7 @@ describe('Concurrent Operations Tests', () => {
         }
 
         private async processQueue() {
-          const availableWorker = this.workers.find(w => !this.busyWorkers.has(w))
+          const availableWorker = this.workers.find((w) => !this.busyWorkers.has(w))
           if (!availableWorker || this.taskQueue.length === 0) return
 
           const { task, resolve, reject } = this.taskQueue.shift()!
@@ -219,7 +219,7 @@ describe('Concurrent Operations Tests', () => {
           return {
             total: this.workers.length,
             busy: this.busyWorkers.size,
-            queued: this.taskQueue.length
+            queued: this.taskQueue.length,
           }
         }
       }
@@ -241,7 +241,7 @@ describe('Concurrent Operations Tests', () => {
       for (let i = 0; i < 10; i++) {
         tasks.push(
           pool.execute(async () => {
-            await new Promise(resolve => setTimeout(resolve, 10))
+            await new Promise((resolve) => setTimeout(resolve, 10))
             results.push(i)
             return i
           })
@@ -249,7 +249,7 @@ describe('Concurrent Operations Tests', () => {
       }
 
       const taskResults = await Promise.all(tasks)
-      
+
       expect(taskResults).toHaveLength(10)
       expect(results).toHaveLength(10)
       expect(new Set(results).size).toBe(10) // All unique values
@@ -296,18 +296,9 @@ describe('Concurrent Operations Tests', () => {
       const executionOrder: string[] = []
 
       // Add tasks with different priorities
-      queue.enqueue(
-        { priority: 1, id: 'low', execute: async () => executionOrder.push('low') },
-        1
-      )
-      queue.enqueue(
-        { priority: 5, id: 'high', execute: async () => executionOrder.push('high') },
-        5
-      )
-      queue.enqueue(
-        { priority: 3, id: 'medium', execute: async () => executionOrder.push('medium') },
-        3
-      )
+      queue.enqueue({ priority: 1, id: 'low', execute: async () => executionOrder.push('low') }, 1)
+      queue.enqueue({ priority: 5, id: 'high', execute: async () => executionOrder.push('high') }, 5)
+      queue.enqueue({ priority: 3, id: 'medium', execute: async () => executionOrder.push('medium') }, 3)
 
       // Execute in priority order
       while (queue.size() > 0) {
@@ -339,7 +330,7 @@ describe('Concurrent Operations Tests', () => {
               release: () => {
                 this.connections--
                 this.waiting = Math.max(0, this.waiting - 1)
-              }
+              },
             }
           }
 
@@ -352,7 +343,7 @@ describe('Concurrent Operations Tests', () => {
           return {
             active: this.connections,
             waiting: this.waiting,
-            available: this.maxConnections - this.connections
+            available: this.maxConnections - this.connections,
           }
         }
       }
@@ -362,7 +353,7 @@ describe('Concurrent Operations Tests', () => {
       // Get all available connections
       const conn1 = await pool.getConnection()
       const conn2 = await pool.getConnection()
-      
+
       expect(pool.getStats().active).toBe(2)
       expect(pool.getStats().available).toBe(0)
 
@@ -399,10 +390,7 @@ describe('Concurrent Operations Tests', () => {
           }
         }
 
-        async acquireMultiple(
-          holderId: string,
-          resourceIds: string[]
-        ): Promise<() => void> {
+        async acquireMultiple(holderId: string, resourceIds: string[]): Promise<() => void> {
           // Sort resources by lock order to prevent deadlocks
           const sortedIds = [...resourceIds].sort((a, b) => {
             const orderA = this.lockOrder.get(a) ?? Infinity
@@ -440,7 +428,7 @@ describe('Concurrent Operations Tests', () => {
               if (!lock) {
                 this.locks.set(resourceId, {
                   order: this.lockOrder.get(resourceId) ?? 0,
-                  holders: new Set([holderId])
+                  holders: new Set([holderId]),
                 })
               } else {
                 lock.holders.add(holderId)
@@ -448,7 +436,7 @@ describe('Concurrent Operations Tests', () => {
               return
             }
             // Wait a bit and retry
-            await new Promise(resolve => setImmediate(resolve))
+            await new Promise((resolve) => setImmediate(resolve))
           }
         }
 
@@ -471,7 +459,7 @@ describe('Concurrent Operations Tests', () => {
       const process1 = async () => {
         const release = await lockManager.acquireMultiple('p1', ['B', 'A']) // Will be sorted to A, B
         results.push('p1_acquired')
-        await new Promise(resolve => setTimeout(resolve, 10))
+        await new Promise((resolve) => setTimeout(resolve, 10))
         release()
         results.push('p1_released')
       }
@@ -479,7 +467,7 @@ describe('Concurrent Operations Tests', () => {
       const process2 = async () => {
         const release = await lockManager.acquireMultiple('p2', ['A', 'B']) // Already in order
         results.push('p2_acquired')
-        await new Promise(resolve => setTimeout(resolve, 10))
+        await new Promise((resolve) => setTimeout(resolve, 10))
         release()
         results.push('p2_released')
       }
@@ -521,7 +509,7 @@ describe('Concurrent Operations Tests', () => {
       }
 
       const counter = new AtomicCounter()
-      
+
       // Simulate concurrent increments
       const increments = 100
       for (let i = 0; i < increments; i++) {
@@ -556,7 +544,7 @@ describe('Concurrent Operations Tests', () => {
 
           while (this.items.length >= this.maxSize) {
             // Wait for space
-            await new Promise<void>(resolve => {
+            await new Promise<void>((resolve) => {
               this.once('dequeued', resolve)
             })
             if (this.closed) return false
@@ -594,7 +582,7 @@ describe('Concurrent Operations Tests', () => {
       await queue.enqueue(3)
 
       // This should block until space is available
-      const enqueuePromise = queue.enqueue(4).then(result => {
+      const enqueuePromise = queue.enqueue(4).then((result) => {
         enqueueResults.push(result)
         return result
       })

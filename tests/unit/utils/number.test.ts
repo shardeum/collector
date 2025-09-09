@@ -87,7 +87,7 @@ describe('Utils - number.ts', () => {
     it('should correctly identify the type at runtime', () => {
       const values: unknown[] = [42, '42', NaN, null, undefined, true]
       const results = values.map(isNumber)
-      
+
       expect(results).toEqual([true, false, false, false, false, false])
     })
 

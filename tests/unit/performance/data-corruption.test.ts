@@ -10,7 +10,7 @@ describe('Data Corruption Scenarios', () => {
     test('should detect corrupted JSON data', () => {
       const validData = { id: 1, name: 'test', value: 100 }
       const validJson = JSON.stringify(validData)
-      
+
       // Test various corruption scenarios
       const corruptedScenarios = [
         validJson.slice(0, -1), // Missing closing brace
@@ -24,13 +24,13 @@ describe('Data Corruption Scenarios', () => {
       corruptedScenarios.forEach((corrupted, index) => {
         let parsed = null
         let error = null
-        
+
         try {
           parsed = JSON.parse(corrupted)
         } catch (e) {
           error = e
         }
-        
+
         expect(error).not.toBeNull()
         expect(parsed).toBeNull()
       })
@@ -75,11 +75,8 @@ describe('Data Corruption Scenarios', () => {
       function createPacket(payload: any): DataPacket {
         const header = { version: 1, timestamp: Date.now() }
         const data = { header, payload }
-        const checksum = crypto
-          .createHash('sha256')
-          .update(JSON.stringify(data))
-          .digest('hex')
-        
+        const checksum = crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex')
+
         return { header, payload, checksum }
       }
 
@@ -110,7 +107,7 @@ describe('Data Corruption Scenarios', () => {
             .createHash('sha256')
             .update(JSON.stringify({ header: packet.header, payload: packet.payload }))
             .digest('hex')
-          
+
           if (expectedChecksum !== packet.checksum) {
             errors.push('Checksum mismatch')
           }
@@ -146,7 +143,7 @@ describe('Data Corruption Scenarios', () => {
         private constraints = {
           uniqueId: true,
           notNull: ['id', 'name'],
-          foreignKeys: new Map<string, Set<string>>()
+          foreignKeys: new Map<string, Set<string>>(),
         }
 
         insert(record: any): { success: boolean; error?: string } {
@@ -200,7 +197,7 @@ describe('Data Corruption Scenarios', () => {
 
         insert(id: string, record: any) {
           this.data.set(id, record)
-          
+
           // Update indexes
           for (const [field, value] of Object.entries(record)) {
             if (!this.index.has(field)) {
@@ -213,7 +210,7 @@ describe('Data Corruption Scenarios', () => {
         rebuildIndex() {
           // Clear corrupted index
           this.index.clear()
-          
+
           // Rebuild from data
           for (const [id, record] of this.data.entries()) {
             for (const [field, value] of Object.entries(record)) {
@@ -236,18 +233,18 @@ describe('Data Corruption Scenarios', () => {
       }
 
       const storage = new IndexedStorage()
-      
+
       // Insert data
       storage.insert('1', { name: 'Alice', age: 25 })
       storage.insert('2', { name: 'Bob', age: 30 })
-      
+
       // Verify index works
       expect(storage.queryByField('name')).toHaveLength(2)
-      
+
       // Corrupt the index
       storage.corruptIndex()
       expect(storage.queryByField('name')).toContain('invalid-id-1')
-      
+
       // Rebuild and verify
       storage.rebuildIndex()
       const results = storage.queryByField('name')
@@ -264,25 +261,25 @@ describe('Data Corruption Scenarios', () => {
         const corrupted = Buffer.from(data)
         const byteIndex = Math.floor(position / 8)
         const bitIndex = position % 8
-        
+
         if (byteIndex < corrupted.length) {
-          corrupted[byteIndex] ^= (1 << bitIndex)
+          corrupted[byteIndex] ^= 1 << bitIndex
         }
-        
+
         return corrupted
       }
 
       function calculateCRC32(data: Buffer): number {
-        let crc = 0xFFFFFFFF
-        
+        let crc = 0xffffffff
+
         for (let i = 0; i < data.length; i++) {
           crc ^= data[i]
           for (let j = 0; j < 8; j++) {
-            crc = (crc >>> 1) ^ (0xEDB88320 & -(crc & 1))
+            crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1))
           }
         }
-        
-        return crc ^ 0xFFFFFFFF
+
+        return crc ^ 0xffffffff
       }
 
       const originalData = Buffer.from('Important transaction data')
@@ -341,11 +338,11 @@ describe('Data Corruption Scenarios', () => {
       const validMessage: Message = {
         header: { length: 15, type: 'data' }, // Length of JSON.stringify("Hello, World!")
         body: 'Hello, World!',
-        footer: { checksum: 'abc123' }
+        footer: { checksum: 'abc123' },
       }
 
       const serialized = serializeMessage(validMessage)
-      
+
       // Test valid message
       const result1 = deserializeMessage(serialized)
       expect(result1.message).toBeDefined()
@@ -360,7 +357,7 @@ describe('Data Corruption Scenarios', () => {
       // Test message with wrong length
       const wrongLength: Message = {
         ...validMessage,
-        header: { length: 999, type: 'data' }
+        header: { length: 999, type: 'data' },
       }
       const result3 = deserializeMessage(serializeMessage(wrongLength))
       expect(result3.error).toBe('Length mismatch')
@@ -370,15 +367,11 @@ describe('Data Corruption Scenarios', () => {
   describe('Recovery Mechanisms', () => {
     test('should implement data redundancy', () => {
       class RedundantStorage {
-        private replicas: Map<string, any>[] = [
-          new Map(),
-          new Map(),
-          new Map()
-        ]
+        private replicas: Map<string, any>[] = [new Map(), new Map(), new Map()]
 
         write(key: string, value: any): boolean {
           let successCount = 0
-          
+
           for (const replica of this.replicas) {
             try {
               replica.set(key, JSON.parse(JSON.stringify(value))) // Deep copy
@@ -394,7 +387,7 @@ describe('Data Corruption Scenarios', () => {
 
         read(key: string): { value: any; confidence: number } | null {
           const values = new Map<string, number>() // value -> count
-          
+
           for (const replica of this.replicas) {
             const value = replica.get(key)
             if (value !== undefined) {
@@ -408,7 +401,7 @@ describe('Data Corruption Scenarios', () => {
           // Find most common value
           let maxCount = 0
           let consensusValue = null
-          
+
           for (const [serialized, count] of values.entries()) {
             if (count > maxCount) {
               maxCount = count
@@ -418,7 +411,7 @@ describe('Data Corruption Scenarios', () => {
 
           return {
             value: consensusValue,
-            confidence: maxCount / this.replicas.length
+            confidence: maxCount / this.replicas.length,
           }
         }
 
@@ -430,7 +423,7 @@ describe('Data Corruption Scenarios', () => {
       }
 
       const storage = new RedundantStorage()
-      
+
       // Write data
       const writeSuccess = storage.write('key1', { data: 'important' })
       expect(writeSuccess).toBe(true)
@@ -442,7 +435,7 @@ describe('Data Corruption Scenarios', () => {
 
       // Corrupt one replica
       storage.corruptReplica(0, 'key1')
-      
+
       // Should still read correct value with reduced confidence
       const result2 = storage.read('key1')
       expect(result2?.value).toEqual({ data: 'important' })
@@ -502,31 +495,31 @@ describe('Data Corruption Scenarios', () => {
       }
 
       const store = new TransactionalStore()
-      
+
       // Set initial data
       store.set('balance', 1000)
-      
+
       // Start transaction
       store.beginTransaction()
       store.set('balance', 500)
       store.set('pending', true)
-      
+
       // Values visible in transaction
       expect(store.get('balance')).toBe(500)
       expect(store.get('pending')).toBe(true)
-      
+
       // Rollback
       store.rollback()
-      
+
       // Original values restored
       expect(store.get('balance')).toBe(1000)
       expect(store.get('pending')).toBeUndefined()
-      
+
       // Test commit
       store.beginTransaction()
       store.set('balance', 750)
       store.commit()
-      
+
       expect(store.get('balance')).toBe(750)
     })
   })
