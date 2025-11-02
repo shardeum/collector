@@ -1,7 +1,7 @@
 import * as db from './sqlite3storage'
 import { extractValues, extractValuesFromArray } from './sqlite3storage'
 import { config } from '../config/index'
-import { AccountType, AccountSearchType, WrappedEVMAccount, Account, Token, ContractType, AccountCopy } from '../types'
+import { AccountType, AccountSearchType, WrappedEVMAccount, Account, Token, ContractType, AccountCopy, ContractInfo } from '../types'
 import { bytesToHex } from '@ethereumjs/util'
 import { getContractInfo } from '../class/TxDecoder'
 import { isShardeumIndexerEnabled } from '.'
@@ -249,7 +249,7 @@ export function queryAccountsBetweenCycles(
   return accounts
 }
 
-export function queryTokensByAddress(address: string, detail = false): object[] {
+export async function queryTokensByAddress(address: string, detail = false): Promise<object[]> {
   try {
     const sql = `SELECT * FROM tokens WHERE ethAddress=?`
     const tokens = db.all(sql, [address]) as Token[]
@@ -259,14 +259,34 @@ export function queryTokensByAddress(address: string, detail = false): object[] 
         const accountExist = queryAccountByAccountId(
           contractAddress.slice(2).toLowerCase() + '0'.repeat(24) //Search by Shardus address
         )
-        if (accountExist && accountExist.contractType) {
-          filterTokens.push({
-            contractAddress: contractAddress,
-            contractInfo: accountExist.contractInfo,
-            contractType: accountExist.contractType,
-            balance: tokenValue,
-          })
+        
+        let contractInfo: ContractInfo | null = accountExist?.contractInfo || null
+        let contractType: ContractType | null = accountExist?.contractType || null
+        
+        // If contract info is missing, try to fetch it
+        if (!contractInfo) {
+          try {
+            const fetchedInfo = await getContractInfo(contractAddress)
+            contractInfo = fetchedInfo.contractInfo
+            contractType = fetchedInfo.contractType
+            
+            // Update the account record with the newly fetched info if account exists
+            if (accountExist) {
+              accountExist.contractInfo = contractInfo
+              accountExist.contractType = contractType
+              insertAccount(accountExist)
+            }
+          } catch (e) {
+            if (config.verbose) console.log(`Failed to fetch contract info for ${contractAddress}:`, e)
+          }
         }
+        
+        filterTokens.push({
+          contractAddress: contractAddress,
+          contractInfo: contractInfo,
+          contractType: contractType,
+          balance: tokenValue,
+        })
       }
     }
     if (config.verbose) console.log('Tokens of an address', tokens)

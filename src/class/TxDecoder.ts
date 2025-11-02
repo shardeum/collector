@@ -483,8 +483,9 @@ export const getContractInfo = async (
     contractInfo.name = await Token.methods.name().call()
     if (config.verbose) console.log('Token Name', contractInfo.name)
     contractInfo.symbol = await Token.methods.symbol().call()
-    contractInfo.totalSupply = await Token.methods.totalSupply().call()
-    contractInfo.decimals = await Token.methods.decimals().call()
+    const totalSupplyRaw = await Token.methods.totalSupply().call()
+    contractInfo.totalSupply = Number(totalSupplyRaw)
+    contractInfo.decimals = String(await Token.methods.decimals().call())
     foundCorrectContract = true
     contractType = ContractType.ERC_20
     // await sleep(200); // Awaiting a bit to refresh the service points of the validator
