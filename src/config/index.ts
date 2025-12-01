@@ -117,9 +117,9 @@ let config: Config = {
   RECONNECT_INTERVAL_MS: 10_000,
   processData: {
     indexReceipt: true,
-    indexOriginalTxData: false,
-    decodeContractInfo: false,
-    decodeTokenTransfer: false,
+    indexOriginalTxData: true,
+    decodeContractInfo: true,
+    decodeTokenTransfer: true,
   },
   enableTxHashCache: false,
   findTxHashInOriginalTx: false,
